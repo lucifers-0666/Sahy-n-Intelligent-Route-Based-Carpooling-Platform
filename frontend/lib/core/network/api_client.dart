@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:sahyan/core/network/api_config.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -21,26 +22,8 @@ class ApiClient {
   static String? _resolvedBaseUrl;
 
   ApiClient({String? baseUrl, http.Client? client})
-    : baseUrl = baseUrl ?? _defaultBaseUrl,
+    : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl,
       _client = client ?? http.Client();
-
-  static const List<String> _androidCandidateHosts = [
-    'http://127.0.0.1:5000/api/v1', // 1. USB cable via adb reverse (fastest: ~2ms)
-    'http://localhost:5000/api/v1', // 2. USB localhost
-    'http://10.153.237.149:5000/api/v1', // 3. Local Wi-Fi network
-    'http://10.0.2.2:5000/api/v1', // 4. Android emulator
-  ];
-
-  static String get _defaultBaseUrl {
-    const String envUrl = String.fromEnvironment('API_BASE_URL');
-    if (envUrl.isNotEmpty) {
-      return envUrl;
-    }
-    if (kIsWeb || !Platform.isAndroid) {
-      return 'http://localhost:5000/api/v1';
-    }
-    return _androidCandidateHosts.first;
-  }
 
   /// Probes candidate hosts concurrently on Android to establish the fastest working connection
   Future<String> _resolveEffectiveBaseUrl() async {
@@ -52,16 +35,16 @@ class ApiClient {
       return envUrl;
     }
 
-    if (kIsWeb || !Platform.isAndroid) {
-      _resolvedBaseUrl = 'http://localhost:5000/api/v1';
+    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+      _resolvedBaseUrl = ApiConfig.defaultBaseUrl;
       return _resolvedBaseUrl!;
     }
 
     try {
-      final futures = _androidCandidateHosts.map((candidate) async {
+      final futures = ApiConfig.candidateHosts.map((candidate) async {
         try {
           final pingUri = Uri.parse(
-            candidate.replaceAll('/api/v1', '/api/health'),
+            candidate.replaceAll('/api/v1', ApiConfig.healthEndpoint),
           );
           final res = await _client
               .get(pingUri)
@@ -83,7 +66,7 @@ class ApiClient {
       }
     } catch (_) {}
 
-    _resolvedBaseUrl = _androidCandidateHosts.first;
+    _resolvedBaseUrl = ApiConfig.candidateHosts.first;
     return _resolvedBaseUrl!;
   }
 

@@ -10,6 +10,7 @@ import 'package:sahyan/features/auth/presentation/screens/reset_password_screen.
 import 'package:sahyan/features/auth/presentation/screens/otp_screen.dart';
 import 'package:sahyan/features/home/presentation/screens/home_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/search_results_screen.dart';
+import 'package:sahyan/features/rides/presentation/screens/offer_ride_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/ride_details_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/seat_selection_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/confirm_pay_screen.dart';
@@ -120,9 +121,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/offer-ride',
-              builder: (context, state) => const Scaffold(
-                body: Center(child: Text('Offer a Ride Screen')),
-              ),
+              builder: (context, state) => const OfferRideScreen(),
             ),
           ],
         ),
