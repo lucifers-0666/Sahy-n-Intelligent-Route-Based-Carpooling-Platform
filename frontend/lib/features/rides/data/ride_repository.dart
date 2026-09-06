@@ -1,5 +1,6 @@
 import 'package:sahyan/core/network/api_client.dart';
 import 'package:sahyan/core/services/route_service.dart';
+import 'package:sahyan/features/rides/domain/ride_search_result.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 
@@ -27,6 +28,21 @@ abstract class RideRepository {
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
+  });
+
+  Future<List<RideSearchResult>> searchRides({
+    LocationModel? origin,
+    LocationModel? destination,
+    String? originText,
+    String? destinationText,
+    DateTime? departureDate,
+    int seats = 1,
+    double maxPickupDistanceKm = 30,
+    double maxDropDistanceKm = 30,
+    int timeWindowHours = 4,
+    String? pickupPolicy,
+    double? minContribution,
+    double? maxContribution,
   });
 }
 
@@ -117,15 +133,16 @@ class RideRepositoryImpl implements RideRepository {
     required LocationModel destination,
   }) async {
     try {
-      final response = await apiClient.post('/rides/calculate-route', body: {
-        'origin': origin.toJson(),
-        'destination': destination.toJson(),
-      });
+      final response = await apiClient.post(
+        '/rides/calculate-route',
+        body: {'origin': origin.toJson(), 'destination': destination.toJson()},
+      );
 
       if (response is Map<String, dynamic> && response['success'] == true) {
         return RouteInfo(
           encodedPolyline: response['encodedPolyline'] as String? ?? '',
-          distanceMeters: (response['distanceMeters'] as num?)?.toDouble() ?? 0.0,
+          distanceMeters:
+              (response['distanceMeters'] as num?)?.toDouble() ?? 0.0,
           durationSeconds: (response['durationSeconds'] as num?)?.toInt() ?? 0,
         );
       }
@@ -162,5 +179,86 @@ class RideRepositoryImpl implements RideRepository {
       distanceMeters: adjustedDistanceMeters,
       durationSeconds: durationSeconds,
     );
+  }
+
+  @override
+  Future<List<RideSearchResult>> searchRides({
+    LocationModel? origin,
+    LocationModel? destination,
+    String? originText,
+    String? destinationText,
+    DateTime? departureDate,
+    int seats = 1,
+    double maxPickupDistanceKm = 30,
+    double maxDropDistanceKm = 30,
+    int timeWindowHours = 4,
+    String? pickupPolicy,
+    double? minContribution,
+    double? maxContribution,
+  }) async {
+    final queryParams = <String, String>{
+      'seats': seats.toString(),
+      'maxPickupDistanceKm': maxPickupDistanceKm.toString(),
+      'maxDropDistanceKm': maxDropDistanceKm.toString(),
+      'timeWindowHours': timeWindowHours.toString(),
+    };
+
+    if (origin != null && origin.latitude != 0.0 && origin.longitude != 0.0) {
+      queryParams['originLat'] = origin.latitude.toString();
+      queryParams['originLng'] = origin.longitude.toString();
+    }
+    final oText =
+        originText ??
+        (origin?.name.isNotEmpty == true ? origin?.name : origin?.city);
+    if (oText != null && oText.isNotEmpty) {
+      queryParams['originText'] = oText;
+    }
+
+    if (destination != null &&
+        destination.latitude != 0.0 &&
+        destination.longitude != 0.0) {
+      queryParams['destLat'] = destination.latitude.toString();
+      queryParams['destLng'] = destination.longitude.toString();
+    }
+    final dText =
+        destinationText ??
+        (destination?.name.isNotEmpty == true
+            ? destination?.name
+            : destination?.city);
+    if (dText != null && dText.isNotEmpty) {
+      queryParams['destText'] = dText;
+    }
+
+    if (departureDate != null) {
+      queryParams['departureDate'] = departureDate.toIso8601String();
+    }
+
+    if (pickupPolicy != null && pickupPolicy.isNotEmpty) {
+      queryParams['pickupPolicy'] = pickupPolicy;
+    }
+
+    if (minContribution != null) {
+      queryParams['minContribution'] = minContribution.toString();
+    }
+
+    if (maxContribution != null) {
+      queryParams['maxContribution'] = maxContribution.toString();
+    }
+
+    final queryString = Uri(queryParameters: queryParams).query;
+    final path = queryString.isNotEmpty
+        ? '/rides/search?$queryString'
+        : '/rides/search';
+    final response = await apiClient.get(path);
+
+    if (response is Map<String, dynamic> && response['results'] is List) {
+      final list = response['results'] as List<dynamic>;
+      return list
+          .whereType<Map<String, dynamic>>()
+          .map((json) => RideSearchResult.fromJson(json))
+          .toList();
+    }
+
+    return [];
   }
 }

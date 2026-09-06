@@ -108,8 +108,8 @@ class RideModel extends Equatable {
     this.pickupPolicy = PickupPolicy.nearby,
     required this.amenities,
     this.notes,
-  })  : _fallbackDistanceKm = routeDistanceKm,
-        _fallbackDurationMins = durationMins;
+  }) : _fallbackDistanceKm = routeDistanceKm,
+       _fallbackDurationMins = durationMins;
 
   double get routeDistanceKm =>
       route != null ? route!.distanceKm : _fallbackDistanceKm;
@@ -133,7 +133,8 @@ class RideModel extends Equatable {
       driverPhoto = d['profileImage'] ?? d['profilePhoto'];
       isDriverVerified = d['isVerified'] ?? d['isPhoneVerified'] ?? false;
     } else {
-      driverId = json['driverId'] ?? (json['driver'] is String ? json['driver'] : '');
+      driverId =
+          json['driverId'] ?? (json['driver'] is String ? json['driver'] : '');
       driverName = json['driverName'] ?? 'Driver';
       driverRating = (json['driverRating'] as num?)?.toDouble() ?? 4.8;
       driverPhoto = json['driverPhoto'];
@@ -173,7 +174,8 @@ class RideModel extends Equatable {
         parsedDateTime = tryDate;
       }
     } else if (json['dateTime'] != null) {
-      parsedDateTime = DateTime.tryParse(json['dateTime'].toString()) ?? DateTime.now();
+      parsedDateTime =
+          DateTime.tryParse(json['dateTime'].toString()) ?? DateTime.now();
     }
 
     String depTimeStr = '';
@@ -196,7 +198,9 @@ class RideModel extends Equatable {
     } else if (json['estimatedArrival'] != null) {
       arrTimeStr = json['estimatedArrival'].toString();
     } else if (routeInfo != null) {
-      final arr = parsedDateTime.add(Duration(seconds: routeInfo.durationSeconds));
+      final arr = parsedDateTime.add(
+        Duration(seconds: routeInfo.durationSeconds),
+      );
       arrTimeStr = DateFormat('hh:mm a').format(arr);
     }
 
@@ -224,8 +228,9 @@ class RideModel extends Equatable {
 
     // 6. Resolve Pickup Policy
     final rawPolicy = json['pickupPolicy'] as String? ?? 'nearby';
-    final pickupPolicy =
-        rawPolicy == 'exact' ? PickupPolicy.exact : PickupPolicy.nearby;
+    final pickupPolicy = rawPolicy == 'exact'
+        ? PickupPolicy.exact
+        : PickupPolicy.nearby;
 
     return RideModel(
       id: json['id'] ?? json['_id'] ?? '',
@@ -248,9 +253,13 @@ class RideModel extends Equatable {
           (json['contributionPerSeat'] as num?)?.toDouble() ?? 0.0,
       matchPercentage: (json['matchPercentage'] as num?)?.toInt() ?? 100,
       routeDistanceKm:
-          (json['routeDistanceKm'] as num?)?.toDouble() ?? routeInfo?.distanceKm ?? 0.0,
+          (json['routeDistanceKm'] as num?)?.toDouble() ??
+          routeInfo?.distanceKm ??
+          0.0,
       durationMins:
-          (json['durationMins'] as num?)?.toInt() ?? routeInfo?.durationMinutes ?? 0,
+          (json['durationMins'] as num?)?.toInt() ??
+          routeInfo?.durationMinutes ??
+          0,
       status: rideStatus,
       pickupPolicy: pickupPolicy,
       amenities: List<String>.from(json['amenities'] ?? []),
@@ -343,29 +352,29 @@ class RideModel extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        driverId,
-        driverName,
-        driverRating,
-        driverPhoto,
-        isDriverVerified,
-        vehicle,
-        origin,
-        destination,
-        route,
-        dateTime,
-        departureTime,
-        estimatedArrival,
-        availableSeats,
-        totalSeats,
-        bookedSeats,
-        contributionPerSeat,
-        matchPercentage,
-        routeDistanceKm,
-        durationMins,
-        status,
-        pickupPolicy,
-        amenities,
-        notes,
-      ];
+    id,
+    driverId,
+    driverName,
+    driverRating,
+    driverPhoto,
+    isDriverVerified,
+    vehicle,
+    origin,
+    destination,
+    route,
+    dateTime,
+    departureTime,
+    estimatedArrival,
+    availableSeats,
+    totalSeats,
+    bookedSeats,
+    contributionPerSeat,
+    matchPercentage,
+    routeDistanceKm,
+    durationMins,
+    status,
+    pickupPolicy,
+    amenities,
+    notes,
+  ];
 }

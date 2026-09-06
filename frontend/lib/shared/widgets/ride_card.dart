@@ -5,14 +5,28 @@ import '../models/ride_model.dart';
 import '../../core/widgets/verification_badge.dart';
 import '../../core/widgets/rating_display.dart';
 
+import 'package:sahyan/features/rides/domain/ride_search_result.dart';
+
 class RideCard extends StatelessWidget {
   final RideModel ride;
+  final RideSearchResult? searchResult;
   final VoidCallback onTap;
 
-  const RideCard({super.key, required this.ride, required this.onTap});
+  const RideCard({
+    super.key,
+    required this.ride,
+    this.searchResult,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final proximityBadge = searchResult != null
+        ? (searchResult!.pickupDistanceKm <= 1.0
+              ? 'Direct Pickup'
+              : 'Pickup ~${searchResult!.pickupDistanceKm} km')
+        : 'Direct Route';
+
     return Card(
       elevation: 0,
       margin: const EdgeInsets.only(bottom: 14),
@@ -28,38 +42,67 @@ class RideCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: Match Badge & Price
+              // Header: Proximity Badge & Price
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.softForest,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                  Flexible(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
                       children: [
-                        const Icon(
-                          Icons.auto_awesome,
-                          size: 14,
-                          color: AppColors.primaryForest,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${ride.matchPercentage}% Route Match',
-                          style: AppTypography.caption.copyWith(
-                            color: AppColors.primaryForest,
-                            fontWeight: FontWeight.bold,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.softForest,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.near_me_rounded,
+                                size: 13,
+                                color: AppColors.primaryForest,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                proximityBadge,
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.primaryForest,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        if (searchResult != null &&
+                            searchResult!.departureDifferenceMinutes > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warmBackground,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Text(
+                              '${searchResult!.departureDifferenceMinutes}m diff',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '₹${ride.contributionPerSeat.toStringAsFixed(0)} / seat',
                     style: AppTypography.sectionHeader.copyWith(
@@ -158,7 +201,9 @@ class RideCard extends StatelessWidget {
                     radius: 18,
                     backgroundColor: AppColors.softForest,
                     child: Text(
-                      ride.driverName.substring(0, 1).toUpperCase(),
+                      ride.driverName.isNotEmpty
+                          ? ride.driverName.substring(0, 1).toUpperCase()
+                          : 'D',
                       style: AppTypography.bodyMedium.copyWith(
                         fontWeight: FontWeight.bold,
                         color: AppColors.primaryForest,

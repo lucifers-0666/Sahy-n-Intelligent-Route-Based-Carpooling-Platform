@@ -9,6 +9,8 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
 
+import 'package:sahyan/shared/models/location_model.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -23,8 +25,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _destinationController = TextEditingController(
     text: 'Rajkot',
   );
+  LocationModel? _originLocation = LocationModel.fromCoordinates(
+    name: 'Ahmedabad',
+    latitude: 23.0225,
+    longitude: 72.5714,
+  );
+  LocationModel? _destinationLocation = LocationModel.fromCoordinates(
+    name: 'Rajkot',
+    latitude: 22.3039,
+    longitude: 70.8022,
+  );
   int _selectedSeats = 1;
   DateTime _selectedDate = DateTime.now();
+  TimeOfDay _selectedTime = TimeOfDay.fromDateTime(
+    DateTime.now().add(const Duration(hours: 1)),
+  );
+
+  static const List<Map<String, dynamic>> _popularHubs = [
+    {'name': 'Bhuj', 'lat': 23.2420, 'lng': 69.6669},
+    {'name': 'Anjar', 'lat': 23.1132, 'lng': 70.0278},
+    {'name': 'Gandhidham', 'lat': 23.0753, 'lng': 70.1337},
+    {'name': 'Ahmedabad', 'lat': 23.0225, 'lng': 72.5714},
+    {'name': 'Rajkot', 'lat': 22.3039, 'lng': 70.8022},
+    {'name': 'Vadodara', 'lat': 22.3072, 'lng': 73.1812},
+  ];
 
   @override
   void dispose() {
@@ -34,10 +58,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _handleSearch() {
+    final originText = _originController.text.trim();
+    final destText = _destinationController.text.trim();
+
+    if (originText.isEmpty || destText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter both origin and destination locations.'),
+          backgroundColor: AppColors.mutedRust,
+        ),
+      );
+      return;
+    }
+
     ref.read(rideSearchQueryProvider.notifier).state = RideSearchQuery(
-      origin: _originController.text.trim(),
-      destination: _destinationController.text.trim(),
+      originLocation: _originLocation,
+      destinationLocation: _destinationLocation,
+      origin: originText,
+      destination: destText,
       date: _selectedDate,
+      time: _selectedTime,
       seats: _selectedSeats,
     );
 
@@ -174,6 +214,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             size: 20,
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _popularHubs.map((hub) {
+                              final isSelected =
+                                  _originController.text == hub['name'];
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: ActionChip(
+                                  label: Text(
+                                    hub['name'] as String,
+                                    style: AppTypography.caption,
+                                  ),
+                                  backgroundColor: isSelected
+                                      ? AppColors.softForest
+                                      : AppColors.white,
+                                  side: BorderSide(
+                                    color: isSelected
+                                        ? AppColors.primaryForest
+                                        : AppColors.border,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    setState(() {
+                                      _originController.text =
+                                          hub['name'] as String;
+                                      _originLocation =
+                                          LocationModel.fromCoordinates(
+                                            name: hub['name'] as String,
+                                            latitude: (hub['lat'] as num)
+                                                .toDouble(),
+                                            longitude: (hub['lng'] as num)
+                                                .toDouble(),
+                                          );
+                                    });
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
 
                         const SizedBox(height: 14),
 
@@ -188,125 +270,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             size: 20,
                           ),
                         ),
-
-                        const SizedBox(height: 14),
-
-                        // Date & Seats selector row
-                        Row(
-                          children: [
-                            // Date Picker
-                            Expanded(
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () async {
-                                  final picked = await showDatePicker(
-                                    context: context,
-                                    initialDate: _selectedDate,
-                                    firstDate: DateTime.now(),
-                                    lastDate: DateTime.now().add(
-                                      const Duration(days: 30),
-                                    ),
-                                  );
-                                  if (picked != null) {
-                                    setState(() => _selectedDate = picked);
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 12,
+                        const SizedBox(height: 6),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: _popularHubs.map((hub) {
+                              final isSelected =
+                                  _destinationController.text == hub['name'];
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 6),
+                                child: ActionChip(
+                                  label: Text(
+                                    hub['name'] as String,
+                                    style: AppTypography.caption,
                                   ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: AppColors.border),
+                                  backgroundColor: isSelected
+                                      ? AppColors.softForest
+                                      : AppColors.white,
+                                  side: BorderSide(
+                                    color: isSelected
+                                        ? AppColors.primaryForest
+                                        : AppColors.border,
                                   ),
-                                  child: Row(
+                                  padding: EdgeInsets.zero,
+                                  onPressed: () {
+                                    setState(() {
+                                      _destinationController.text =
+                                          hub['name'] as String;
+                                      _destinationLocation =
+                                          LocationModel.fromCoordinates(
+                                            name: hub['name'] as String,
+                                            latitude: (hub['lat'] as num)
+                                                .toDouble(),
+                                            longitude: (hub['lng'] as num)
+                                                .toDouble(),
+                                          );
+                                    });
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Date, Time & Seats selector
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth < 420) {
+                              return Column(
+                                children: [
+                                  Row(
                                     children: [
-                                      const Icon(
-                                        Icons.calendar_today_rounded,
-                                        size: 18,
-                                        color: AppColors.textSecondary,
+                                      Expanded(
+                                        child: _buildDatePicker(context),
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Date',
-                                              style: AppTypography.caption,
-                                            ),
-                                            Text(
-                                              '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                              style: AppTypography.bodyMedium
-                                                  .copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
+                                        child: _buildTimePicker(context),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            // Seat Count
-                            Expanded(
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () {
-                                  setState(() {
-                                    _selectedSeats = (_selectedSeats % 4) + 1;
-                                  });
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 12,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.white,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: AppColors.border),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons
-                                            .airline_seat_recline_normal_rounded,
-                                        size: 20,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Passengers',
-                                              style: AppTypography.caption,
-                                            ),
-                                            Text(
-                                              '$_selectedSeats Seat${_selectedSeats > 1 ? 's' : ''}',
-                                              style: AppTypography.bodyMedium
-                                                  .copyWith(
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
+                                  const SizedBox(height: 10),
+                                  _buildSeatsPicker(context),
+                                ],
+                              );
+                            }
+                            return Row(
+                              children: [
+                                Expanded(child: _buildDatePicker(context)),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildTimePicker(context)),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildSeatsPicker(context)),
+                              ],
+                            );
+                          },
                         ),
 
                         const SizedBox(height: 20),
@@ -349,6 +389,157 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  Widget _buildDatePicker(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _selectedDate,
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(const Duration(days: 30)),
+        );
+        if (picked != null) {
+          setState(() => _selectedDate = picked);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.calendar_today_rounded,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Date', style: AppTypography.caption),
+                  Text(
+                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                    style: AppTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimePicker(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () async {
+        final picked = await showTimePicker(
+          context: context,
+          initialTime: _selectedTime,
+        );
+        if (picked != null) {
+          setState(() => _selectedTime = picked);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.schedule_rounded,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Time', style: AppTypography.caption),
+                  Text(
+                    _selectedTime.format(context),
+                    style: AppTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSeatsPicker(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () {
+        setState(() {
+          _selectedSeats = (_selectedSeats % 4) + 1;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.airline_seat_recline_normal_rounded,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Seats', style: AppTypography.caption),
+                  Text(
+                    '$_selectedSeats Seat${_selectedSeats > 1 ? 's' : ''}',
+                    style: AppTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildQuickRouteChip(String route, String price) {
     return ActionChip(
       backgroundColor: AppColors.white,
@@ -373,8 +564,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       onPressed: () {
-        _originController.text = route.split(' → ').first;
-        _destinationController.text = route.split(' → ').last;
+        final parts = route.split(' → ');
+        final originName = parts.first;
+        final destName = parts.last;
+        _originController.text = originName;
+        _destinationController.text = destName;
+        final originHub = _popularHubs.firstWhere(
+          (h) => h['name'] == originName,
+          orElse: () => {'name': originName, 'lat': 23.0225, 'lng': 72.5714},
+        );
+        final destHub = _popularHubs.firstWhere(
+          (h) => h['name'] == destName,
+          orElse: () => {'name': destName, 'lat': 22.3039, 'lng': 70.8022},
+        );
+        _originLocation = LocationModel.fromCoordinates(
+          name: originHub['name'] as String,
+          latitude: (originHub['lat'] as num).toDouble(),
+          longitude: (originHub['lng'] as num).toDouble(),
+        );
+        _destinationLocation = LocationModel.fromCoordinates(
+          name: destHub['name'] as String,
+          latitude: (destHub['lat'] as num).toDouble(),
+          longitude: (destHub['lng'] as num).toDouble(),
+        );
         _handleSearch();
       },
     );

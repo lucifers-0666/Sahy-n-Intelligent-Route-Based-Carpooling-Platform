@@ -590,6 +590,281 @@ const autocompletePlaces = async (req, res, next) => {
   }
 };
 
+/**
+ * Calculate Haversine distance in kilometers between two coordinate points
+ */
+function calculateHaversineDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+const KNOWN_HUBS = {
+  bhuj: { lat: 23.2420, lng: 69.6669, name: 'Bhuj' },
+  anjar: { lat: 23.1132, lng: 70.0278, name: 'Anjar' },
+  gandhidham: { lat: 23.0753, lng: 70.1337, name: 'Gandhidham' },
+  ahmedabad: { lat: 23.0225, lng: 72.5714, name: 'Ahmedabad' },
+  rajkot: { lat: 22.3039, lng: 70.8022, name: 'Rajkot' },
+  vadodara: { lat: 22.3072, lng: 73.1812, name: 'Vadodara' },
+  surat: { lat: 21.1702, lng: 72.8311, name: 'Surat' },
+  bhavnagar: { lat: 21.7645, lng: 72.1519, name: 'Bhavnagar' },
+  jamnagar: { lat: 22.4707, lng: 70.0577, name: 'Jamnagar' },
+  gandhinagar: { lat: 23.2156, lng: 72.6369, name: 'Gandhinagar' },
+  mehsana: { lat: 23.5880, lng: 72.3693, name: 'Mehsana' },
+  morbi: { lat: 22.8125, lng: 70.8384, name: 'Morbi' },
+};
+
+/**
+ * @desc    Search available rides matching passenger criteria
+ * @route   GET /api/v1/rides/search
+ * @access  Public / Optional Auth (Excludes driver's own rides if authenticated)
+ */
+const searchRides = async (req, res, next) => {
+  try {
+    const {
+      originLat: rawOriginLat,
+      originLng: rawOriginLng,
+      destLat: rawDestLat,
+      destLng: rawDestLng,
+      originText,
+      destText,
+      origin: originParam,
+      destination: destParam,
+      departureDate,
+      departureTime,
+      seats = 1,
+      maxPickupDistanceKm = 30,
+      maxDropDistanceKm = 30,
+      timeWindowHours = 4,
+      pickupPolicy,
+      minContribution,
+      maxContribution,
+    } = req.query;
+
+    // 1. Validate passenger seats
+    const parsedSeats = parseInt(seats, 10);
+    if (isNaN(parsedSeats) || parsedSeats < 1 || parsedSeats > 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passenger count must be an integer between 1 and 8.',
+      });
+    }
+
+    // 2. Resolve origin coordinates
+    let originLat = rawOriginLat !== undefined ? Number(rawOriginLat) : null;
+    let originLng = rawOriginLng !== undefined ? Number(rawOriginLng) : null;
+
+    if ((originLat === null || isNaN(originLat)) && (originText || originParam)) {
+      const queryName = String(originText || originParam).trim().toLowerCase();
+      const hubMatch = Object.keys(KNOWN_HUBS).find((k) => queryName.includes(k));
+      if (hubMatch) {
+        originLat = KNOWN_HUBS[hubMatch].lat;
+        originLng = KNOWN_HUBS[hubMatch].lng;
+      }
+    }
+
+    // 3. Resolve destination coordinates
+    let destLat = rawDestLat !== undefined ? Number(rawDestLat) : null;
+    let destLng = rawDestLng !== undefined ? Number(rawDestLng) : null;
+
+    if ((destLat === null || isNaN(destLat)) && (destText || destParam)) {
+      const queryName = String(destText || destParam).trim().toLowerCase();
+      const hubMatch = Object.keys(KNOWN_HUBS).find((k) => queryName.includes(k));
+      if (hubMatch) {
+        destLat = KNOWN_HUBS[hubMatch].lat;
+        destLng = KNOWN_HUBS[hubMatch].lng;
+      }
+    }
+
+    // 4. Validate coordinates if explicitly supplied
+    if (rawOriginLat !== undefined || rawOriginLng !== undefined) {
+      if (!isValidCoordinate(originLat, originLng)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Origin coordinates must be valid latitude (-90 to 90) and longitude (-180 to 180).',
+        });
+      }
+    }
+
+    if (rawDestLat !== undefined || rawDestLng !== undefined) {
+      if (!isValidCoordinate(destLat, destLng)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Destination coordinates must be valid latitude (-90 to 90) and longitude (-180 to 180).',
+        });
+      }
+    }
+
+    // 5. Build base MongoDB filter
+    const query = {
+      status: 'scheduled',
+      availableSeats: { $gte: parsedSeats },
+    };
+
+    // If authenticated user is searching, do not return their own offered rides
+    if (req.user && req.user._id) {
+      query.driver = { $ne: req.user._id };
+    }
+
+    // Geospatial filtering: $centerSphere radius is in radians
+    const EARTH_RADIUS_KM = 6378.1;
+    const parsedPickupDist = Math.max(1, Math.min(100, Number(maxPickupDistanceKm) || 30));
+    const parsedDropDist = Math.max(1, Math.min(100, Number(maxDropDistanceKm) || 30));
+
+    if (originLat !== null && originLng !== null && isValidCoordinate(originLat, originLng)) {
+      const pickupRadiusRad = parsedPickupDist / EARTH_RADIUS_KM;
+      query['origin.point'] = {
+        $geoWithin: {
+          $centerSphere: [[originLng, originLat], pickupRadiusRad],
+        },
+      };
+    }
+
+    if (destLat !== null && destLng !== null && isValidCoordinate(destLat, destLng)) {
+      const dropRadiusRad = parsedDropDist / EARTH_RADIUS_KM;
+      query['destination.point'] = {
+        $geoWithin: {
+          $centerSphere: [[destLng, destLat], dropRadiusRad],
+        },
+      };
+    }
+
+    // Departure time filtering
+    let requestedDateTime = null;
+    if (departureDate) {
+      const parsedDate = new Date(departureDate);
+      if (!isNaN(parsedDate.getTime())) {
+        requestedDateTime = parsedDate;
+      }
+    } else if (departureTime) {
+      const parsedTime = new Date(departureTime);
+      if (!isNaN(parsedTime.getTime())) {
+        requestedDateTime = parsedTime;
+      }
+    }
+
+    const parsedWindowHours = Math.max(1, Math.min(48, Number(timeWindowHours) || 4));
+    const windowMs = parsedWindowHours * 60 * 60 * 1000;
+    const now = new Date(Date.now() - 15 * 60 * 1000); // 15 minute grace period for ongoing boarding
+
+    if (requestedDateTime) {
+      const minBound = new Date(Math.max(now.getTime(), requestedDateTime.getTime() - windowMs));
+      const maxBound = new Date(requestedDateTime.getTime() + windowMs);
+      query.departureTime = { $gte: minBound, $lte: maxBound };
+    } else {
+      query.departureTime = { $gte: now };
+    }
+
+    // Optional pickup policy filter
+    if (pickupPolicy === 'exact' || pickupPolicy === 'nearby') {
+      query.pickupPolicy = pickupPolicy;
+    }
+
+    // Optional contribution filter
+    if (minContribution !== undefined || maxContribution !== undefined) {
+      query.contributionPerSeat = {};
+      if (minContribution !== undefined && !isNaN(Number(minContribution))) {
+        query.contributionPerSeat.$gte = Number(minContribution);
+      }
+      if (maxContribution !== undefined && !isNaN(Number(maxContribution))) {
+        query.contributionPerSeat.$lte = Number(maxContribution);
+      }
+    }
+
+    // 6. Execute query
+    const candidateRides = await Ride.find(query)
+      .populate('vehicle')
+      .populate('driver', 'name email phone profileImage city rating isVerified isPhoneVerified isIdentityVerified')
+      .sort({ departureTime: 1 })
+      .limit(50)
+      .lean();
+
+    // 7. Format structured search results with preliminary proximity & time metrics
+    const results = candidateRides.map((ride) => {
+      let pickupDistanceKm = 0;
+      let destinationDistanceKm = 0;
+
+      if (originLat !== null && originLng !== null && isValidCoordinate(originLat, originLng)) {
+        pickupDistanceKm = Number(
+          calculateHaversineDistanceKm(
+            originLat,
+            originLng,
+            ride.origin.latitude,
+            ride.origin.longitude
+          ).toFixed(1)
+        );
+      }
+
+      if (destLat !== null && destLng !== null && isValidCoordinate(destLat, destLng)) {
+        destinationDistanceKm = Number(
+          calculateHaversineDistanceKm(
+            destLat,
+            destLng,
+            ride.destination.latitude,
+            ride.destination.longitude
+          ).toFixed(1)
+        );
+      }
+
+      let departureDifferenceMinutes = 0;
+      if (requestedDateTime) {
+        departureDifferenceMinutes = Math.round(
+          Math.abs(new Date(ride.departureTime).getTime() - requestedDateTime.getTime()) / (60 * 1000)
+        );
+      }
+
+      const proximityDesc =
+        pickupDistanceKm <= 1
+          ? 'Direct pickup'
+          : `Pickup within ${pickupDistanceKm} km`;
+
+      const timeDesc =
+        departureDifferenceMinutes === 0
+          ? 'Exact departure time'
+          : `${departureDifferenceMinutes} min departure difference`;
+
+      const matchPreview = `${proximityDesc} | ${timeDesc}`;
+
+      // Normalize IDs
+      const normalizedRide = {
+        ...ride,
+        id: ride._id ? ride._id.toString() : '',
+      };
+      if (normalizedRide.driver && normalizedRide.driver._id) {
+        normalizedRide.driver.id = normalizedRide.driver._id.toString();
+      }
+      if (normalizedRide.vehicle && normalizedRide.vehicle._id) {
+        normalizedRide.vehicle.id = normalizedRide.vehicle._id.toString();
+      }
+
+      return {
+        ride: normalizedRide,
+        pickupDistanceKm,
+        destinationDistanceKm,
+        departureDifferenceMinutes,
+        availableSeats: ride.availableSeats,
+        matchPreview,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: results.length,
+      results,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createRide,
   getMyRides,
@@ -598,4 +873,6 @@ module.exports = {
   cancelRide,
   calculateRoute,
   autocompletePlaces,
+  searchRides,
 };
+

@@ -39,4 +39,31 @@ const authenticate = async (req, res, next) => {
   }
 };
 
-module.exports = { authenticate };
+const optionalAuth = async (req, res, next) => {
+  try {
+    let token;
+    const authHeader = req.headers.authorization;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    }
+
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    const secret = getJwtSecret();
+    const decoded = jwt.verify(token, secret);
+
+    const user = await User.findById(decoded.id);
+    req.user = user || null;
+    next();
+  } catch (error) {
+    req.user = null;
+    next();
+  }
+};
+
+module.exports = { authenticate, optionalAuth };
+

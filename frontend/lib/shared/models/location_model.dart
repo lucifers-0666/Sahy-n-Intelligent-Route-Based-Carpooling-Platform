@@ -37,14 +37,17 @@ class LocationModel extends Equatable {
     final rawName = json['name'] as String?;
     final rawAddress = json['address'] as String? ?? '';
     final rawCity = json['city'] as String? ?? '';
-    final computedName = rawName ?? (rawAddress.isNotEmpty ? rawAddress : rawCity);
+    final computedName =
+        rawName ?? (rawAddress.isNotEmpty ? rawAddress : rawCity);
 
     return LocationModel(
       name: computedName,
       address: rawAddress.isNotEmpty ? rawAddress : computedName,
       city: rawCity.isNotEmpty
           ? rawCity
-          : (computedName.contains(',') ? computedName.split(',').last.trim() : computedName),
+          : (computedName.contains(',')
+                ? computedName.split(',').last.trim()
+                : computedName),
       latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
       longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
       placeId: json['placeId'] as String?,
@@ -81,5 +84,12 @@ class LocationModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [name, address, city, latitude, longitude, placeId];
+  List<Object?> get props => [
+    name,
+    address,
+    city,
+    latitude,
+    longitude,
+    placeId,
+  ];
 }

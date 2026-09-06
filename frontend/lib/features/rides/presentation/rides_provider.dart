@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
-import 'package:sahyan/features/rides/data/mock_rides_repository.dart';
 import 'package:sahyan/features/rides/data/ride_repository.dart';
+
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 
-// Mock repository for passenger searches
-final ridesRepositoryProvider = Provider<RidesRepository>((ref) {
-  return MockRidesRepository();
-});
+import 'package:sahyan/features/rides/domain/ride_search_result.dart';
 
 // Live backend API repository for rides
 final rideApiRepositoryProvider = Provider<RideRepository>((ref) {
@@ -18,19 +15,72 @@ final rideApiRepositoryProvider = Provider<RideRepository>((ref) {
   return RideRepositoryImpl(apiClient: apiClient);
 });
 
+// Backward compatibility alias
+final ridesRepositoryProvider = rideApiRepositoryProvider;
+
 // --- Search Query State ---
 class RideSearchQuery {
+  final LocationModel? originLocation;
+  final LocationModel? destinationLocation;
   final String origin;
   final String destination;
   final DateTime date;
+  final TimeOfDay? time;
   final int seats;
+  final double maxPickupDistanceKm;
+  final double maxDropDistanceKm;
+  final int timeWindowHours;
+  final String? pickupPolicy;
+  final double? minContribution;
+  final double? maxContribution;
 
   RideSearchQuery({
+    this.originLocation,
+    this.destinationLocation,
     required this.origin,
     required this.destination,
     required this.date,
-    required this.seats,
+    this.time,
+    this.seats = 1,
+    this.maxPickupDistanceKm = 30.0,
+    this.maxDropDistanceKm = 30.0,
+    this.timeWindowHours = 4,
+    this.pickupPolicy,
+    this.minContribution,
+    this.maxContribution,
   });
+
+  RideSearchQuery copyWith({
+    LocationModel? originLocation,
+    LocationModel? destinationLocation,
+    String? origin,
+    String? destination,
+    DateTime? date,
+    TimeOfDay? time,
+    int? seats,
+    double? maxPickupDistanceKm,
+    double? maxDropDistanceKm,
+    int? timeWindowHours,
+    String? pickupPolicy,
+    double? minContribution,
+    double? maxContribution,
+  }) {
+    return RideSearchQuery(
+      originLocation: originLocation ?? this.originLocation,
+      destinationLocation: destinationLocation ?? this.destinationLocation,
+      origin: origin ?? this.origin,
+      destination: destination ?? this.destination,
+      date: date ?? this.date,
+      time: time ?? this.time,
+      seats: seats ?? this.seats,
+      maxPickupDistanceKm: maxPickupDistanceKm ?? this.maxPickupDistanceKm,
+      maxDropDistanceKm: maxDropDistanceKm ?? this.maxDropDistanceKm,
+      timeWindowHours: timeWindowHours ?? this.timeWindowHours,
+      pickupPolicy: pickupPolicy ?? this.pickupPolicy,
+      minContribution: minContribution ?? this.minContribution,
+      maxContribution: maxContribution ?? this.maxContribution,
+    );
+  }
 }
 
 final rideSearchQueryProvider = StateProvider<RideSearchQuery>((ref) {
@@ -42,20 +92,43 @@ final rideSearchQueryProvider = StateProvider<RideSearchQuery>((ref) {
   );
 });
 
-final searchRidesProvider = FutureProvider.autoDispose<List<RideModel>>((
+final searchRidesProvider = FutureProvider.autoDispose<List<RideSearchResult>>((
   ref,
 ) async {
-  final repo = ref.watch(ridesRepositoryProvider);
+  final repo = ref.watch(rideApiRepositoryProvider);
   final query = ref.watch(rideSearchQueryProvider);
-  return repo.searchRides(
-    origin: query.origin,
-    destination: query.destination,
-    date: query.date,
+
+  DateTime departureDateTime = query.date;
+  if (query.time != null) {
+    departureDateTime = DateTime(
+      query.date.year,
+      query.date.month,
+      query.date.day,
+      query.time!.hour,
+      query.time!.minute,
+    );
+  }
+
+  return await repo.searchRides(
+    origin: query.originLocation,
+    destination: query.destinationLocation,
+    originText: query.origin,
+    destinationText: query.destination,
+    departureDate: departureDateTime,
     seats: query.seats,
+    maxPickupDistanceKm: query.maxPickupDistanceKm,
+    maxDropDistanceKm: query.maxDropDistanceKm,
+    timeWindowHours: query.timeWindowHours,
+    pickupPolicy: query.pickupPolicy,
+    minContribution: query.minContribution,
+    maxContribution: query.maxContribution,
   );
 });
 
 final selectedRideProvider = StateProvider<RideModel?>((ref) => null);
+final selectedSearchResultProvider = StateProvider<RideSearchResult?>(
+  (ref) => null,
+);
 final selectedSeatsProvider = StateProvider<List<String>>((ref) => ['A1']);
 
 // --- Driver's My Rides State ---
@@ -85,10 +158,11 @@ class MyRidesNotifier extends AsyncNotifier<List<RideModel>> {
   }
 }
 
-final myRidesProvider =
-    AsyncNotifierProvider<MyRidesNotifier, List<RideModel>>(() {
-  return MyRidesNotifier();
-});
+final myRidesProvider = AsyncNotifierProvider<MyRidesNotifier, List<RideModel>>(
+  () {
+    return MyRidesNotifier();
+  },
+);
 
 // --- Offer Ride Draft State ---
 class OfferRideState {
@@ -122,12 +196,11 @@ class OfferRideState {
     this.notes = '',
     this.isSubmitting = false,
     this.errorMessage,
-  })  : departureDate =
-            departureDate ?? DateTime.now().add(const Duration(hours: 4)),
-        departureTime = departureTime ??
-            TimeOfDay.fromDateTime(
-              DateTime.now().add(const Duration(hours: 4)),
-            );
+  }) : departureDate =
+           departureDate ?? DateTime.now().add(const Duration(hours: 4)),
+       departureTime =
+           departureTime ??
+           TimeOfDay.fromDateTime(DateTime.now().add(const Duration(hours: 4)));
 
   OfferRideState copyWith({
     VehicleModel? selectedVehicle,
@@ -211,10 +284,7 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
         origin: origin,
         destination: destination,
       );
-      state = state.copyWith(
-        route: route,
-        isCalculatingRoute: false,
-      );
+      state = state.copyWith(route: route, isCalculatingRoute: false);
     } catch (e) {
       state = state.copyWith(
         isCalculatingRoute: false,
@@ -322,5 +392,5 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
 
 final offerRideProvider =
     StateNotifierProvider<OfferRideNotifier, OfferRideState>((ref) {
-  return OfferRideNotifier(ref);
-});
+      return OfferRideNotifier(ref);
+    });

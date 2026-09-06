@@ -10,6 +10,7 @@ import 'package:sahyan/features/rides/presentation/screens/offer_ride_screen.dar
 import 'package:sahyan/features/vehicles/data/vehicle_repository.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
+import 'package:sahyan/features/rides/domain/ride_search_result.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/models/user_model.dart';
@@ -98,7 +99,9 @@ class MockRideRepository implements RideRepository {
       totalSeats: 4,
       contributionPerSeat: contributionPerSeat,
       status: RideStatus.scheduled,
-      pickupPolicy: pickupPolicy == 'exact' ? PickupPolicy.exact : PickupPolicy.nearby,
+      pickupPolicy: pickupPolicy == 'exact'
+          ? PickupPolicy.exact
+          : PickupPolicy.nearby,
       amenities: amenities,
       notes: notes,
     );
@@ -128,6 +131,22 @@ class MockRideRepository implements RideRepository {
       durationSeconds: 21600,
     );
   }
+
+  @override
+  Future<List<RideSearchResult>> searchRides({
+    LocationModel? origin,
+    LocationModel? destination,
+    String? originText,
+    String? destinationText,
+    DateTime? departureDate,
+    int seats = 1,
+    double maxPickupDistanceKm = 30,
+    double maxDropDistanceKm = 30,
+    int timeWindowHours = 4,
+    String? pickupPolicy,
+    double? minContribution,
+    double? maxContribution,
+  }) async => [];
 }
 
 class MockSecureStorageService implements SecureStorageService {
@@ -171,8 +190,12 @@ void main() {
   }) {
     return ProviderScope(
       overrides: [
-        secureStorageServiceProvider.overrideWithValue(MockSecureStorageService()),
-        vehicleRepositoryProvider.overrideWithValue(MockVehicleRepository(vehicles)),
+        secureStorageServiceProvider.overrideWithValue(
+          MockSecureStorageService(),
+        ),
+        vehicleRepositoryProvider.overrideWithValue(
+          MockVehicleRepository(vehicles),
+        ),
         rideApiRepositoryProvider.overrideWithValue(MockRideRepository()),
       ],
       child: MaterialApp(
@@ -204,28 +227,33 @@ void main() {
       expect(find.text('Add Vehicle'), findsOneWidget);
     });
 
-    testWidgets('Selecting quick origin and destination chips populates fields', (tester) async {
-      await tester.pumpWidget(createWidgetUnderTest());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'Selecting quick origin and destination chips populates fields',
+      (tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
 
-      // Tap 'Bhuj' origin chip
-      final bhujChip = find.widgetWithText(ActionChip, 'Bhuj');
-      expect(bhujChip, findsOneWidget);
-      await tester.tap(bhujChip);
-      await tester.pumpAndSettle();
+        // Tap 'Bhuj' origin chip
+        final bhujChip = find.widgetWithText(ActionChip, 'Bhuj');
+        expect(bhujChip, findsOneWidget);
+        await tester.tap(bhujChip);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Bhuj'), findsWidgets);
+        expect(find.text('Bhuj'), findsWidgets);
 
-      // Tap 'Ahmedabad' destination chip
-      final amdChip = find.widgetWithText(ActionChip, 'Ahmedabad');
-      expect(amdChip, findsWidgets);
-      await tester.tap(amdChip.last);
-      await tester.pumpAndSettle();
+        // Tap 'Ahmedabad' destination chip
+        final amdChip = find.widgetWithText(ActionChip, 'Ahmedabad');
+        expect(amdChip, findsWidgets);
+        await tester.tap(amdChip.last);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Ahmedabad'), findsWidgets);
-    });
+        expect(find.text('Ahmedabad'), findsWidgets);
+      },
+    );
 
-    testWidgets('Navigating from Step 1 to Step 2 and adjusting seats', (tester) async {
+    testWidgets('Navigating from Step 1 to Step 2 and adjusting seats', (
+      tester,
+    ) async {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
@@ -280,29 +308,35 @@ void main() {
     ];
 
     for (final size in viewports) {
-      testWidgets('OfferRideScreen renders without overflow at ${size.width}x${size.height}', (tester) async {
-        tester.view.physicalSize = size;
+      testWidgets(
+        'OfferRideScreen renders without overflow at ${size.width}x${size.height}',
+        (tester) async {
+          tester.view.physicalSize = size;
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
+
+          await tester.pumpWidget(createWidgetUnderTest());
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(find.text('Offer a Ride'), findsOneWidget);
+        },
+      );
+    }
+
+    testWidgets(
+      'OfferRideScreen renders without overflow under 1.5x text scaling',
+      (tester) async {
+        tester.view.physicalSize = const Size(390.0, 844.0);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
 
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(textScaleFactor: 1.5));
         await tester.pumpAndSettle();
 
         expect(tester.takeException(), isNull);
         expect(find.text('Offer a Ride'), findsOneWidget);
-      });
-    }
-
-    testWidgets('OfferRideScreen renders without overflow under 1.5x text scaling', (tester) async {
-      tester.view.physicalSize = const Size(390.0, 844.0);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
-
-      await tester.pumpWidget(createWidgetUnderTest(textScaleFactor: 1.5));
-      await tester.pumpAndSettle();
-
-      expect(tester.takeException(), isNull);
-      expect(find.text('Offer a Ride'), findsOneWidget);
-    });
+      },
+    );
   });
 }

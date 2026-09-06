@@ -40,10 +40,7 @@ class RouteMapPreview extends StatelessWidget {
       child: Stack(
         children: [
           // Background grid simulation
-          CustomPaint(
-            size: Size.infinite,
-            painter: _GridBackgroundPainter(),
-          ),
+          CustomPaint(size: Size.infinite, painter: _GridBackgroundPainter()),
 
           // Route polyline & marker rendering
           if (polylinePoints.isNotEmpty)
@@ -95,7 +92,10 @@ class RouteMapPreview extends StatelessWidget {
               children: [
                 Flexible(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.white.withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(8),
@@ -104,7 +104,11 @@ class RouteMapPreview extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.trip_origin, size: 12, color: AppColors.primaryForest),
+                        const Icon(
+                          Icons.trip_origin,
+                          size: 12,
+                          color: AppColors.primaryForest,
+                        ),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
@@ -119,7 +123,11 @@ class RouteMapPreview extends StatelessWidget {
                         ),
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(Icons.arrow_forward, size: 10, color: AppColors.mutedSage),
+                          child: Icon(
+                            Icons.arrow_forward,
+                            size: 10,
+                            color: AppColors.mutedSage,
+                          ),
                         ),
                         Flexible(
                           child: Text(
@@ -149,7 +157,10 @@ class RouteMapPreview extends StatelessWidget {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.deepForest,
                       borderRadius: BorderRadius.circular(20),
@@ -157,7 +168,11 @@ class RouteMapPreview extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.straighten, size: 13, color: AppColors.white),
+                        const Icon(
+                          Icons.straighten,
+                          size: 13,
+                          color: AppColors.white,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           route!.formattedDistance,
@@ -171,7 +186,10 @@ class RouteMapPreview extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.white.withValues(alpha: 0.95),
                       borderRadius: BorderRadius.circular(20),
@@ -180,7 +198,11 @@ class RouteMapPreview extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.schedule, size: 13, color: AppColors.primaryForest),
+                        const Icon(
+                          Icons.schedule,
+                          size: 13,
+                          color: AppColors.primaryForest,
+                        ),
                         const SizedBox(width: 4),
                         Text(
                           route!.formattedDuration,
@@ -279,7 +301,10 @@ class _RoutePolylinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final path = Path();
-    final firstOffset = toCanvasOffset(points.first.latitude, points.first.longitude);
+    final firstOffset = toCanvasOffset(
+      points.first.latitude,
+      points.first.longitude,
+    );
     path.moveTo(firstOffset.dx, firstOffset.dy);
 
     for (int i = 1; i < points.length; i++) {

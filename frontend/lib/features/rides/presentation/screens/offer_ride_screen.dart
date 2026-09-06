@@ -28,36 +28,12 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
   final _notesController = TextEditingController();
 
   static const List<Map<String, dynamic>> _popularHubs = [
-    {
-      'name': 'Bhuj',
-      'lat': 23.2420,
-      'lng': 69.6669,
-    },
-    {
-      'name': 'Anjar',
-      'lat': 23.1132,
-      'lng': 70.0278,
-    },
-    {
-      'name': 'Gandhidham',
-      'lat': 23.0753,
-      'lng': 70.1337,
-    },
-    {
-      'name': 'Ahmedabad',
-      'lat': 23.0225,
-      'lng': 72.5714,
-    },
-    {
-      'name': 'Rajkot',
-      'lat': 22.3039,
-      'lng': 70.8022,
-    },
-    {
-      'name': 'Vadodara',
-      'lat': 22.3072,
-      'lng': 73.1812,
-    },
+    {'name': 'Bhuj', 'lat': 23.2420, 'lng': 69.6669},
+    {'name': 'Anjar', 'lat': 23.1132, 'lng': 70.0278},
+    {'name': 'Gandhidham', 'lat': 23.0753, 'lng': 70.1337},
+    {'name': 'Ahmedabad', 'lat': 23.0225, 'lng': 72.5714},
+    {'name': 'Rajkot', 'lat': 22.3039, 'lng': 70.8022},
+    {'name': 'Vadodara', 'lat': 22.3072, 'lng': 73.1812},
   ];
 
   @override
@@ -89,7 +65,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
 
   void _selectHubAsOrigin(Map<String, dynamic> hub) {
     _originController.text = hub['name'] as String;
-    ref.read(offerRideProvider.notifier).setOrigin(
+    ref
+        .read(offerRideProvider.notifier)
+        .setOrigin(
           LocationModel.fromCoordinates(
             name: hub['name'] as String,
             latitude: hub['lat'] as double,
@@ -100,7 +78,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
 
   void _selectHubAsDestination(Map<String, dynamic> hub) {
     _destinationController.text = hub['name'] as String;
-    ref.read(offerRideProvider.notifier).setDestination(
+    ref
+        .read(offerRideProvider.notifier)
+        .setDestination(
           LocationModel.fromCoordinates(
             name: hub['name'] as String,
             latitude: hub['lat'] as double,
@@ -178,14 +158,22 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: [
-              const Icon(Icons.check_circle, color: Color(0xFF2E6B4B), size: 24),
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF2E6B4B),
+                size: 24,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Journey Published',
-                style: AppTypography.cardTitle.copyWith(color: AppColors.deepForest),
+                style: AppTypography.cardTitle.copyWith(
+                  color: AppColors.deepForest,
+                ),
               ),
             ],
           ),
@@ -215,19 +203,27 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 ref.read(offerRideProvider.notifier).reset();
                 context.go('/my-bookings');
               },
-              child: const Text('View My Rides', style: TextStyle(color: AppColors.primaryForest)),
+              child: const Text(
+                'View My Rides',
+                style: TextStyle(color: AppColors.primaryForest),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryForest,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
               onPressed: () {
                 Navigator.of(ctx).pop();
                 ref.read(offerRideProvider.notifier).reset();
                 context.go('/home');
               },
-              child: const Text('Done', style: TextStyle(color: AppColors.white)),
+              child: const Text(
+                'Done',
+                style: TextStyle(color: AppColors.white),
+              ),
             ),
           ],
         ),
@@ -268,7 +264,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               padding: const EdgeInsets.only(right: 16),
               child: Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.softForest,
                     borderRadius: BorderRadius.circular(12),
@@ -336,16 +335,22 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     color: isCompleted
                         ? const Color(0xFF2E6B4B)
                         : isCurrent
-                            ? AppColors.primaryForest
-                            : AppColors.border,
+                        ? AppColors.primaryForest
+                        : AppColors.border,
                   ),
                   child: Center(
                     child: isCompleted
-                        ? const Icon(Icons.check, size: 14, color: AppColors.white)
+                        ? const Icon(
+                            Icons.check,
+                            size: 14,
+                            color: AppColors.white,
+                          )
                         : Text(
                             '${index + 1}',
                             style: AppTypography.caption.copyWith(
-                              color: isCurrent ? AppColors.white : AppColors.textSecondary,
+                              color: isCurrent
+                                  ? AppColors.white
+                                  : AppColors.textSecondary,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -358,7 +363,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     style: AppTypography.caption.copyWith(
                       fontSize: 11,
                       fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                      color: isCurrent ? AppColors.deepForest : AppColors.textSecondary,
+                      color: isCurrent
+                          ? AppColors.deepForest
+                          : AppColors.textSecondary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -367,7 +374,11 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 if (index < steps.length - 1)
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Icon(Icons.chevron_right, size: 14, color: AppColors.mutedSage),
+                    child: Icon(
+                      Icons.chevron_right,
+                      size: 14,
+                      color: AppColors.mutedSage,
+                    ),
                   ),
               ],
             ),
@@ -386,7 +397,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('1. Choose Your Vehicle', 'Select the vehicle for this journey'),
+        _buildSectionHeader(
+          '1. Choose Your Vehicle',
+          'Select the vehicle for this journey',
+        ),
         const SizedBox(height: 8),
         vehiclesAsync.when(
           loading: () => const Center(
@@ -402,7 +416,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.mutedRust),
             ),
-            child: Text('Failed to load vehicles: $err', style: AppTypography.caption),
+            child: Text(
+              'Failed to load vehicles: $err',
+              style: AppTypography.caption,
+            ),
           ),
           data: (vehicles) {
             if (vehicles.isEmpty) {
@@ -416,11 +433,17 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.directions_car_outlined, size: 36, color: AppColors.mutedSage),
+                    const Icon(
+                      Icons.directions_car_outlined,
+                      size: 36,
+                      color: AppColors.mutedSage,
+                    ),
                     const SizedBox(height: 8),
                     Text(
                       'No vehicles registered yet',
-                      style: AppTypography.cardTitle.copyWith(color: AppColors.deepForest),
+                      style: AppTypography.cardTitle.copyWith(
+                        color: AppColors.deepForest,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -432,11 +455,20 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryForest,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       onPressed: () => context.push('/vehicles/add'),
-                      icon: const Icon(Icons.add, size: 16, color: AppColors.white),
-                      label: const Text('Add Vehicle', style: TextStyle(color: AppColors.white)),
+                      icon: const Icon(
+                        Icons.add,
+                        size: 16,
+                        color: AppColors.white,
+                      ),
+                      label: const Text(
+                        'Add Vehicle',
+                        style: TextStyle(color: AppColors.white),
+                      ),
                     ),
                   ],
                 ),
@@ -460,7 +492,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 child: DropdownButton<VehicleModel>(
                   value: draft.selectedVehicle ?? vehicles.first,
                   isExpanded: true,
-                  icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.primaryForest),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: AppColors.primaryForest,
+                  ),
                   items: vehicles.map((v) {
                     return DropdownMenuItem<VehicleModel>(
                       value: v,
@@ -484,7 +519,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.softForest,
                               borderRadius: BorderRadius.circular(6),
@@ -515,7 +553,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
         const SizedBox(height: 20),
 
         // 2. Route Locations
-        _buildSectionHeader('2. Journey Route', 'Specify where your trip begins and ends'),
+        _buildSectionHeader(
+          '2. Journey Route',
+          'Specify where your trip begins and ends',
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(14),
@@ -532,13 +573,24 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 style: AppTypography.bodyMedium,
                 decoration: InputDecoration(
                   labelText: 'Origin Location (From)',
-                  prefixIcon: const Icon(Icons.trip_origin, color: Color(0xFF2E6B4B), size: 18),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  prefixIcon: const Icon(
+                    Icons.trip_origin,
+                    color: Color(0xFF2E6B4B),
+                    size: 18,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 onChanged: (val) {
                   if (val.trim().isNotEmpty) {
-                    ref.read(offerRideProvider.notifier).setOrigin(
+                    ref
+                        .read(offerRideProvider.notifier)
+                        .setOrigin(
                           LocationModel.fromCoordinates(
                             name: val.trim(),
                             latitude: 23.2420,
@@ -556,7 +608,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: ActionChip(
-                        label: Text(hub['name'] as String, style: const TextStyle(fontSize: 11)),
+                        label: Text(
+                          hub['name'] as String,
+                          style: const TextStyle(fontSize: 11),
+                        ),
                         backgroundColor: AppColors.warmBackground,
                         padding: EdgeInsets.zero,
                         onPressed: () => _selectHubAsOrigin(hub),
@@ -571,13 +626,24 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 style: AppTypography.bodyMedium,
                 decoration: InputDecoration(
                   labelText: 'Destination Location (To)',
-                  prefixIcon: const Icon(Icons.location_on, color: AppColors.deepForest, size: 18),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  prefixIcon: const Icon(
+                    Icons.location_on,
+                    color: AppColors.deepForest,
+                    size: 18,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 onChanged: (val) {
                   if (val.trim().isNotEmpty) {
-                    ref.read(offerRideProvider.notifier).setDestination(
+                    ref
+                        .read(offerRideProvider.notifier)
+                        .setDestination(
                           LocationModel.fromCoordinates(
                             name: val.trim(),
                             latitude: 23.0225,
@@ -595,7 +661,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: ActionChip(
-                        label: Text(hub['name'] as String, style: const TextStyle(fontSize: 11)),
+                        label: Text(
+                          hub['name'] as String,
+                          style: const TextStyle(fontSize: 11),
+                        ),
                         backgroundColor: AppColors.warmBackground,
                         padding: EdgeInsets.zero,
                         onPressed: () => _selectHubAsDestination(hub),
@@ -628,7 +697,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Departure Schedule', 'Select when you are starting the journey'),
+        _buildSectionHeader(
+          'Departure Schedule',
+          'Select when you are starting the journey',
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -645,15 +717,23 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.calendar_today, size: 18, color: AppColors.primaryForest),
+                      const Icon(
+                        Icons.calendar_today,
+                        size: 18,
+                        color: AppColors.primaryForest,
+                      ),
                       const SizedBox(width: 8),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Date', style: AppTypography.caption),
                           Text(
-                            DateFormat('dd MMM yyyy').format(draft.departureDate),
-                            style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+                            DateFormat(
+                              'dd MMM yyyy',
+                            ).format(draft.departureDate),
+                            style: AppTypography.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ),
@@ -676,7 +756,11 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.access_time, size: 18, color: AppColors.primaryForest),
+                      const Icon(
+                        Icons.access_time,
+                        size: 18,
+                        color: AppColors.primaryForest,
+                      ),
                       const SizedBox(width: 8),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -684,7 +768,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                           Text('Time', style: AppTypography.caption),
                           Text(
                             draft.departureTime.format(context),
-                            style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700),
+                            style: AppTypography.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ),
@@ -697,7 +783,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
         ),
         const SizedBox(height: 20),
 
-        _buildSectionHeader('Seats & Fuel Contribution', 'Specify spare seats offered and passenger contribution'),
+        _buildSectionHeader(
+          'Seats & Fuel Contribution',
+          'Specify spare seats offered and passenger contribution',
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(14),
@@ -716,7 +805,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     children: [
                       Text(
                         'Available Seats',
-                        style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                        style: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       Text(
                         'Vehicle limit: $maxSeats seats',
@@ -727,9 +818,14 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                   Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: AppColors.primaryForest),
+                        icon: const Icon(
+                          Icons.remove_circle_outline,
+                          color: AppColors.primaryForest,
+                        ),
                         onPressed: draft.availableSeats > 1
-                            ? () => ref.read(offerRideProvider.notifier).setAvailableSeats(draft.availableSeats - 1)
+                            ? () => ref
+                                  .read(offerRideProvider.notifier)
+                                  .setAvailableSeats(draft.availableSeats - 1)
                             : null,
                       ),
                       Text(
@@ -737,9 +833,14 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                         style: AppTypography.cardTitle,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.add_circle_outline, color: AppColors.primaryForest),
+                        icon: const Icon(
+                          Icons.add_circle_outline,
+                          color: AppColors.primaryForest,
+                        ),
                         onPressed: draft.availableSeats < maxSeats
-                            ? () => ref.read(offerRideProvider.notifier).setAvailableSeats(draft.availableSeats + 1)
+                            ? () => ref
+                                  .read(offerRideProvider.notifier)
+                                  .setAvailableSeats(draft.availableSeats + 1)
                             : null,
                       ),
                     ],
@@ -755,7 +856,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                       children: [
                         Text(
                           'Contribution Per Seat',
-                          style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                          style: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         Text(
                           'Shared fuel & toll contribution',
@@ -772,14 +875,23 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                       textAlign: TextAlign.end,
                       decoration: InputDecoration(
                         prefixText: '₹ ',
-                        prefixStyle: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w700),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        prefixStyle: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                       ),
                       onChanged: (val) {
                         final parsed = double.tryParse(val);
                         if (parsed != null && parsed >= 0) {
-                          ref.read(offerRideProvider.notifier).setContribution(parsed);
+                          ref
+                              .read(offerRideProvider.notifier)
+                              .setContribution(parsed);
                         }
                       },
                     ),
@@ -791,7 +903,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
         ),
         const SizedBox(height: 20),
 
-        _buildSectionHeader('Pickup Preference', 'Choose how you will coordinate passenger pickups'),
+        _buildSectionHeader(
+          'Pickup Preference',
+          'Choose how you will coordinate passenger pickups',
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -806,14 +921,16 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 policy: PickupPolicy.nearby,
                 current: draft.pickupPolicy,
                 title: 'Nearby Pickup (Recommended)',
-                subtitle: 'Willing to deviate up to 5 km along route for pickups.',
+                subtitle:
+                    'Willing to deviate up to 5 km along route for pickups.',
               ),
               const Divider(color: AppColors.border, height: 1),
               _buildPickupPolicyTile(
                 policy: PickupPolicy.exact,
                 current: draft.pickupPolicy,
                 title: 'Exact Origin Only',
-                subtitle: 'Passengers must board at your exact starting location.',
+                subtitle:
+                    'Passengers must board at your exact starting location.',
               ),
             ],
           ),
@@ -849,13 +966,12 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 children: [
                   Text(
                     title,
-                    style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                    style: AppTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: AppTypography.caption,
-                  ),
+                  Text(subtitle, style: AppTypography.caption),
                 ],
               ),
             ),
@@ -867,12 +983,21 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
 
   // --- Step 3: Preferences & Review ---
   Widget _buildStep3PreferencesAndReview(OfferRideState draft) {
-    const allAmenities = ['AC', 'Music', 'Luggage Space', 'No Smoking', 'Pets Allowed'];
+    const allAmenities = [
+      'AC',
+      'Music',
+      'Luggage Space',
+      'No Smoking',
+      'Pets Allowed',
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Amenities & Preferences', 'Highlight features available in your vehicle'),
+        _buildSectionHeader(
+          'Amenities & Preferences',
+          'Highlight features available in your vehicle',
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(14),
@@ -893,9 +1018,12 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 checkmarkColor: AppColors.primaryForest,
                 labelStyle: AppTypography.caption.copyWith(
                   fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? AppColors.primaryForest : AppColors.textPrimary,
+                  color: isSelected
+                      ? AppColors.primaryForest
+                      : AppColors.textPrimary,
                 ),
-                onSelected: (_) => ref.read(offerRideProvider.notifier).toggleAmenity(amenity),
+                onSelected: (_) =>
+                    ref.read(offerRideProvider.notifier).toggleAmenity(amenity),
               );
             }).toList(),
           ),
@@ -908,16 +1036,21 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
           style: AppTypography.bodyMedium,
           decoration: InputDecoration(
             labelText: 'Journey Notes (Optional)',
-            hintText: 'e.g. Departing punctually; 1 medium bag per rider allowed.',
+            hintText:
+                'e.g. Departing punctually; 1 medium bag per rider allowed.',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
             filled: true,
             fillColor: AppColors.white,
           ),
-          onChanged: (val) => ref.read(offerRideProvider.notifier).setNotes(val),
+          onChanged: (val) =>
+              ref.read(offerRideProvider.notifier).setNotes(val),
         ),
         const SizedBox(height: 20),
 
-        _buildSectionHeader('Journey Summary', 'Review the ride details before publishing'),
+        _buildSectionHeader(
+          'Journey Summary',
+          'Review the ride details before publishing',
+        ),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(16),
@@ -931,12 +1064,18 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.route, color: AppColors.primaryForest, size: 20),
+                  const Icon(
+                    Icons.route,
+                    color: AppColors.primaryForest,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${draft.origin?.name ?? "Origin"} to ${draft.destination?.name ?? "Destination"}',
-                      style: AppTypography.cardTitle.copyWith(color: AppColors.deepForest),
+                      style: AppTypography.cardTitle.copyWith(
+                        color: AppColors.deepForest,
+                      ),
                     ),
                   ),
                 ],
@@ -945,10 +1084,19 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildSummaryItem('Distance', draft.route?.formattedDistance ?? '--'),
-                  _buildSummaryItem('Est. Duration', draft.route?.formattedDuration ?? '--'),
+                  _buildSummaryItem(
+                    'Distance',
+                    draft.route?.formattedDistance ?? '--',
+                  ),
+                  _buildSummaryItem(
+                    'Est. Duration',
+                    draft.route?.formattedDuration ?? '--',
+                  ),
                   _buildSummaryItem('Seats', '${draft.availableSeats}'),
-                  _buildSummaryItem('Price', '₹${draft.contributionPerSeat.toStringAsFixed(0)}'),
+                  _buildSummaryItem(
+                    'Price',
+                    '₹${draft.contributionPerSeat.toStringAsFixed(0)}',
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -960,12 +1108,18 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.directions_car, size: 16, color: AppColors.primaryForest),
+                    const Icon(
+                      Icons.directions_car,
+                      size: 16,
+                      color: AppColors.primaryForest,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         '${draft.selectedVehicle?.make ?? ""} ${draft.selectedVehicle?.model ?? ""} (${draft.selectedVehicle?.registrationNumber ?? ""})',
-                        style: AppTypography.caption.copyWith(fontWeight: FontWeight.w600),
+                        style: AppTypography.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -1011,10 +1165,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
           title,
           style: AppTypography.cardTitle.copyWith(color: AppColors.deepForest),
         ),
-        Text(
-          subtitle,
-          style: AppTypography.caption,
-        ),
+        Text(subtitle, style: AppTypography.caption),
       ],
     );
   }
@@ -1028,11 +1179,18 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 side: const BorderSide(color: AppColors.border),
               ),
               onPressed: () => setState(() => _currentStep--),
-              child: Text('Back', style: AppTypography.button.copyWith(color: AppColors.textPrimary)),
+              child: Text(
+                'Back',
+                style: AppTypography.button.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
             ),
           ),
         if (_currentStep > 0) const SizedBox(width: 12),
@@ -1042,7 +1200,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryForest,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: draft.isSubmitting
                 ? null
@@ -1051,13 +1211,19 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                       if (_currentStep == 0) {
                         if (draft.selectedVehicle == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please select a vehicle first.')),
+                            const SnackBar(
+                              content: Text('Please select a vehicle first.'),
+                            ),
                           );
                           return;
                         }
                         if (draft.origin == null || draft.destination == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Please enter both origin and destination.')),
+                            const SnackBar(
+                              content: Text(
+                                'Please enter both origin and destination.',
+                              ),
+                            ),
                           );
                           return;
                         }
@@ -1071,7 +1237,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.white,
+                    ),
                   )
                 : Text(
                     _currentStep == 2 ? 'Publish Ride' : 'Continue',
