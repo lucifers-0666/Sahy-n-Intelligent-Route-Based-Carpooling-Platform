@@ -56,6 +56,8 @@ class AppShell extends ConsumerWidget {
             initialLocation: index == navigationShell.currentIndex,
           );
         },
+        selectedFontSize: 11,
+        unselectedFontSize: 11,
         selectedItemColor: AppColors.primaryForest,
         unselectedItemColor: AppColors.textSecondary,
         backgroundColor: AppColors.white,

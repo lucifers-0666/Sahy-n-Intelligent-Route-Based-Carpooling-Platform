@@ -560,57 +560,59 @@ class RideDetailsScreen extends ConsumerWidget {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          border: Border(top: BorderSide(color: AppColors.border)),
-        ),
-        child: Row(
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Seat Contribution', style: AppTypography.caption),
-                Text(
-                  '₹${ride.contributionPerSeat.toStringAsFixed(0)}',
-                  style: AppTypography.screenTitle.copyWith(
-                    color: AppColors.primaryForest,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: PrimaryButton(
-                text: 'Request Seat',
-                onPressed: () {
-                  final isGuest = ref.read(userModeProvider).isGuest;
-                  if (isGuest) {
-                    AuthGateDialog.show(
-                      context,
-                      title: 'Sign In to Request Seat',
-                      message:
-                          'To reserve seats and communicate with verified drivers, please sign in or register.',
-                      intendedRoute: '/home',
-                    );
-                    return;
-                  }
-
-                  // Placeholder action for Phase 8 booking
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Seat booking will be enabled in Phase 8 (Booking Engine).',
-                      ),
-                      backgroundColor: AppColors.primaryForest,
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: Row(
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Seat Contribution', style: AppTypography.caption),
+                  Text(
+                    '₹${ride.contributionPerSeat.toStringAsFixed(0)}',
+                    style: AppTypography.screenTitle.copyWith(
+                      color: AppColors.primaryForest,
                     ),
-                  );
-                },
+                  ),
+                ],
               ),
-            ),
-          ],
+              const SizedBox(width: 20),
+              Expanded(
+                child: PrimaryButton(
+                  text: 'Request Seat',
+                  onPressed: () {
+                    final isGuest = ref.read(userModeProvider).isGuest;
+                    if (isGuest) {
+                      AuthGateDialog.show(
+                        context,
+                        title: 'Sign In to Request Seat',
+                        message:
+                            'To reserve seats and communicate with verified drivers, please sign in or register.',
+                        intendedRoute: '/home',
+                      );
+                      return;
+                    }
+
+                    // Placeholder action for Phase 8 booking
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Seat booking will be enabled in Phase 8 (Booking Engine).',
+                        ),
+                        backgroundColor: AppColors.primaryForest,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -530,120 +530,130 @@ class _ContactFormBottomSheetState
   Widget build(BuildContext context) {
     final isEditing = widget.contact != null;
     final isSaving = ref.watch(profileProvider).isSaving;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 20,
-        right: 20,
-        top: 20,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-      ),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: screenHeight * 0.85),
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+          ),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    isEditing ? 'Edit Contact' : 'Add Emergency Contact',
-                    style: AppTypography.screenTitle.copyWith(fontSize: 20),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                label: 'Contact Name',
-                hint: 'e.g. Meera Patel',
-                controller: _nameController,
-                prefixIcon: const Icon(
-                  Icons.person_outline_rounded,
-                  color: AppColors.textSecondary,
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Please enter contact name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              AppTextField(
-                label: 'Phone Number',
-                hint: '10-digit mobile number',
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 12, right: 8),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(
-                        Icons.phone_android_rounded,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 4),
                       Text(
-                        '+91',
-                        style: AppTypography.bodyLarge.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        isEditing ? 'Edit Contact' : 'Add Emergency Contact',
+                        style: AppTypography.screenTitle.copyWith(fontSize: 20),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
                     ],
                   ),
-                ),
-                validator: (val) {
-                  if (val == null || val.trim().isEmpty) {
-                    return 'Please enter phone number';
-                  }
-                  final clean = val.trim().replaceAll(RegExp(r'[\s\-]'), '');
-                  if (!RegExp(r'^[6-9]\d{9}$').hasMatch(clean)) {
-                    return 'Enter a valid 10-digit Indian mobile number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              Text('Relationship', style: AppTypography.fieldLabel),
-              const SizedBox(height: 6),
-              DropdownButtonFormField<String>(
-                initialValue: _relationship,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(
-                    Icons.people_outline_rounded,
-                    color: AppColors.textSecondary,
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    label: 'Contact Name',
+                    hint: 'e.g. Meera Patel',
+                    controller: _nameController,
+                    prefixIcon: const Icon(
+                      Icons.person_outline_rounded,
+                      color: AppColors.textSecondary,
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Please enter contact name';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-                items: _relationshipOptions.map((rel) {
-                  return DropdownMenuItem(
-                    value: rel,
-                    child: Text(rel, style: AppTypography.bodyLarge),
-                  );
-                }).toList(),
-                onChanged: (val) {
-                  if (val != null) {
-                    setState(() {
-                      _relationship = val;
-                    });
-                  }
-                },
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    label: 'Phone Number',
+                    hint: '10-digit mobile number',
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(left: 12, right: 8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.phone_android_rounded,
+                            color: AppColors.textSecondary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '+91',
+                            style: AppTypography.bodyLarge.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    validator: (val) {
+                      if (val == null || val.trim().isEmpty) {
+                        return 'Please enter phone number';
+                      }
+                      final clean = val.trim().replaceAll(
+                        RegExp(r'[\s\-]'),
+                        '',
+                      );
+                      if (!RegExp(r'^[6-9]\d{9}$').hasMatch(clean)) {
+                        return 'Enter a valid 10-digit Indian mobile number';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Relationship', style: AppTypography.fieldLabel),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    initialValue: _relationship,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.people_outline_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    items: _relationshipOptions.map((rel) {
+                      return DropdownMenuItem(
+                        value: rel,
+                        child: Text(rel, style: AppTypography.bodyLarge),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _relationship = val;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  PrimaryButton(
+                    text: isEditing ? 'Update Contact' : 'Save Contact',
+                    isLoading: isSaving,
+                    onPressed: _submit,
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              PrimaryButton(
-                text: isEditing ? 'Update Contact' : 'Save Contact',
-                isLoading: isSaving,
-                onPressed: _submit,
-              ),
-            ],
+            ),
           ),
         ),
       ),

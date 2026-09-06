@@ -42,7 +42,9 @@ class AuthGateDialog extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final screenHeight = MediaQuery.of(context).size.height;
     return Container(
+      constraints: BoxConstraints(maxHeight: screenHeight * 0.85),
       decoration: const BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -55,95 +57,100 @@ class AuthGateDialog extends ConsumerWidget {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.softForest,
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.softForest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.lock_outline_rounded,
+                      color: AppColors.primaryForest,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: AppTypography.screenTitle.copyWith(fontSize: 20),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: AppTypography.secondary.copyWith(height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              PrimaryButton(
+                text: 'Create Account',
+                onPressed: () {
+                  if (intendedRoute != null) {
+                    ref
+                        .read(userModeProvider.notifier)
+                        .setPendingProtectedIntent(intendedRoute);
+                  }
+                  Navigator.of(context).pop(false);
+                  context.push('/register');
+                },
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  side: const BorderSide(color: AppColors.border),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.lock_outline_rounded,
+                ),
+                onPressed: () {
+                  if (intendedRoute != null) {
+                    ref
+                        .read(userModeProvider.notifier)
+                        .setPendingProtectedIntent(intendedRoute);
+                  }
+                  Navigator.of(context).pop(false);
+                  context.push('/login');
+                },
+                child: Text(
+                  'Log In to Existing Account',
+                  style: AppTypography.button.copyWith(
                     color: AppColors.primaryForest,
-                    size: 24,
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: AppTypography.screenTitle.copyWith(fontSize: 20),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(
+                  'Continue Exploring',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(message, style: AppTypography.secondary.copyWith(height: 1.5)),
-            const SizedBox(height: 24),
-            PrimaryButton(
-              text: 'Create Account',
-              onPressed: () {
-                if (intendedRoute != null) {
-                  ref
-                      .read(userModeProvider.notifier)
-                      .setPendingProtectedIntent(intendedRoute);
-                }
-                Navigator.of(context).pop(false);
-                context.push('/register');
-              },
-            ),
-            const SizedBox(height: 10),
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                side: const BorderSide(color: AppColors.border),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
               ),
-              onPressed: () {
-                if (intendedRoute != null) {
-                  ref
-                      .read(userModeProvider.notifier)
-                      .setPendingProtectedIntent(intendedRoute);
-                }
-                Navigator.of(context).pop(false);
-                context.push('/login');
-              },
-              child: Text(
-                'Log In to Existing Account',
-                style: AppTypography.button.copyWith(
-                  color: AppColors.primaryForest,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: Text(
-                'Continue Exploring',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

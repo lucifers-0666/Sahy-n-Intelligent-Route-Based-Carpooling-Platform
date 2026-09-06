@@ -273,6 +273,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         const SizedBox(height: 6),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
+                          physics: const BouncingScrollPhysics(),
                           child: Row(
                             children: _popularHubs.map((hub) {
                               final isSelected =
@@ -371,6 +372,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 // Quick Route Chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
                   child: Row(
                     children: [
                       _buildQuickRouteChip('Ahmedabad → Rajkot', '₹350'),
@@ -546,6 +549,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       side: const BorderSide(color: AppColors.border),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       label: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             route,

@@ -310,13 +310,20 @@ class RouteMatchBreakdownWidget extends StatelessWidget {
                 style: AppTypography.bodyMedium.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            Text(
-              metricText,
-              style: AppTypography.caption.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                metricText,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 8),
