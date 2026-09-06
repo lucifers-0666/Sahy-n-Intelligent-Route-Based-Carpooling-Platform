@@ -3,6 +3,8 @@ const Ride = require('../models/Ride');
 const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
 const googleMapsService = require('../services/googleMapsService');
+const routeMatchService = require('../services/routeMatchService');
+const { decodePolyline, generateFallbackRoute } = require('../utils/polylineUtils');
 
 /**
  * Validate geographic coordinate pair
@@ -787,72 +789,58 @@ const searchRides = async (req, res, next) => {
       .limit(50)
       .lean();
 
-    // 7. Format structured search results with preliminary proximity & time metrics
-    const results = candidateRides.map((ride) => {
-      let pickupDistanceKm = 0;
-      let destinationDistanceKm = 0;
+    // 7. Calculate passenger route ONCE (avoid N+1 Google Maps queries)
+    let passengerPoints = [];
+    if (
+      originLat !== null &&
+      originLng !== null &&
+      destLat !== null &&
+      destLng !== null &&
+      isValidCoordinate(originLat, originLng) &&
+      isValidCoordinate(destLat, destLng)
+    ) {
+      if (googleMapsService.isConfigured()) {
+        try {
+          const routeResult = await googleMapsService.calculateRoute(
+            { latitude: originLat, longitude: originLng },
+            { latitude: destLat, longitude: destLng }
+          );
+          if (routeResult.success && routeResult.encodedPolyline) {
+            passengerPoints = decodePolyline(routeResult.encodedPolyline);
+          }
+        } catch (err) {
+          // Fallback to geometric arc
+          passengerPoints = generateFallbackRoute(
+            { latitude: originLat, longitude: originLng },
+            { latitude: destLat, longitude: destLng },
+            25
+          );
+        }
+      }
 
-      if (originLat !== null && originLng !== null && isValidCoordinate(originLat, originLng)) {
-        pickupDistanceKm = Number(
-          calculateHaversineDistanceKm(
-            originLat,
-            originLng,
-            ride.origin.latitude,
-            ride.origin.longitude
-          ).toFixed(1)
+      if (passengerPoints.length === 0) {
+        passengerPoints = generateFallbackRoute(
+          { latitude: originLat, longitude: originLng },
+          { latitude: destLat, longitude: destLng },
+          25
         );
       }
+    }
 
-      if (destLat !== null && destLng !== null && isValidCoordinate(destLat, destLng)) {
-        destinationDistanceKm = Number(
-          calculateHaversineDistanceKm(
-            destLat,
-            destLng,
-            ride.destination.latitude,
-            ride.destination.longitude
-          ).toFixed(1)
-        );
-      }
-
-      let departureDifferenceMinutes = 0;
-      if (requestedDateTime) {
-        departureDifferenceMinutes = Math.round(
-          Math.abs(new Date(ride.departureTime).getTime() - requestedDateTime.getTime()) / (60 * 1000)
-        );
-      }
-
-      const proximityDesc =
-        pickupDistanceKm <= 1
-          ? 'Direct pickup'
-          : `Pickup within ${pickupDistanceKm} km`;
-
-      const timeDesc =
-        departureDifferenceMinutes === 0
-          ? 'Exact departure time'
-          : `${departureDifferenceMinutes} min departure difference`;
-
-      const matchPreview = `${proximityDesc} | ${timeDesc}`;
-
-      // Normalize IDs
-      const normalizedRide = {
-        ...ride,
-        id: ride._id ? ride._id.toString() : '',
-      };
-      if (normalizedRide.driver && normalizedRide.driver._id) {
-        normalizedRide.driver.id = normalizedRide.driver._id.toString();
-      }
-      if (normalizedRide.vehicle && normalizedRide.vehicle._id) {
-        normalizedRide.vehicle.id = normalizedRide.vehicle._id.toString();
-      }
-
-      return {
-        ride: normalizedRide,
-        pickupDistanceKm,
-        destinationDistanceKm,
-        departureDifferenceMinutes,
-        availableSeats: ride.availableSeats,
-        matchPreview,
-      };
+    // 8. Evaluate and rank candidates using the Intelligent Route Match Engine
+    const results = routeMatchService.evaluateAndRankCandidates({
+      passengerOrigin:
+        originLat !== null && originLng !== null
+          ? { latitude: originLat, longitude: originLng }
+          : null,
+      passengerDestination:
+        destLat !== null && destLng !== null
+          ? { latitude: destLat, longitude: destLng }
+          : null,
+      passengerDepartureTime: requestedDateTime,
+      passengerPoints,
+      candidateRides,
+      requestedSeats: parsedSeats,
     });
 
     return res.status(200).json({

@@ -6,6 +6,7 @@ import '../../core/widgets/verification_badge.dart';
 import '../../core/widgets/rating_display.dart';
 
 import 'package:sahyan/features/rides/domain/ride_search_result.dart';
+import 'package:sahyan/features/rides/presentation/widgets/route_match_breakdown_widget.dart';
 
 class RideCard extends StatelessWidget {
   final RideModel ride;
@@ -21,6 +22,7 @@ class RideCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final match = searchResult?.match;
     final proximityBadge = searchResult != null
         ? (searchResult!.pickupDistanceKm <= 1.0
               ? 'Direct Pickup'
@@ -42,7 +44,7 @@ class RideCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header: Proximity Badge & Price
+              // Header: Match Badge / Proximity Badge & Price
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -50,55 +52,105 @@ class RideCard extends StatelessWidget {
                     child: Wrap(
                       spacing: 6,
                       runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.softForest,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.near_me_rounded,
-                                size: 13,
-                                color: AppColors.primaryForest,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                proximityBadge,
-                                style: AppTypography.caption.copyWith(
-                                  color: AppColors.primaryForest,
-                                  fontWeight: FontWeight.bold,
+                        if (match != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryForest,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.auto_awesome,
+                                  size: 13,
+                                  color: AppColors.white,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${match.score}% Match',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        if (searchResult != null &&
-                            searchResult!.departureDifferenceMinutes > 0)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.warmBackground,
+                              color: AppColors.softForest,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.border),
                             ),
                             child: Text(
-                              '${searchResult!.departureDifferenceMinutes}m diff',
+                              match.grade,
                               style: AppTypography.caption.copyWith(
-                                color: AppColors.textSecondary,
-                                fontSize: 10,
+                                color: AppColors.primaryForest,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 11,
                               ),
                             ),
                           ),
+                        ] else ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.softForest,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.near_me_rounded,
+                                  size: 13,
+                                  color: AppColors.primaryForest,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  proximityBadge,
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.primaryForest,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (searchResult != null &&
+                              searchResult!.departureDifferenceMinutes > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.warmBackground,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: AppColors.border),
+                              ),
+                              child: Text(
+                                '${searchResult!.departureDifferenceMinutes}m diff',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                        ],
                       ],
                     ),
                   ),
@@ -189,6 +241,72 @@ class RideCard extends StatelessWidget {
                   ),
                 ],
               ),
+
+              if (match != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warmBackground,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 15,
+                        color: AppColors.primaryForest,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          match.reasons.isNotEmpty
+                              ? match.reasons.first
+                              : '${match.metrics.routeOverlapPercentage}% route overlap · ${match.metrics.pickupDistanceKm} km pickup deviation',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.deepForest,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () =>
+                            RouteMatchBreakdownWidget.showModal(context, match),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Why this match?',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.primaryForest,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right,
+                                size: 14,
+                                color: AppColors.primaryForest,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 14),
               const Divider(color: AppColors.border, height: 1),

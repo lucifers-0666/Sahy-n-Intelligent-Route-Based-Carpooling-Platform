@@ -9,6 +9,7 @@ import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/core/widgets/verification_badge.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';
 import 'package:sahyan/features/rides/presentation/widgets/route_map_preview.dart';
+import 'package:sahyan/features/rides/presentation/widgets/route_match_breakdown_widget.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
 import '../rides_provider.dart';
@@ -53,7 +54,7 @@ class RideDetailsScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Preliminary match info from search (if available)
+            // Match engine info from search (if available)
             if (searchResult != null)
               Container(
                 margin: const EdgeInsets.only(bottom: 16),
@@ -65,33 +66,88 @@ class RideDetailsScreen extends ConsumerWidget {
                     color: AppColors.primaryForest.withValues(alpha: 0.3),
                   ),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(
-                      Icons.near_me_rounded,
-                      color: AppColors.primaryForest,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Preliminary Proximity Match',
-                            style: AppTypography.caption.copyWith(
+                    Row(
+                      children: [
+                        if (searchResult.match != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
                               color: AppColors.primaryForest,
-                              fontWeight: FontWeight.bold,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${searchResult.match!.score}% Match',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            searchResult.matchPreview,
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.deepForest,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              searchResult.match!.grade,
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.deepForest,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(50, 24),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () =>
+                                RouteMatchBreakdownWidget.showModal(
+                                  context,
+                                  searchResult.match!,
+                                ),
+                            child: Text(
+                              'Why this match?',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.primaryForest,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          const Icon(
+                            Icons.near_me_rounded,
+                            color: AppColors.primaryForest,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Preliminary Proximity Match',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.primaryForest,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      searchResult.match != null &&
+                              searchResult.match!.reasons.isNotEmpty
+                          ? searchResult.match!.reasons.first
+                          : searchResult.matchPreview,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.deepForest,
                       ),
                     ),
                   ],
