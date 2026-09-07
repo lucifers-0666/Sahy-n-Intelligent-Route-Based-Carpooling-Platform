@@ -83,10 +83,6 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path: '/search-results',
-      builder: (context, state) => const SearchResultsScreen(),
-    ),
-    GoRoute(
       path: '/ride-details',
       builder: (context, state) => const RideDetailsScreen(),
     ),
@@ -116,7 +112,7 @@ final appRouter = GoRouter(
         return AppShell(navigationShell: navigationShell);
       },
       branches: [
-        // Tab 1: Find Ride (Home)
+        // Tab 1: Home
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -125,7 +121,16 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        // Tab 2: Offer Ride
+        // Tab 2: Rides (Search Results)
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/search-results',
+              builder: (context, state) => const SearchResultsScreen(),
+            ),
+          ],
+        ),
+        // Tab 3: Offer Ride
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -134,7 +139,7 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        // Tab 3: My Bookings
+        // Tab 4: Bookings
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -143,7 +148,7 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        // Tab 4: Profile
+        // Tab 5: Profile
         StatefulShellBranch(
           routes: [
             GoRoute(

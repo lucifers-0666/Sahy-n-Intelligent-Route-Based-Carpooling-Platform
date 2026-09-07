@@ -81,7 +81,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       seats: _selectedSeats,
     );
 
-    context.push('/search-results');
+    context.go('/search-results');
   }
 
   @override
