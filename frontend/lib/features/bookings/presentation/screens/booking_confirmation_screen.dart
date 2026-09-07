@@ -13,122 +13,130 @@ class BookingConfirmationScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final booking = ref.watch(activeBookingProvider);
+    final ride = booking?.ride ?? booking?.rideDetails;
+
+    final routeOrigin = booking != null
+        ? (booking.pickup.name.isNotEmpty
+              ? booking.pickup.name
+              : ride?.origin.city ?? 'Origin')
+        : 'Origin';
+    final routeDest = booking != null
+        ? (booking.drop.name.isNotEmpty
+              ? booking.drop.name
+              : ride?.destination.city ?? 'Destination')
+        : 'Destination';
+
+    final driverName = ride?.driverName ?? 'the driver';
+    final vehicleName = ride?.vehicle.fullName ?? 'Vehicle';
+    final departure = ride != null ? ride.departureTime : 'Scheduled Departure';
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text('Request Confirmation', style: AppTypography.screenTitle),
+        elevation: 0,
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Spacer(),
-              // Success Icon Animation
+              const SizedBox(height: 12),
+              // Success / Pending Icon
               Container(
-                width: 90,
-                height: 90,
+                width: 80,
+                height: 80,
                 decoration: const BoxDecoration(
                   color: AppColors.softForest,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.check_circle_rounded,
-                  size: 64,
+                  Icons.send_rounded,
+                  size: 44,
                   color: AppColors.primaryForest,
                 ),
               ),
-              const SizedBox(height: 24),
-              Text('Booking Requested!', style: AppTypography.screenTitle),
+              const SizedBox(height: 20),
+
+              Text('Request Sent', style: AppTypography.screenTitle),
               const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.softBrass,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Pending Driver Approval',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.mutedBrass,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               Text(
-                'Your booking request has been sent to ${booking?.rideDetails?.driverName ?? "the driver"}. You will receive a notification as soon as they confirm.',
+                'The driver needs to approve your request. You will be notified once $driverName confirms.',
                 style: AppTypography.secondary,
                 textAlign: TextAlign.center,
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              // Summary Card
+              // Comprehensive Details Card
               if (booking != null)
                 Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: const BorderSide(color: AppColors.border),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Booking Reference',
-                              style: AppTypography.caption,
-                            ),
-                            Text(
-                              booking.id.substring(0, 10),
-                              style: AppTypography.caption.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                        _buildDetailRow(
+                          'Route',
+                          '$routeOrigin → $routeDest',
+                          isBold: true,
                         ),
-                        const Divider(color: AppColors.border, height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Route', style: AppTypography.bodyMedium),
-                            Text(
-                              '${booking.rideDetails?.origin.city} → ${booking.rideDetails?.destination.city}',
-                              style: AppTypography.bodyMedium.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                        const Divider(height: 16, color: AppColors.border),
+                        _buildDetailRow('Departure', departure),
+                        const Divider(height: 16, color: AppColors.border),
+                        _buildDetailRow('Driver', driverName),
+                        const Divider(height: 16, color: AppColors.border),
+                        _buildDetailRow('Vehicle', vehicleName),
+                        const Divider(height: 16, color: AppColors.border),
+                        _buildDetailRow(
+                          'Seats Requested',
+                          '${booking.requestedSeats} seat${booking.requestedSeats > 1 ? 's' : ''}',
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Selected Seats',
-                              style: AppTypography.secondary,
-                            ),
-                            Text(
-                              booking.selectedSeats.join(', '),
-                              style: AppTypography.secondary.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
+                        const Divider(height: 16, color: AppColors.border),
+                        _buildDetailRow(
+                          'Contribution Per Seat',
+                          '₹${booking.contributionPerSeat.toStringAsFixed(0)}',
                         ),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Status', style: AppTypography.secondary),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.softBrass,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                'Pending Driver Approval',
-                                style: AppTypography.caption.copyWith(
-                                  color: AppColors.mutedBrass,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
+                        const Divider(height: 16, color: AppColors.border),
+                        _buildDetailRow(
+                          'Total Contribution',
+                          '₹${booking.totalContribution.toStringAsFixed(0)}',
+                          highlight: true,
                         ),
+                        const Divider(height: 16, color: AppColors.border),
+                        _buildDetailRow('Pickup Point', booking.pickup.name),
+                        const Divider(height: 16, color: AppColors.border),
+                        _buildDetailRow('Drop Point', booking.drop.name),
                       ],
                     ),
                   ),
                 ),
 
-              const Spacer(),
+              const SizedBox(height: 28),
 
               PrimaryButton(
                 text: 'View My Bookings',
@@ -148,6 +156,37 @@ class BookingConfirmationScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    bool highlight = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(flex: 2, child: Text(label, style: AppTypography.secondary)),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: AppTypography.bodyMedium.copyWith(
+              fontWeight: (isBold || highlight)
+                  ? FontWeight.bold
+                  : FontWeight.w600,
+              color: highlight
+                  ? AppColors.primaryForest
+                  : AppColors.textPrimary,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

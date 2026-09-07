@@ -3,18 +3,111 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/app/theme/app_theme.dart';
+import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/bookings/data/bookings_repository.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
+import 'package:sahyan/features/bookings/presentation/screens/booking_confirmation_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/booking_details_screen.dart';
+import 'package:sahyan/features/bookings/presentation/screens/confirm_pay_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/my_bookings_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/ride_details_screen.dart';
+import 'package:sahyan/core/network/api_client.dart';
+import 'package:sahyan/core/storage/secure_storage_service.dart';
+import 'package:sahyan/features/auth/data/auth_repository.dart';
 import 'package:sahyan/features/rides/presentation/rides_provider.dart';
 import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_sheet.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/models/user_model.dart';
+
+class _FakeAuthStorage implements SecureStorageService {
+  @override
+  Future<void> saveToken(String token) async {}
+  @override
+  Future<String?> getToken() async => null;
+  @override
+  Future<void> deleteToken() async {}
+  @override
+  Future<void> saveUser(UserModel user) async {}
+  @override
+  Future<UserModel?> getUser() async => null;
+  @override
+  Future<void> deleteUser() async {}
+  @override
+  Future<void> clearSession() async {}
+  @override
+  Future<void> setCompletedOnboarding(bool completed) async {}
+  @override
+  Future<bool> hasCompletedOnboarding() async => true;
+}
+
+class _FakeAuthRepo implements AuthRepository {
+  @override
+  Future<Map<String, dynamic>> login({
+    required String identifier,
+    required String password,
+  }) async => {};
+  @override
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+  }) async => {};
+  @override
+  Future<Map<String, dynamic>> sendOtp(String phone) async => {};
+  @override
+  Future<Map<String, dynamic>> verifyOtp({
+    required String phone,
+    required String otp,
+  }) async => {};
+  @override
+  Future<Map<String, dynamic>> forgotPassword(String email) async => {};
+  @override
+  Future<Map<String, dynamic>> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async => {};
+  @override
+  Future<UserModel> getProfile() async => const UserModel(
+    id: 'usr_test_passenger',
+    name: 'Test Passenger',
+    phone: '+919876543210',
+    email: 'passenger@example.com',
+    city: 'Ahmedabad',
+    verificationStatus: UserVerificationStatus.verified,
+    rating: 5.0,
+    totalRides: 0,
+  );
+}
+
+class FakeAuthNotifier extends AuthNotifier {
+  FakeAuthNotifier({bool isAuthenticated = true})
+    : super(
+        repository: _FakeAuthRepo(),
+        storageService: _FakeAuthStorage(),
+        apiClient: ApiClient(),
+      ) {
+    state = isAuthenticated
+        ? const AuthState(
+            status: AuthStatus.authenticated,
+            user: UserModel(
+              id: 'usr_test_passenger',
+              name: 'Test Passenger',
+              phone: '+919876543210',
+              email: 'passenger@example.com',
+              city: 'Ahmedabad',
+              verificationStatus: UserVerificationStatus.verified,
+              rating: 5.0,
+              totalRides: 0,
+            ),
+            token: 'valid_jwt_token',
+          )
+        : const AuthState(status: AuthStatus.unauthenticated);
+  }
+}
 
 class MockBookingsRepoForTest implements BookingsRepository {
   List<BookingModel> bookings = [];
@@ -246,7 +339,12 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [bookingsRepositoryProvider.overrideWithValue(mockRepo)],
+          overrides: [
+            bookingsRepositoryProvider.overrideWithValue(mockRepo),
+            authProvider.overrideWith(
+              (ref) => FakeAuthNotifier(isAuthenticated: true),
+            ),
+          ],
           child: MaterialApp(
             theme: AppTheme.lightTheme,
             home: Scaffold(body: RequestSeatBottomSheet(ride: ride)),
@@ -287,7 +385,12 @@ void main() {
 
       await tester.pumpWidget(
         ProviderScope(
-          overrides: [bookingsRepositoryProvider.overrideWithValue(mockRepo)],
+          overrides: [
+            bookingsRepositoryProvider.overrideWithValue(mockRepo),
+            authProvider.overrideWith(
+              (ref) => FakeAuthNotifier(isAuthenticated: true),
+            ),
+          ],
           child: MaterialApp(
             theme: AppTheme.lightTheme,
             home: Scaffold(body: RequestSeatBottomSheet(ride: ride)),
@@ -606,6 +709,171 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'ConfirmPayScreen renders without overflow under 1.5x text scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
+
+        final ride = createSampleRide();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              selectedRideProvider.overrideWith((ref) => ride),
+              selectedSeatsProvider.overrideWith((ref) => ['A1', 'A2']),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.lightTheme,
+              builder: (context, child) {
+                return MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: const TextScaler.linear(1.5)),
+                  child: child!,
+                );
+              },
+              home: const ConfirmPayScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'BookingConfirmationScreen renders without overflow under 1.5x text scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(360, 640);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
+
+        final booking = createSampleBooking();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [activeBookingProvider.overrideWith((ref) => booking)],
+            child: MaterialApp(
+              theme: AppTheme.lightTheme,
+              builder: (context, child) {
+                return MediaQuery(
+                  data: MediaQuery.of(
+                    context,
+                  ).copyWith(textScaler: const TextScaler.linear(1.5)),
+                  child: child!,
+                );
+              },
+              home: const BookingConfirmationScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
+  group('ConfirmPayScreen and BookingConfirmationScreen Hardening Tests', () {
+    testWidgets(
+      'ConfirmPayScreen displays Contribution terminology and zero payment or escrow terms',
+      (tester) async {
+        final ride = createSampleRide();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              selectedRideProvider.overrideWith((ref) => ride),
+              selectedSeatsProvider.overrideWith((ref) => ['A1', 'A2']),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.lightTheme,
+              home: const ConfirmPayScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Validated clean terminology
+        expect(find.text('Booking Request Summary'), findsOneWidget);
+        expect(find.text('Contribution Details'), findsOneWidget);
+        expect(find.text('Seat Contribution (2 seats)'), findsOneWidget);
+        expect(find.text('Total Contribution'), findsOneWidget);
+        expect(find.text('Pending Driver Approval'), findsOneWidget);
+        expect(find.text('Send Request'), findsOneWidget);
+
+        // Verify zero legacy payment or escrow terms
+        expect(find.textContaining('Escrow'), findsNothing);
+        expect(find.textContaining('Platform Fee'), findsNothing);
+        expect(find.textContaining('Total Payable'), findsNothing);
+        expect(find.textContaining('Pay ₹'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'ConfirmPayScreen triggers AuthGateDialog when unauthenticated user clicks Send Request',
+      (tester) async {
+        final ride = createSampleRide();
+        final mockRepo = MockBookingsRepoForTest();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              selectedRideProvider.overrideWith((ref) => ride),
+              selectedSeatsProvider.overrideWith((ref) => ['A1']),
+              bookingsRepositoryProvider.overrideWithValue(mockRepo),
+              authProvider.overrideWith(
+                (ref) => FakeAuthNotifier(isAuthenticated: false),
+              ),
+            ],
+            child: MaterialApp(
+              theme: AppTheme.lightTheme,
+              home: const ConfirmPayScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Send Request'));
+        await tester.pumpAndSettle();
+
+        // AuthGateDialog must be triggered, and 0 bookings created
+        expect(find.text('Sign In to Request Seat'), findsOneWidget);
+        expect(mockRepo.bookings.length, 0);
+      },
+    );
+
+    testWidgets(
+      'BookingConfirmationScreen displays Request Sent and Pending Driver Approval without payment terms',
+      (tester) async {
+        final booking = createSampleBooking(status: BookingStatus.pending);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [activeBookingProvider.overrideWith((ref) => booking)],
+            child: MaterialApp(
+              theme: AppTheme.lightTheme,
+              home: const BookingConfirmationScreen(),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Request Sent'), findsOneWidget);
+        expect(find.text('Pending Driver Approval'), findsOneWidget);
+        expect(
+          find.textContaining('The driver needs to approve your request'),
+          findsOneWidget,
+        );
+        expect(find.text('Total Contribution'), findsOneWidget);
+        expect(find.text('View My Bookings'), findsOneWidget);
+        expect(find.text('Back to Home'), findsOneWidget);
+
+        // Verify zero payment/escrow terms
+        expect(find.textContaining('Escrow'), findsNothing);
+        expect(find.textContaining('Payable'), findsNothing);
+        expect(find.textContaining('Platform Fee'), findsNothing);
       },
     );
   });

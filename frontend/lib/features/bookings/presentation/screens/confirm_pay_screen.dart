@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../shared/widgets/auth_gate_dialog.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
@@ -17,31 +18,68 @@ class ConfirmPayScreen extends ConsumerStatefulWidget {
 
 class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
   bool _isProcessing = false;
+  String? _errorMessage;
 
   void _handleConfirmBooking() async {
-    setState(() => _isProcessing = true);
+    final authState = ref.read(authProvider);
+
+    // Strictly enforce real authentication: no fake synthetic user fallbacks
+    if (!authState.isAuthenticated || authState.user == null) {
+      AuthGateDialog.show(
+        context,
+        title: 'Sign In to Request Seat',
+        message:
+            'To reserve seats and communicate with verified drivers, please sign in or register.',
+        intendedRoute: '/confirm-pay',
+      );
+      return;
+    }
 
     final ride = ref.read(selectedRideProvider);
     final selectedSeats = ref.read(selectedSeatsProvider);
-    final authState = ref.read(authProvider);
 
     if (ride == null) return;
 
-    final booking = await ref
-        .read(bookingsNotifierProvider.notifier)
-        .confirmBooking(
-          ride: ride,
-          passengerId: authState.user?.id ?? 'usr_arjun_99',
-          passengerName: authState.user?.name ?? 'Arjun Patel',
-          selectedSeats: selectedSeats,
-        );
+    setState(() {
+      _isProcessing = true;
+      _errorMessage = null;
+    });
 
-    ref.read(activeBookingProvider.notifier).state = booking;
+    try {
+      // Authoritative booking creation via live API
+      final booking = await ref
+          .read(bookingsNotifierProvider.notifier)
+          .createBookingRequest(
+            rideId: ride.id,
+            requestedSeats: selectedSeats.length,
+            pickup: ride.origin,
+            drop: ride.destination,
+          );
 
-    setState(() => _isProcessing = false);
+      ref.read(selectedBookingProvider.notifier).state = booking;
+      ref.read(activeBookingProvider.notifier).state = booking;
 
-    if (mounted) {
+      if (!mounted) return;
+
+      setState(() => _isProcessing = false);
+
       context.go('/booking-confirmation');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isProcessing = false;
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _errorMessage ?? 'Failed to submit seat request',
+            style: AppTypography.bodyMedium.copyWith(color: AppColors.white),
+          ),
+          backgroundColor: Colors.red.shade800,
+        ),
+      );
     }
   }
 
@@ -57,9 +95,7 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
       );
     }
 
-    final contribution = ride.contributionPerSeat * selectedSeats.length;
-    const platformFee = 25.0;
-    final total = contribution + platformFee;
+    final totalContribution = ride.contributionPerSeat * selectedSeats.length;
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
@@ -68,7 +104,10 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => context.pop(),
         ),
-        title: Text('Booking Summary', style: AppTypography.sectionHeader),
+        title: Text(
+          'Booking Request Summary',
+          style: AppTypography.sectionHeader,
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -107,7 +146,7 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
                       style: AppTypography.secondary,
                     ),
                     Text(
-                      'Seats: ${selectedSeats.join(', ')}',
+                      'Seats Requested: ${selectedSeats.length} (${selectedSeats.join(', ')})',
                       style: AppTypography.secondary,
                     ),
                     Text(
@@ -121,31 +160,29 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
 
             const SizedBox(height: 16),
 
-            // Price Breakdown Card
+            // Contribution Breakdown Card
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Price Breakdown', style: AppTypography.sectionHeader),
-                    const SizedBox(height: 16),
-                    _buildPriceRow(
-                      'Seat Contribution (${selectedSeats.length} seat)',
-                      '₹${contribution.toStringAsFixed(0)}',
+                    Text(
+                      'Contribution Details',
+                      style: AppTypography.sectionHeader,
                     ),
-                    const SizedBox(height: 8),
-                    _buildPriceRow(
-                      'Platform & Escrow Fee',
-                      '₹${platformFee.toStringAsFixed(0)}',
+                    const SizedBox(height: 16),
+                    _buildContributionRow(
+                      'Seat Contribution (${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''})',
+                      '₹${totalContribution.toStringAsFixed(0)}',
                     ),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 12.0),
                       child: Divider(color: AppColors.border),
                     ),
-                    _buildPriceRow(
-                      'Total Payable',
-                      '₹${total.toStringAsFixed(0)}',
+                    _buildContributionRow(
+                      'Total Contribution',
+                      '₹${totalContribution.toStringAsFixed(0)}',
                       isTotal: true,
                     ),
                   ],
@@ -155,21 +192,21 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
 
             const SizedBox(height: 16),
 
-            // Payment Escrow Note Card
+            // Request Policy Info Card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.softBrass,
+                color: AppColors.softForest,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.mutedBrass.withValues(alpha: 0.4),
+                  color: AppColors.primaryForest.withValues(alpha: 0.2),
                 ),
               ),
               child: Row(
                 children: [
                   const Icon(
-                    Icons.shield_outlined,
-                    color: AppColors.mutedBrass,
+                    Icons.info_outline_rounded,
+                    color: AppColors.primaryForest,
                     size: 28,
                   ),
                   const SizedBox(width: 12),
@@ -178,14 +215,15 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Sahyān Escrow Protection',
+                          'Pending Driver Approval',
                           style: AppTypography.bodyMedium.copyWith(
                             fontWeight: FontWeight.bold,
+                            color: AppColors.primaryForest,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Payment is held securely in escrow and released to the driver only after journey completion.',
+                          'Your request will be sent to the driver for approval. Cost-sharing contribution is shared directly for fuel expenses.',
                           style: AppTypography.caption,
                         ),
                       ],
@@ -194,6 +232,26 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
                 ],
               ),
             ),
+
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: Text(
+                  _errorMessage!,
+                  style: AppTypography.caption.copyWith(
+                    color: Colors.red.shade900,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -204,7 +262,7 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
           border: Border(top: BorderSide(color: AppColors.border)),
         ),
         child: PrimaryButton(
-          text: 'Request Booking & Pay ₹${total.toStringAsFixed(0)}',
+          text: 'Send Request',
           isLoading: _isProcessing,
           onPressed: _handleConfirmBooking,
         ),
@@ -212,18 +270,25 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
     );
   }
 
-  Widget _buildPriceRow(String title, String amount, {bool isTotal = false}) {
+  Widget _buildContributionRow(
+    String title,
+    String amount, {
+    bool isTotal = false,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          title,
-          style: isTotal
-              ? AppTypography.sectionHeader
-              : AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+        Expanded(
+          child: Text(
+            title,
+            style: isTotal
+                ? AppTypography.sectionHeader
+                : AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+          ),
         ),
+        const SizedBox(width: 8),
         Text(
           amount,
           style: isTotal

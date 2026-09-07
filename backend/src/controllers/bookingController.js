@@ -3,6 +3,41 @@ const Booking = require('../models/Booking');
 const Ride = require('../models/Ride');
 
 /**
+ * Sahyan Capacity Model Definition (Phase 8 & Future Phase 9):
+ * 
+ * totalSeats: Physical passenger capacity available for the ride.
+ * bookedSeats: Seats belonging to ACCEPTED bookings (consumed capacity).
+ * availableSeats: Immediately requestable capacity (not reserved by pending requests,
+ *                 and not consumed by accepted bookings).
+ * 
+ * Phase 8 Lifecycle:
+ * - When pending booking is created: availableSeats decreases by requestedSeats.
+ * - When pending booking is cancelled: availableSeats increases by requestedSeats.
+ * 
+ * Future Phase 9 Contract:
+ * - When driver ACCEPTS pending booking: DO NOT decrement availableSeats again!
+ *   Instead: bookedSeats increases by requestedSeats (seats were already reserved).
+ * - When driver REJECTS pending booking: availableSeats increases by requestedSeats.
+ */
+
+/**
+ * Helper to validate geographic coordinates without truthiness bugs
+ * Validates that latitude is between -90 and 90, longitude between -180 and 180.
+ */
+function isValidCoordinate(lat, lng) {
+  return (
+    typeof lat === 'number' &&
+    Number.isFinite(lat) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    typeof lng === 'number' &&
+    Number.isFinite(lng) &&
+    lng >= -180 &&
+    lng <= 180
+  );
+}
+
+/**
  * @desc    Create a new booking request for a scheduled ride
  * @route   POST /api/v1/bookings
  * @access  Private (Passenger)
@@ -27,15 +62,31 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
-    const seats = parseInt(requestedSeats, 10);
-    if (isNaN(seats) || seats < 1 || seats > 8) {
+    const seats = Number(requestedSeats);
+    if (!Number.isInteger(seats) || seats < 1 || seats > 8) {
       return res.status(400).json({
         success: false,
         message: 'Requested seats must be an integer between 1 and 8',
       });
     }
 
-    // 2. Fetch ride and verify basic availability
+    // Validate passenger note if provided
+    if (passengerNote !== undefined && passengerNote !== null) {
+      if (typeof passengerNote !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Passenger note must be a string',
+        });
+      }
+      if (passengerNote.length > 500) {
+        return res.status(400).json({
+          success: false,
+          message: 'Passenger note cannot exceed 500 characters',
+        });
+      }
+    }
+
+    // 2. Fetch ride and verify availability
     const ride = await Ride.findById(rideId);
     if (!ride) {
       return res.status(404).json({
@@ -66,7 +117,7 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
-    // 4. Prevent duplicate active booking requests for same ride
+    // 4. In-memory check for existing active booking requests
     const existingActiveBooking = await Booking.findOne({
       passenger: passengerId,
       ride: rideId,
@@ -80,8 +131,72 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
-    // 5. Atomic Seat Capacity Reservation
-    // Uses findOneAndUpdate with availableSeats check to prevent race conditions
+    // 5. Validate pickup & drop coordinates if supplied
+    let pickupSnapshot;
+    if (pickup !== undefined && pickup !== null) {
+      if (
+        typeof pickup !== 'object' ||
+        typeof pickup.name !== 'string' ||
+        !pickup.name.trim() ||
+        !isValidCoordinate(pickup.latitude, pickup.longitude)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Invalid pickup location: name must be a non-empty string and coordinates must be valid (latitude -90..90, longitude -180..180)',
+        });
+      }
+      pickupSnapshot = {
+        name: pickup.name.trim(),
+        latitude: pickup.latitude,
+        longitude: pickup.longitude,
+        point: {
+          type: 'Point',
+          coordinates: [pickup.longitude, pickup.latitude],
+        },
+      };
+    } else {
+      pickupSnapshot = {
+        name: ride.origin.name,
+        latitude: ride.origin.latitude,
+        longitude: ride.origin.longitude,
+        point: ride.origin.point,
+      };
+    }
+
+    let dropSnapshot;
+    if (drop !== undefined && drop !== null) {
+      if (
+        typeof drop !== 'object' ||
+        typeof drop.name !== 'string' ||
+        !drop.name.trim() ||
+        !isValidCoordinate(drop.latitude, drop.longitude)
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            'Invalid drop location: name must be a non-empty string and coordinates must be valid (latitude -90..90, longitude -180..180)',
+        });
+      }
+      dropSnapshot = {
+        name: drop.name.trim(),
+        latitude: drop.latitude,
+        longitude: drop.longitude,
+        point: {
+          type: 'Point',
+          coordinates: [drop.longitude, drop.latitude],
+        },
+      };
+    } else {
+      dropSnapshot = {
+        name: ride.destination.name,
+        latitude: ride.destination.latitude,
+        longitude: ride.destination.longitude,
+        point: ride.destination.point,
+      };
+    }
+
+    // 6. Atomic Seat Capacity Reservation
     const updatedRide = await Ride.findOneAndUpdate(
       {
         _id: rideId,
@@ -102,46 +217,11 @@ exports.createBooking = async (req, res, next) => {
       });
     }
 
-    // 6. Calculate total contribution strictly on server side
+    // 7. Calculate total contribution strictly on server side
     const contributionPerSeat = ride.contributionPerSeat;
     const totalContribution = seats * contributionPerSeat;
 
-    // 7. Prepare snapshot data for pickup and drop
-    const pickupSnapshot = pickup && pickup.name && pickup.latitude && pickup.longitude
-      ? {
-          name: pickup.name,
-          latitude: pickup.latitude,
-          longitude: pickup.longitude,
-          point: {
-            type: 'Point',
-            coordinates: [pickup.longitude, pickup.latitude],
-          },
-        }
-      : {
-          name: ride.origin.name,
-          latitude: ride.origin.latitude,
-          longitude: ride.origin.longitude,
-          point: ride.origin.point,
-        };
-
-    const dropSnapshot = drop && drop.name && drop.latitude && drop.longitude
-      ? {
-          name: drop.name,
-          latitude: drop.latitude,
-          longitude: drop.longitude,
-          point: {
-            type: 'Point',
-            coordinates: [drop.longitude, drop.latitude],
-          },
-        }
-      : {
-          name: ride.destination.name,
-          latitude: ride.destination.latitude,
-          longitude: ride.destination.longitude,
-          point: ride.destination.point,
-        };
-
-    // 8. Create booking record
+    // 8. Create booking record with duplicate race protection
     let booking;
     try {
       booking = await Booking.create({
@@ -158,6 +238,14 @@ exports.createBooking = async (req, res, next) => {
     } catch (createErr) {
       // Rollback reserved seats if booking record creation fails
       await Ride.findByIdAndUpdate(rideId, { $inc: { availableSeats: seats } });
+
+      // Handle duplicate active booking race caught by partial unique index
+      if (createErr.code === 11000) {
+        return res.status(409).json({
+          success: false,
+          message: 'You already have an active booking request for this ride',
+        });
+      }
       throw createErr;
     }
 
@@ -165,7 +253,8 @@ exports.createBooking = async (req, res, next) => {
     const populatedBooking = await Booking.findById(booking._id)
       .populate({
         path: 'ride',
-        select: 'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
+        select:
+          'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
         populate: [
           { path: 'driver', select: 'name phone email rating isVerified avatar' },
           { path: 'vehicle', select: 'make model year color registrationNumber vehicleType' },
@@ -209,7 +298,8 @@ exports.getMyBookings = async (req, res, next) => {
       .limit(limit)
       .populate({
         path: 'ride',
-        select: 'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
+        select:
+          'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
         populate: [
           { path: 'driver', select: 'name phone email rating isVerified avatar' },
           { path: 'vehicle', select: 'make model year color registrationNumber vehicleType' },
@@ -249,7 +339,8 @@ exports.getBookingById = async (req, res, next) => {
     const booking = await Booking.findById(id)
       .populate({
         path: 'ride',
-        select: 'driver origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
+        select:
+          'driver origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
         populate: [
           { path: 'driver', select: 'name phone email rating isVerified avatar' },
           { path: 'vehicle', select: 'make model year color registrationNumber vehicleType' },
@@ -268,11 +359,12 @@ exports.getBookingById = async (req, res, next) => {
     const passengerId = booking.passenger._id
       ? booking.passenger._id.toString()
       : booking.passenger.toString();
-    const driverId = booking.ride.driver && booking.ride.driver._id
-      ? booking.ride.driver._id.toString()
-      : booking.ride.driver
-      ? booking.ride.driver.toString()
-      : null;
+    const driverId =
+      booking.ride && booking.ride.driver && booking.ride.driver._id
+        ? booking.ride.driver._id.toString()
+        : booking.ride && booking.ride.driver
+        ? booking.ride.driver.toString()
+        : null;
 
     if (currentUserId !== passengerId && currentUserId !== driverId) {
       return res.status(403).json({
@@ -306,50 +398,63 @@ exports.cancelBooking = async (req, res, next) => {
       });
     }
 
-    const booking = await Booking.findById(id);
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found',
-      });
-    }
-
     const currentUserId = req.user.id.toString();
-    const passengerId = booking.passenger.toString();
 
-    if (currentUserId !== passengerId) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to cancel this booking',
-      });
-    }
+    // 1. Atomic status transition: only allow if booking is currently pending and owned by current user
+    const updatedBooking = await Booking.findOneAndUpdate(
+      {
+        _id: id,
+        passenger: currentUserId,
+        status: 'pending',
+      },
+      {
+        $set: { status: 'cancelled' },
+      },
+      { new: true }
+    );
 
-    if (booking.status === 'cancelled') {
-      return res.status(400).json({
-        success: false,
-        message: 'Booking request is already cancelled',
-      });
-    }
+    if (!updatedBooking) {
+      // Investigate why findOneAndUpdate did not match
+      const existing = await Booking.findById(id);
+      if (!existing) {
+        return res.status(404).json({
+          success: false,
+          message: 'Booking not found',
+        });
+      }
 
-    if (booking.status !== 'pending') {
+      const passengerId = existing.passenger.toString();
+      if (currentUserId !== passengerId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to cancel this booking',
+        });
+      }
+
+      if (existing.status === 'cancelled') {
+        return res.status(400).json({
+          success: false,
+          message: 'Booking request is already cancelled',
+        });
+      }
+
       return res.status(400).json({
         success: false,
         message: 'Only pending booking requests can be cancelled in this phase',
       });
     }
 
-    // Update status to cancelled
-    await Booking.findByIdAndUpdate(id, { status: 'cancelled' });
-
-    // Release reserved seats back to ride
-    await Ride.findByIdAndUpdate(booking.ride, {
-      $inc: { availableSeats: booking.requestedSeats },
+    // 2. Release reserved seats back to ride atomically
+    await Ride.findByIdAndUpdate(updatedBooking.ride, {
+      $inc: { availableSeats: updatedBooking.requestedSeats },
     });
 
+    // 3. Populate response
     const populatedBooking = await Booking.findById(id)
       .populate({
         path: 'ride',
-        select: 'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
+        select:
+          'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
         populate: [
           { path: 'driver', select: 'name phone email rating isVerified avatar' },
           { path: 'vehicle', select: 'make model year color registrationNumber vehicleType' },

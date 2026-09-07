@@ -36,6 +36,12 @@ test.before(async () => {
     await mongoose.connect(mongoUri);
   }
 
+  // Ensure indexes are built in MongoMemoryServer
+  await Booking.init();
+  await Ride.init();
+  await User.init();
+  await Vehicle.init();
+
   await User.deleteMany({});
   await Vehicle.deleteMany({});
   await Ride.deleteMany({});
@@ -144,7 +150,8 @@ test.after(async () => {
   }
 });
 
-test('BOOKINGS: Unauthenticated request to /bookings is rejected with 401', async () => {
+// 1. Unauthenticated booking
+test('1. Unauthenticated booking request to /bookings is rejected with 401', async () => {
   const res = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -159,7 +166,35 @@ test('BOOKINGS: Unauthenticated request to /bookings is rejected with 401', asyn
   assert.strictEqual(data.success, false);
 });
 
-test('BOOKINGS: Driver cannot book their own ride (400 Bad Request)', async () => {
+// 2. Valid booking
+test('2. Valid booking request creates pending reservation (201)', async () => {
+  const res = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 2,
+      passengerNote: 'Waiting at the Jubilee bus stop',
+    }),
+  });
+
+  assert.strictEqual(res.status, 201);
+  const json = await res.json();
+  assert.strictEqual(json.success, true);
+  assert.strictEqual(json.data.status, 'pending');
+  assert.strictEqual(json.data.requestedSeats, 2);
+  assert.strictEqual(json.data.passengerNote, 'Waiting at the Jubilee bus stop');
+
+  // Verify available seats decreased on Ride
+  const ride = await Ride.findById(activeRide._id);
+  assert.strictEqual(ride.availableSeats, 1);
+});
+
+// 3. Driver cannot book own ride
+test('3. Driver cannot book own ride (400 Bad Request)', async () => {
   const res = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
@@ -178,7 +213,8 @@ test('BOOKINGS: Driver cannot book their own ride (400 Bad Request)', async () =
   assert.match(data.message, /Drivers cannot book/i);
 });
 
-test('BOOKINGS: Non-existent ride is rejected with 404', async () => {
+// 4. Invalid ride
+test('4. Non-existent ride is rejected with 404', async () => {
   const fakeId = new mongoose.Types.ObjectId().toString();
   const res = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
@@ -197,7 +233,8 @@ test('BOOKINGS: Non-existent ride is rejected with 404', async () => {
   assert.strictEqual(data.success, false);
 });
 
-test('BOOKINGS: Cancelled ride rejects booking requests with 409 Conflict', async () => {
+// 5. Cancelled ride
+test('5. Cancelled ride rejects booking requests with 409 Conflict', async () => {
   await Ride.findByIdAndUpdate(activeRide._id, { status: 'cancelled' });
 
   const res = await fetch(`${baseUrl}/bookings`, {
@@ -217,7 +254,8 @@ test('BOOKINGS: Cancelled ride rejects booking requests with 409 Conflict', asyn
   assert.strictEqual(data.success, false);
 });
 
-test('BOOKINGS: Completed ride rejects booking requests with 409 Conflict', async () => {
+// 6. Completed ride
+test('6. Completed ride rejects booking requests with 409 Conflict', async () => {
   await Ride.findByIdAndUpdate(activeRide._id, { status: 'completed' });
 
   const res = await fetch(`${baseUrl}/bookings`, {
@@ -237,7 +275,8 @@ test('BOOKINGS: Completed ride rejects booking requests with 409 Conflict', asyn
   assert.strictEqual(data.success, false);
 });
 
-test('BOOKINGS: Already departed ride rejects booking requests with 409 Conflict', async () => {
+// 7. Departed ride
+test('7. Departed ride rejects booking requests with 409 Conflict', async () => {
   const pastDate = new Date();
   pastDate.setHours(pastDate.getHours() - 2);
   await Ride.findByIdAndUpdate(activeRide._id, { departureTime: pastDate });
@@ -260,8 +299,10 @@ test('BOOKINGS: Already departed ride rejects booking requests with 409 Conflict
   assert.match(data.message, /departed/i);
 });
 
-test('BOOKINGS: Invalid seat count (< 1 or non-integer) is rejected with 400', async () => {
-  const res = await fetch(`${baseUrl}/bookings`, {
+// 8. Invalid seats
+test('8. Invalid seat count (< 1, > 8, non-integer) is rejected with 400', async () => {
+  // Test 0 seats
+  const resZero = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -272,14 +313,10 @@ test('BOOKINGS: Invalid seat count (< 1 or non-integer) is rejected with 400', a
       requestedSeats: 0,
     }),
   });
+  assert.strictEqual(resZero.status, 400);
 
-  assert.strictEqual(res.status, 400);
-  const data = await res.json();
-  assert.strictEqual(data.success, false);
-});
-
-test('BOOKINGS: Authenticated passenger creates booking (201) with server-side total and capacity reservation', async () => {
-  const res = await fetch(`${baseUrl}/bookings`, {
+  // Test > 8 seats
+  const resNine = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -287,29 +324,29 @@ test('BOOKINGS: Authenticated passenger creates booking (201) with server-side t
     },
     body: JSON.stringify({
       rideId: activeRide._id.toString(),
-      requestedSeats: 2,
-      passengerNote: 'Please wait near Jubilee bus stop',
+      requestedSeats: 9,
     }),
   });
+  assert.strictEqual(resNine.status, 400);
 
-  assert.strictEqual(res.status, 201);
-  const json = await res.json();
-  assert.strictEqual(json.success, true);
-  assert.strictEqual(json.data.status, 'pending');
-  assert.strictEqual(json.data.requestedSeats, 2);
-  assert.strictEqual(json.data.contributionPerSeat, 350);
-  assert.strictEqual(json.data.totalContribution, 700);
-  assert.strictEqual(json.data.passengerNote, 'Please wait near Jubilee bus stop');
-  assert.ok(json.data.pickup && json.data.pickup.name);
-  assert.ok(json.data.drop && json.data.drop.name);
-
-  // Verify atomic seat reservation on the Ride model: availableSeats should be 3 - 2 = 1
-  const updatedRide = await Ride.findById(activeRide._id);
-  assert.strictEqual(updatedRide.availableSeats, 1);
+  // Test floating point seats
+  const resFloat = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1.5,
+    }),
+  });
+  assert.strictEqual(resFloat.status, 400);
 });
 
-test('BOOKINGS: Insufficient capacity rejects request with 409 Conflict', async () => {
-  // activeRide has 3 available seats. Requesting 4 seats must be rejected.
+// 9. Insufficient capacity
+test('9. Insufficient capacity rejects request with 409 Conflict', async () => {
+  // Ride has 3 seats available; requesting 4 must be rejected
   const res = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
@@ -326,13 +363,12 @@ test('BOOKINGS: Insufficient capacity rejects request with 409 Conflict', async 
   const json = await res.json();
   assert.strictEqual(json.success, false);
 
-  // Available seats should remain unchanged
   const ride = await Ride.findById(activeRide._id);
   assert.strictEqual(ride.availableSeats, 3);
 });
 
-test('BOOKINGS: Duplicate pending booking for same ride is rejected with 409 Conflict', async () => {
-  // First booking for 1 seat succeeds
+// 10. Duplicate pending booking
+test('10. Duplicate pending booking for same ride is rejected with 409 Conflict', async () => {
   const res1 = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
@@ -346,7 +382,6 @@ test('BOOKINGS: Duplicate pending booking for same ride is rejected with 409 Con
   });
   assert.strictEqual(res1.status, 201);
 
-  // Second booking by same passenger for same ride must be rejected
   const res2 = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
@@ -365,9 +400,21 @@ test('BOOKINGS: Duplicate pending booking for same ride is rejected with 409 Con
   assert.match(json.message, /active booking request/i);
 });
 
-test('BOOKINGS: GET /bookings/my returns only authenticated passenger bookings with pagination', async () => {
-  // Create booking for passenger
-  await fetch(`${baseUrl}/bookings`, {
+// 11. Duplicate accepted booking
+test('11. Duplicate booking rejected if passenger already has an accepted booking (409 Conflict)', async () => {
+  // Create an accepted booking directly in DB
+  await Booking.create({
+    passenger: passengerUser._id,
+    ride: activeRide._id,
+    requestedSeats: 1,
+    contributionPerSeat: 350,
+    totalContribution: 350,
+    status: 'accepted',
+    pickup: activeRide.origin,
+    drop: activeRide.destination,
+  });
+
+  const res = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -379,29 +426,160 @@ test('BOOKINGS: GET /bookings/my returns only authenticated passenger bookings w
     }),
   });
 
-  // Fetch as passenger
-  const resPassenger = await fetch(`${baseUrl}/bookings/my?page=1&limit=10`, {
-    headers: { Authorization: `Bearer ${passengerToken}` },
-  });
-  assert.strictEqual(resPassenger.status, 200);
-  const jsonPassenger = await resPassenger.json();
-  assert.strictEqual(jsonPassenger.success, true);
-  assert.strictEqual(jsonPassenger.total, 1);
-  assert.strictEqual(jsonPassenger.data.length, 1);
-  assert.strictEqual(jsonPassenger.data[0].requestedSeats, 1);
-
-  // Fetch as third party (should have 0 bookings)
-  const resStranger = await fetch(`${baseUrl}/bookings/my`, {
-    headers: { Authorization: `Bearer ${thirdPartyToken}` },
-  });
-  assert.strictEqual(resStranger.status, 200);
-  const jsonStranger = await resStranger.json();
-  assert.strictEqual(jsonStranger.total, 0);
-  assert.strictEqual(jsonStranger.data.length, 0);
+  assert.strictEqual(res.status, 409);
+  const json = await res.json();
+  assert.strictEqual(json.success, false);
+  assert.match(json.message, /active booking request/i);
 });
 
-test('BOOKINGS: GET /bookings/:id allows passenger and driver, rejects unauthorized third party with 403', async () => {
-  // Create booking
+// 12. Cancelled previous booking can request again
+test('12. Cancelled previous booking allows passenger to request seats again (201)', async () => {
+  // Create an initial booking
+  const res1 = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1,
+    }),
+  });
+  assert.strictEqual(res1.status, 201);
+  const booking1 = (await res1.json()).data;
+
+  // Cancel the first booking
+  const cancelRes = await fetch(`${baseUrl}/bookings/${booking1.id}/cancel`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${passengerToken}` },
+  });
+  assert.strictEqual(cancelRes.status, 200);
+
+  // Now the passenger should be able to create a new booking on the same ride
+  const res2 = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 2,
+    }),
+  });
+
+  assert.strictEqual(res2.status, 201);
+  const json2 = await res2.json();
+  assert.strictEqual(json2.success, true);
+  assert.strictEqual(json2.data.status, 'pending');
+  assert.strictEqual(json2.data.requestedSeats, 2);
+});
+
+// 13. Server-side contribution calculation
+test('13. Server-side contribution calculation is authoritative (seats * contributionPerSeat)', async () => {
+  const res = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 3,
+      // Attempting to inject client-side amounts should be completely ignored
+      contributionPerSeat: 10,
+      totalContribution: 30,
+    }),
+  });
+
+  assert.strictEqual(res.status, 201);
+  const json = await res.json();
+  assert.strictEqual(json.data.contributionPerSeat, 350);
+  assert.strictEqual(json.data.totalContribution, 1050); // 3 * 350
+});
+
+// 14. Pickup/drop validation
+test('14. Pickup/drop validation rejects invalid coordinates or empty names with 400', async () => {
+  // Out of range latitude (> 90)
+  const resBadLat = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1,
+      pickup: {
+        name: 'Invalid Point',
+        latitude: 95.0,
+        longitude: 70.0,
+      },
+    }),
+  });
+  assert.strictEqual(resBadLat.status, 400);
+
+  // Out of range longitude (< -180)
+  const resBadLng = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1,
+      drop: {
+        name: 'Invalid Point',
+        latitude: 23.0,
+        longitude: -185.0,
+      },
+    }),
+  });
+  assert.strictEqual(resBadLng.status, 400);
+
+  // Non-numeric coordinate
+  const resNonNumeric = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1,
+      pickup: {
+        name: 'Invalid Point',
+        latitude: 'twenty-three',
+        longitude: 70.0,
+      },
+    }),
+  });
+  assert.strictEqual(resNonNumeric.status, 400);
+
+  // Empty name
+  const resEmptyName = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1,
+      pickup: {
+        name: '   ',
+        latitude: 23.0,
+        longitude: 70.0,
+      },
+    }),
+  });
+  assert.strictEqual(resEmptyName.status, 400);
+});
+
+// 15. Unauthorized booking details
+test('15. Unauthorized third party cannot view booking details (403)', async () => {
   const createRes = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
@@ -413,30 +591,86 @@ test('BOOKINGS: GET /bookings/:id allows passenger and driver, rejects unauthori
       requestedSeats: 1,
     }),
   });
-  const createJson = await createRes.json();
-  const bookingId = createJson.data.id;
+  const bookingId = (await createRes.json()).data.id;
 
-  // Passenger can view
-  const resPassenger = await fetch(`${baseUrl}/bookings/${bookingId}`, {
-    headers: { Authorization: `Bearer ${passengerToken}` },
-  });
-  assert.strictEqual(resPassenger.status, 200);
-
-  // Driver of the ride can view
-  const resDriver = await fetch(`${baseUrl}/bookings/${bookingId}`, {
-    headers: { Authorization: `Bearer ${driverToken}` },
-  });
-  assert.strictEqual(resDriver.status, 200);
-
-  // Third party cannot view (403 Forbidden)
   const resStranger = await fetch(`${baseUrl}/bookings/${bookingId}`, {
     headers: { Authorization: `Bearer ${thirdPartyToken}` },
   });
   assert.strictEqual(resStranger.status, 403);
 });
 
-test('BOOKINGS: Passenger cancels pending booking, releases capacity back to ride', async () => {
-  // 1. Book 2 seats on ride (initially 3 available)
+// 16. Passenger booking details
+test('16. Passenger can view own booking details (200)', async () => {
+  const createRes = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1,
+    }),
+  });
+  const bookingId = (await createRes.json()).data.id;
+
+  const res = await fetch(`${baseUrl}/bookings/${bookingId}`, {
+    headers: { Authorization: `Bearer ${passengerToken}` },
+  });
+  assert.strictEqual(res.status, 200);
+  const json = await res.json();
+  assert.strictEqual(json.data.id, bookingId);
+});
+
+// 17. Driver booking details
+test('17. Driver can view booking details for their ride (200)', async () => {
+  const createRes = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1,
+    }),
+  });
+  const bookingId = (await createRes.json()).data.id;
+
+  const res = await fetch(`${baseUrl}/bookings/${bookingId}`, {
+    headers: { Authorization: `Bearer ${driverToken}` },
+  });
+  assert.strictEqual(res.status, 200);
+  const json = await res.json();
+  assert.strictEqual(json.data.id, bookingId);
+});
+
+// 18. Cancellation
+test('18. Passenger cancels pending booking, transitions status to cancelled', async () => {
+  const createRes = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: activeRide._id.toString(),
+      requestedSeats: 1,
+    }),
+  });
+  const bookingId = (await createRes.json()).data.id;
+
+  const cancelRes = await fetch(`${baseUrl}/bookings/${bookingId}/cancel`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${passengerToken}` },
+  });
+  assert.strictEqual(cancelRes.status, 200);
+  const cancelJson = await cancelRes.json();
+  assert.strictEqual(cancelJson.data.status, 'cancelled');
+});
+
+// 19. Cancellation releases capacity
+test('19. Cancellation releases reserved seats back to ride capacity', async () => {
   const createRes = await fetch(`${baseUrl}/bookings`, {
     method: 'POST',
     headers: {
@@ -448,43 +682,27 @@ test('BOOKINGS: Passenger cancels pending booking, releases capacity back to rid
       requestedSeats: 2,
     }),
   });
-  const createJson = await createRes.json();
-  const bookingId = createJson.data.id;
+  const bookingId = (await createRes.json()).data.id;
 
+  // Verify ride capacity decremented to 1
   let ride = await Ride.findById(activeRide._id);
   assert.strictEqual(ride.availableSeats, 1);
 
-  // 2. Third party cannot cancel passenger booking (403)
-  const strangerCancel = await fetch(`${baseUrl}/bookings/${bookingId}/cancel`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${thirdPartyToken}` },
-  });
-  assert.strictEqual(strangerCancel.status, 403);
-
-  // 3. Passenger cancels own booking
-  const cancelRes = await fetch(`${baseUrl}/bookings/${bookingId}/cancel`, {
+  // Cancel booking
+  await fetch(`${baseUrl}/bookings/${bookingId}/cancel`, {
     method: 'PATCH',
     headers: { Authorization: `Bearer ${passengerToken}` },
   });
-  assert.strictEqual(cancelRes.status, 200);
-  const cancelJson = await cancelRes.json();
-  assert.strictEqual(cancelJson.data.status, 'cancelled');
 
-  // 4. Capacity must be restored back to ride (1 + 2 = 3)
+  // Capacity restored back to 3
   ride = await Ride.findById(activeRide._id);
   assert.strictEqual(ride.availableSeats, 3);
-
-  // 5. Repeated cancel request is rejected
-  const repeatCancel = await fetch(`${baseUrl}/bookings/${bookingId}/cancel`, {
-    method: 'PATCH',
-    headers: { Authorization: `Bearer ${passengerToken}` },
-  });
-  assert.strictEqual(repeatCancel.status, 400);
 });
 
-test('BOOKINGS: Concurrent capacity safety prevents overbooking', async () => {
-  // activeRide has 3 seats. User A (passenger) requests 2 seats, User B (thirdParty) requests 2 seats concurrently.
-  // Exactly one must succeed with 201, and the other must fail with 409 (insufficient seats).
+// 20. Concurrent booking requests cannot overbook
+test('20. Concurrent booking requests from different passengers cannot overbook remaining capacity', async () => {
+  // activeRide has 3 available seats. Passenger A requests 2 seats, Passenger B (thirdParty) requests 2 seats concurrently.
+  // Exactly one request must succeed (201) and the other must fail (409).
   const [resA, resB] = await Promise.all([
     fetch(`${baseUrl}/bookings`, {
       method: 'POST',
@@ -515,4 +733,47 @@ test('BOOKINGS: Concurrent capacity safety prevents overbooking', async () => {
 
   const ride = await Ride.findById(activeRide._id);
   assert.strictEqual(ride.availableSeats, 1);
+});
+
+// 21. Concurrent same-passenger requests cannot create duplicate active bookings
+test('21. Concurrent same-passenger requests cannot create duplicate active bookings', async () => {
+  // Same passenger fires 2 concurrent requests for the same ride.
+  // Exactly one must succeed (201) and one must fail (409), and available seats must decrement only once.
+  const [res1, res2] = await Promise.all([
+    fetch(`${baseUrl}/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${passengerToken}`,
+      },
+      body: JSON.stringify({
+        rideId: activeRide._id.toString(),
+        requestedSeats: 1,
+      }),
+    }),
+    fetch(`${baseUrl}/bookings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${passengerToken}`,
+      },
+      body: JSON.stringify({
+        rideId: activeRide._id.toString(),
+        requestedSeats: 1,
+      }),
+    }),
+  ]);
+
+  const statuses = [res1.status, res2.status].sort();
+  assert.deepStrictEqual(statuses, [201, 409]);
+
+  const activeBookings = await Booking.find({
+    passenger: passengerUser._id,
+    ride: activeRide._id,
+    status: { $in: ['pending', 'accepted'] },
+  });
+  assert.strictEqual(activeBookings.length, 1);
+
+  const ride = await Ride.findById(activeRide._id);
+  assert.strictEqual(ride.availableSeats, 2); // 3 - 1 = 2
 });

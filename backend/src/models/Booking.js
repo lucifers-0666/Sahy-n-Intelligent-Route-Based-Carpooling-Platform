@@ -96,7 +96,15 @@ const bookingSchema = new mongoose.Schema(
 // Compound indexes for frequent queries
 bookingSchema.index({ passenger: 1, createdAt: -1 });
 bookingSchema.index({ ride: 1, status: 1 });
-bookingSchema.index({ passenger: 1, ride: 1, status: 1 });
+
+// Database-enforced partial unique index: only 1 active (pending or accepted) booking per passenger per ride
+bookingSchema.index(
+  { passenger: 1, ride: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { status: { $in: ['pending', 'accepted'] } },
+  }
+);
 
 // Ensure JSON serialization formats id correctly
 bookingSchema.set('toJSON', {

@@ -23,8 +23,10 @@ class BookingsNotifier extends StateNotifier<AsyncValue<List<BookingModel>>> {
     try {
       final filterStatus = (status == null || status == 'all') ? null : status;
       final bookings = await repository.getMyBookings(status: filterStatus);
+      if (!mounted) return;
       state = AsyncValue.data(bookings);
     } catch (e, st) {
+      if (!mounted) return;
       state = AsyncValue.error(e, st);
     }
   }
@@ -66,6 +68,8 @@ class BookingsNotifier extends StateNotifier<AsyncValue<List<BookingModel>>> {
 
   Future<BookingModel> cancelBooking(String bookingId) async {
     final updated = await repository.cancelBooking(bookingId);
+
+    if (!mounted) return updated;
 
     // Update in-memory state
     state.whenData((bookings) {

@@ -5,8 +5,6 @@ import '../../../shared/models/user_model.dart';
 
 enum BookingStatus { pending, accepted, rejected, cancelled, completed }
 
-enum PaymentStatus { pending, paid, refunded, failed }
-
 class BookingModel extends Equatable {
   final String id;
   final String rideId;
@@ -57,7 +55,6 @@ class BookingModel extends Equatable {
   LocationModel get dropLocation => drop;
   BookingStatus get bookingStatus => status;
   DateTime get requestedAt => createdAt;
-  PaymentStatus get paymentStatus => PaymentStatus.pending;
 
   String get statusDisplayName {
     switch (status) {

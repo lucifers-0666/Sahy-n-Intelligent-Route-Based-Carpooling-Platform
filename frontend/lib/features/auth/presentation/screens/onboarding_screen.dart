@@ -30,7 +30,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       tag: 'Fair & Transparent',
       title: 'Equitable Vehicle Seat Cost Sharing',
       description:
-          'Contribute fairly towards fuel and highway toll expenses with transparent, automated escrow fare protection on every seat.',
+          'Contribute fairly towards fuel and highway toll expenses with transparent, automated cost-sharing on every seat.',
     ),
     _OnboardingItem(
       icon: Icons.verified_user_outlined,

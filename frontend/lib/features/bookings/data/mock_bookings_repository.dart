@@ -1,7 +1,6 @@
 import 'package:sahyan/features/bookings/data/bookings_repository.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/shared/models/location_model.dart';
-import 'package:sahyan/shared/models/ride_model.dart';
 
 class MockBookingsRepository implements BookingsRepository {
   static final List<BookingModel> _mockBookings = [];
@@ -20,7 +19,7 @@ class MockBookingsRepository implements BookingsRepository {
     final booking = BookingModel(
       id: 'bk_${DateTime.now().millisecondsSinceEpoch}',
       rideId: rideId,
-      passengerId: 'usr_mock_passenger',
+      passengerId: '',
       requestedSeats: requestedSeats,
       contributionPerSeat: 250.0,
       totalContribution: total,
@@ -44,22 +43,6 @@ class MockBookingsRepository implements BookingsRepository {
     );
 
     _mockBookings.insert(0, booking);
-    return booking;
-  }
-
-  // Backwards compatibility method for old prototype confirm_pay_screen
-  Future<BookingModel> confirmBooking({
-    required RideModel ride,
-    required String passengerId,
-    required String passengerName,
-    required List<String> selectedSeats,
-  }) async {
-    final booking = await createBooking(
-      rideId: ride.id,
-      requestedSeats: selectedSeats.length,
-      pickup: ride.origin,
-      drop: ride.destination,
-    );
     return booking;
   }
 

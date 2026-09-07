@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../shared/widgets/auth_gate_dialog.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../shared/models/ride_model.dart';
+import '../../../auth/presentation/auth_provider.dart';
 import '../../../bookings/presentation/bookings_provider.dart';
 
 class RequestSeatBottomSheet extends ConsumerStatefulWidget {
@@ -48,6 +50,19 @@ class _RequestSeatBottomSheetState
 
   Future<void> _submitRequest() async {
     if (_isSubmitting) return;
+
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated || authState.user == null) {
+      Navigator.of(context).pop(false);
+      AuthGateDialog.show(
+        context,
+        title: 'Sign In to Request Seat',
+        message:
+            'To reserve seats and communicate with verified drivers, please sign in or register.',
+        intendedRoute: '/home',
+      );
+      return;
+    }
 
     setState(() {
       _isSubmitting = true;

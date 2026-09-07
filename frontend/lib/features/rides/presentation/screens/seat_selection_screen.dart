@@ -128,7 +128,7 @@ class SeatSelectionScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Total (${selectedSeats.length} seat)',
+                  'Contribution (${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''})',
                   style: AppTypography.caption,
                 ),
                 Text(
@@ -142,7 +142,7 @@ class SeatSelectionScreen extends ConsumerWidget {
             const SizedBox(width: 20),
             Expanded(
               child: PrimaryButton(
-                text: 'Proceed to Booking',
+                text: 'Review Request',
                 isDisabled: selectedSeats.isEmpty,
                 onPressed: () {
                   context.push('/confirm-pay');

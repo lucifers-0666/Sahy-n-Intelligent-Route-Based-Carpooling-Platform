@@ -241,7 +241,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 'Safe shared rides',
                               ),
                               _buildTrustBadge(
-                                Icons.payments_outlined,
+                                Icons.currency_rupee_rounded,
                                 'Fair contribution',
                               ),
                             ],

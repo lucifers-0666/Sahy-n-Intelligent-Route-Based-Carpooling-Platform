@@ -95,7 +95,7 @@ class AuthDecisionScreen extends ConsumerWidget {
                           ),
                           _FeaturePill(
                             icon: Icons.shield_outlined,
-                            label: 'Escrow Protection',
+                            label: 'Fair Cost Sharing',
                           ),
                           _FeaturePill(
                             icon: Icons.alt_route_rounded,
