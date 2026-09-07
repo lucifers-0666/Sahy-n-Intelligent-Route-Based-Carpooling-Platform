@@ -16,6 +16,8 @@ import 'package:sahyan/features/rides/presentation/screens/seat_selection_screen
 import 'package:sahyan/features/bookings/presentation/screens/confirm_pay_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/booking_confirmation_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/my_bookings_screen.dart';
+import 'package:sahyan/features/bookings/presentation/screens/booking_details_screen.dart';
+import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/profile/presentation/screens/profile_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/emergency_contacts_screen.dart';
@@ -99,6 +101,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/booking-confirmation',
       builder: (context, state) => const BookingConfirmationScreen(),
+    ),
+    GoRoute(
+      path: '/booking-details',
+      builder: (context, state) {
+        final booking = state.extra as BookingModel?;
+        return BookingDetailsScreen(initialBooking: booking);
+      },
     ),
 
     // Bottom Navigation Shell

@@ -10,6 +10,7 @@ import 'package:sahyan/core/widgets/verification_badge.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';
 import 'package:sahyan/features/rides/presentation/widgets/route_map_preview.dart';
 import 'package:sahyan/features/rides/presentation/widgets/route_match_breakdown_widget.dart';
+import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_sheet.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
 import '../rides_provider.dart';
@@ -599,15 +600,8 @@ class RideDetailsScreen extends ConsumerWidget {
                       return;
                     }
 
-                    // Placeholder action for Phase 8 booking
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Seat booking will be enabled in Phase 8 (Booking Engine).',
-                        ),
-                        backgroundColor: AppColors.primaryForest,
-                      ),
-                    );
+                    // Open booking request confirmation bottom sheet
+                    RequestSeatBottomSheet.show(context, ride);
                   },
                 ),
               ),
