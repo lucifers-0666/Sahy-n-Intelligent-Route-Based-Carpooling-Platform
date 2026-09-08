@@ -665,11 +665,11 @@ class RideDetailsScreen extends ConsumerWidget {
       case RideStatus.boarding:
         return AppColors.softBrass;
       case RideStatus.active:
-        return Colors.blue.shade50;
+        return AppColors.softForest;
       case RideStatus.completed:
-        return Colors.grey.shade200;
+        return AppColors.border.withValues(alpha: 0.6);
       case RideStatus.cancelled:
-        return Colors.red.shade50;
+        return AppColors.mutedRust.withValues(alpha: 0.12);
     }
   }
 
@@ -680,11 +680,11 @@ class RideDetailsScreen extends ConsumerWidget {
       case RideStatus.boarding:
         return AppColors.mutedBrass;
       case RideStatus.active:
-        return Colors.blue.shade800;
+        return AppColors.deepForest;
       case RideStatus.completed:
-        return Colors.grey.shade800;
+        return AppColors.textSecondary;
       case RideStatus.cancelled:
-        return Colors.red.shade800;
+        return AppColors.mutedRust;
     }
   }
 }

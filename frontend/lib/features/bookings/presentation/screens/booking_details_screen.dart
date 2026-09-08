@@ -140,9 +140,9 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
       case BookingStatus.accepted:
         return AppColors.softForest;
       case BookingStatus.cancelled:
-        return Colors.red.shade50;
+        return AppColors.mutedRust.withValues(alpha: 0.12);
       case BookingStatus.rejected:
-        return Colors.grey.shade200;
+        return AppColors.border.withValues(alpha: 0.6);
       case BookingStatus.completed:
         return AppColors.softForest;
     }
@@ -155,9 +155,9 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
       case BookingStatus.accepted:
         return AppColors.primaryForest;
       case BookingStatus.cancelled:
-        return Colors.red.shade800;
+        return AppColors.mutedRust;
       case BookingStatus.rejected:
-        return Colors.grey.shade700;
+        return AppColors.textSecondary;
       case BookingStatus.completed:
         return AppColors.primaryForest;
     }
@@ -170,11 +170,11 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
       case RideStatus.boarding:
         return AppColors.softBrass;
       case RideStatus.active:
-        return Colors.blue.shade50;
+        return AppColors.softForest;
       case RideStatus.completed:
-        return Colors.grey.shade200;
+        return AppColors.border.withValues(alpha: 0.6);
       case RideStatus.cancelled:
-        return Colors.red.shade50;
+        return AppColors.mutedRust.withValues(alpha: 0.12);
     }
   }
 
@@ -185,11 +185,11 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
       case RideStatus.boarding:
         return AppColors.mutedBrass;
       case RideStatus.active:
-        return Colors.blue.shade800;
+        return AppColors.deepForest;
       case RideStatus.completed:
-        return Colors.grey.shade800;
+        return AppColors.textSecondary;
       case RideStatus.cancelled:
-        return Colors.red.shade800;
+        return AppColors.mutedRust;
     }
   }
 

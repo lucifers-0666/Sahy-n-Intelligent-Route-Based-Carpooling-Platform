@@ -51,9 +51,9 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
       case BookingStatus.accepted:
         return AppColors.softForest;
       case BookingStatus.cancelled:
-        return Colors.red.shade50;
+        return AppColors.mutedRust.withValues(alpha: 0.12);
       case BookingStatus.rejected:
-        return Colors.grey.shade200;
+        return AppColors.border.withValues(alpha: 0.6);
       case BookingStatus.completed:
         return AppColors.softForest;
     }
@@ -66,9 +66,9 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
       case BookingStatus.accepted:
         return AppColors.primaryForest;
       case BookingStatus.cancelled:
-        return Colors.red.shade800;
+        return AppColors.mutedRust;
       case BookingStatus.rejected:
-        return Colors.grey.shade700;
+        return AppColors.textSecondary;
       case BookingStatus.completed:
         return AppColors.primaryForest;
     }
@@ -81,11 +81,11 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
       case RideStatus.boarding:
         return AppColors.softBrass;
       case RideStatus.active:
-        return Colors.blue.shade50;
+        return AppColors.softForest;
       case RideStatus.completed:
-        return Colors.grey.shade200;
+        return AppColors.border.withValues(alpha: 0.6);
       case RideStatus.cancelled:
-        return Colors.red.shade50;
+        return AppColors.mutedRust.withValues(alpha: 0.12);
     }
   }
 
@@ -96,11 +96,11 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
       case RideStatus.boarding:
         return AppColors.mutedBrass;
       case RideStatus.active:
-        return Colors.blue.shade800;
+        return AppColors.deepForest;
       case RideStatus.completed:
-        return Colors.grey.shade800;
+        return AppColors.textSecondary;
       case RideStatus.cancelled:
-        return Colors.red.shade800;
+        return AppColors.mutedRust;
     }
   }
 
@@ -1101,13 +1101,15 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              side: BorderSide(color: Colors.red.shade300),
+              side: BorderSide(
+                color: AppColors.mutedRust.withValues(alpha: 0.5),
+              ),
             ),
             onPressed: () => _confirmCancelRide(ride),
             child: Text(
               'Cancel Ride',
               style: AppTypography.caption.copyWith(
-                color: Colors.red.shade700,
+                color: AppColors.mutedRust,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1161,13 +1163,15 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              side: BorderSide(color: Colors.red.shade300),
+              side: BorderSide(
+                color: AppColors.mutedRust.withValues(alpha: 0.5),
+              ),
             ),
             onPressed: () => _confirmCancelRide(ride),
             child: Text(
               'Cancel Ride',
               style: AppTypography.caption.copyWith(
-                color: Colors.red.shade700,
+                color: AppColors.mutedRust,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -1261,12 +1265,12 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.cancel_outlined, size: 16, color: Colors.red.shade700),
+        const Icon(Icons.cancel_outlined, size: 16, color: AppColors.mutedRust),
         const SizedBox(width: 6),
         Text(
           'Ride has been cancelled',
           style: AppTypography.caption.copyWith(
-            color: Colors.red.shade700,
+            color: AppColors.mutedRust,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1462,7 +1466,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: AppColors.mutedRust,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text(
@@ -1491,7 +1495,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red.shade800,
+            backgroundColor: AppColors.mutedRust,
           ),
         );
       } finally {
