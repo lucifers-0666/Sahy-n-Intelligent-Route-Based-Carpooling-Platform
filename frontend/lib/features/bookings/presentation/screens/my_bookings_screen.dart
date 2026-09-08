@@ -83,6 +83,10 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                     _buildFilterChip('Pending Approval', 'pending'),
                     const SizedBox(width: 8),
                     _buildFilterChip('Cancelled', 'cancelled'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Accepted', 'accepted'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Rejected', 'rejected'),
                   ],
                 ),
               ),
@@ -152,6 +156,12 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                     final filtered = bookings.where((b) {
                       if (_selectedFilter == 'pending') {
                         return b.status == BookingStatus.pending;
+                      }
+                      if (_selectedFilter == 'accepted') {
+                        return b.status == BookingStatus.accepted;
+                      }
+                      if (_selectedFilter == 'rejected') {
+                        return b.status == BookingStatus.rejected;
                       }
                       if (_selectedFilter == 'cancelled') {
                         return b.status == BookingStatus.cancelled;

@@ -201,7 +201,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               onPressed: () {
                 Navigator.of(ctx).pop();
                 ref.read(offerRideProvider.notifier).reset();
-                context.go('/my-bookings');
+                context.push('/driver/rides');
               },
               child: const Text(
                 'View My Rides',

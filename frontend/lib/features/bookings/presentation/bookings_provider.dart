@@ -104,3 +104,81 @@ final selectedBookingProvider = StateProvider<BookingModel?>((ref) => null);
 
 // Backwards compatibility alias
 final activeBookingProvider = selectedBookingProvider;
+
+// Selected filter for Driver Requests screen: 'all', 'pending', 'accepted', 'rejected'
+final driverRequestsFilterProvider = StateProvider<String>((ref) => 'all');
+
+class DriverRequestsNotifier
+    extends StateNotifier<AsyncValue<List<BookingModel>>> {
+  final BookingsRepository repository;
+
+  DriverRequestsNotifier(this.repository) : super(const AsyncValue.data([]));
+
+  Future<void> fetchDriverRequests({String? status, String? rideId}) async {
+    state = const AsyncValue.loading();
+    try {
+      final filterStatus = (status == null || status == 'all') ? null : status;
+      final requests = await repository.getDriverBookingRequests(
+        status: filterStatus,
+        rideId: rideId,
+      );
+      if (!mounted) return;
+      state = AsyncValue.data(requests);
+    } catch (e, st) {
+      if (!mounted) return;
+      state = AsyncValue.error(e, st);
+    }
+  }
+
+  Future<BookingModel> acceptRequest(String bookingId) async {
+    final updated = await repository.acceptBooking(bookingId);
+    if (!mounted) return updated;
+
+    state.whenData((requests) {
+      final updatedList = requests.map((b) {
+        if (b.id == bookingId) {
+          return updated;
+        }
+        return b;
+      }).toList();
+      state = AsyncValue.data(updatedList);
+    });
+
+    return updated;
+  }
+
+  Future<BookingModel> rejectRequest(String bookingId) async {
+    final updated = await repository.rejectBooking(bookingId);
+    if (!mounted) return updated;
+
+    state.whenData((requests) {
+      final updatedList = requests.map((b) {
+        if (b.id == bookingId) {
+          return updated;
+        }
+        return b;
+      }).toList();
+      state = AsyncValue.data(updatedList);
+    });
+
+    return updated;
+  }
+}
+
+final driverRequestsNotifierProvider =
+    StateNotifierProvider<
+      DriverRequestsNotifier,
+      AsyncValue<List<BookingModel>>
+    >((ref) {
+      final repo = ref.watch(bookingsRepositoryProvider);
+      final notifier = DriverRequestsNotifier(repo);
+      final authState = ref.watch(authProvider);
+      if (authState.isAuthenticated) {
+        notifier.fetchDriverRequests();
+      }
+      return notifier;
+    });
+
+final selectedDriverRequestProvider = StateProvider<BookingModel?>(
+  (ref) => null,
+);

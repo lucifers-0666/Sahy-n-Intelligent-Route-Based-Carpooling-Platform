@@ -95,4 +95,78 @@ class MockBookingsRepository implements BookingsRepository {
     _mockBookings[index] = updated;
     return updated;
   }
+
+  @override
+  Future<List<BookingModel>> getDriverBookingRequests({
+    String? status,
+    String? rideId,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    var results = List<BookingModel>.from(_mockBookings);
+    if (rideId != null && rideId.isNotEmpty) {
+      results = results.where((b) => b.rideId == rideId).toList();
+    }
+    if (status != null && status.isNotEmpty && status != 'all') {
+      results = results.where((b) => b.status.name == status).toList();
+    }
+    return results;
+  }
+
+  @override
+  Future<BookingModel> acceptBooking(String id) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final index = _mockBookings.indexWhere((b) => b.id == id);
+    if (index == -1) throw Exception('Booking not found');
+
+    final old = _mockBookings[index];
+    final updated = BookingModel(
+      id: old.id,
+      rideId: old.rideId,
+      ride: old.ride,
+      passengerId: old.passengerId,
+      passenger: old.passenger,
+      requestedSeats: old.requestedSeats,
+      contributionPerSeat: old.contributionPerSeat,
+      totalContribution: old.totalContribution,
+      status: BookingStatus.accepted,
+      passengerNote: old.passengerNote,
+      pickup: old.pickup,
+      drop: old.drop,
+      createdAt: old.createdAt,
+      updatedAt: DateTime.now(),
+    );
+
+    _mockBookings[index] = updated;
+    return updated;
+  }
+
+  @override
+  Future<BookingModel> rejectBooking(String id) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final index = _mockBookings.indexWhere((b) => b.id == id);
+    if (index == -1) throw Exception('Booking not found');
+
+    final old = _mockBookings[index];
+    final updated = BookingModel(
+      id: old.id,
+      rideId: old.rideId,
+      ride: old.ride,
+      passengerId: old.passengerId,
+      passenger: old.passenger,
+      requestedSeats: old.requestedSeats,
+      contributionPerSeat: old.contributionPerSeat,
+      totalContribution: old.totalContribution,
+      status: BookingStatus.rejected,
+      passengerNote: old.passengerNote,
+      pickup: old.pickup,
+      drop: old.drop,
+      createdAt: old.createdAt,
+      updatedAt: DateTime.now(),
+    );
+
+    _mockBookings[index] = updated;
+    return updated;
+  }
 }

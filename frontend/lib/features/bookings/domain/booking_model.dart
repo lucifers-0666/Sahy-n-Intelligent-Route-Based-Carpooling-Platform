@@ -41,6 +41,7 @@ class BookingModel extends Equatable {
   bool get isPending => status == BookingStatus.pending;
   bool get isCancelled => status == BookingStatus.cancelled;
   bool get isAccepted => status == BookingStatus.accepted;
+  bool get isRejected => status == BookingStatus.rejected;
 
   // Backwards compatibility getters
   int get seatCount => requestedSeats;
@@ -61,9 +62,9 @@ class BookingModel extends Equatable {
       case BookingStatus.pending:
         return 'Pending Driver Approval';
       case BookingStatus.accepted:
-        return 'Accepted';
+        return 'Booking Accepted';
       case BookingStatus.rejected:
-        return 'Declined';
+        return 'Request Rejected';
       case BookingStatus.cancelled:
         return 'Cancelled';
       case BookingStatus.completed:

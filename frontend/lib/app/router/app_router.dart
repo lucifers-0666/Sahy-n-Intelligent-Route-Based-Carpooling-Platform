@@ -17,6 +17,8 @@ import 'package:sahyan/features/bookings/presentation/screens/confirm_pay_screen
 import 'package:sahyan/features/bookings/presentation/screens/booking_confirmation_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/my_bookings_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/booking_details_screen.dart';
+import 'package:sahyan/features/bookings/presentation/screens/driver_rides_screen.dart';
+import 'package:sahyan/features/bookings/presentation/screens/driver_request_details_screen.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/profile/presentation/screens/profile_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/edit_profile_screen.dart';
@@ -103,6 +105,17 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final booking = state.extra as BookingModel?;
         return BookingDetailsScreen(initialBooking: booking);
+      },
+    ),
+    GoRoute(
+      path: '/driver/rides',
+      builder: (context, state) => const DriverRidesScreen(),
+    ),
+    GoRoute(
+      path: '/driver/request-details',
+      builder: (context, state) {
+        final request = state.extra as BookingModel?;
+        return DriverRequestDetailsScreen(initialRequest: request);
       },
     ),
 

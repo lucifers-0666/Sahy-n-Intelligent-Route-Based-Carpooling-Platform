@@ -22,6 +22,7 @@ class AuthState {
   });
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
+  bool get isGuest => !isAuthenticated || user == null;
   bool get isLoading => status == AuthStatus.loading;
 
   AuthState copyWith({

@@ -6,6 +6,9 @@ const {
   getMyBookings,
   getBookingById,
   cancelBooking,
+  getDriverBookingRequests,
+  acceptBooking,
+  rejectBooking,
 } = require('../controllers/bookingController');
 
 // All booking endpoints require authentication
@@ -17,10 +20,19 @@ router.post('/', createBooking);
 // Get passenger's own bookings
 router.get('/my', getMyBookings);
 
+// Get driver's incoming booking requests for offered rides
+router.get('/driver/requests', getDriverBookingRequests);
+
 // Get single booking by ID
 router.get('/:id', getBookingById);
 
-// Cancel pending booking request
+// Cancel pending booking request (Passenger)
 router.patch('/:id/cancel', cancelBooking);
+
+// Accept pending booking request (Driver)
+router.patch('/:id/accept', acceptBooking);
+
+// Reject pending booking request (Driver)
+router.patch('/:id/reject', rejectBooking);
 
 module.exports = router;

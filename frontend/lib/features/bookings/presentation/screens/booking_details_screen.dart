@@ -236,6 +236,16 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                         'The driver will review and decide on your seat request shortly.',
                         style: AppTypography.secondary,
                       )
+                    else if (_booking.isAccepted)
+                      Text(
+                        'The driver has accepted your booking request. Your seats are confirmed.',
+                        style: AppTypography.secondary,
+                      )
+                    else if (_booking.isRejected)
+                      Text(
+                        'The driver was unable to accept your request. Reserved seats have been released.',
+                        style: AppTypography.secondary,
+                      )
                     else if (_booking.isCancelled)
                       Text(
                         'This booking request was cancelled. Reserved seats were returned.',

@@ -328,6 +328,16 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           const Divider(color: AppColors.border, height: 1),
                           _buildNavTile(
+                            icon: Icons.alt_route_rounded,
+                            title: 'My Offered Rides & Requests',
+                            subtitle:
+                                'Manage passenger booking requests and seats',
+                            onTap: () {
+                              context.push('/driver/rides');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
                             icon: Icons.person_outline_rounded,
                             title: 'Edit Profile & Preferences',
                             subtitle: 'Name, City, Bio, and Travel Preferences',

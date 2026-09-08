@@ -20,6 +20,17 @@ abstract class BookingsRepository {
   Future<BookingModel> getBookingById(String id);
 
   Future<BookingModel> cancelBooking(String id);
+
+  Future<List<BookingModel>> getDriverBookingRequests({
+    String? status,
+    String? rideId,
+    int page = 1,
+    int limit = 50,
+  });
+
+  Future<BookingModel> acceptBooking(String id);
+
+  Future<BookingModel> rejectBooking(String id);
 }
 
 class BookingsRepositoryImpl implements BookingsRepository {
@@ -100,5 +111,60 @@ class BookingsRepositoryImpl implements BookingsRepository {
     }
 
     throw ApiException('Failed to cancel booking. Invalid server response.');
+  }
+
+  @override
+  Future<List<BookingModel>> getDriverBookingRequests({
+    String? status,
+    String? rideId,
+    int page = 1,
+    int limit = 50,
+  }) async {
+    final queryParams = <String>[];
+    if (status != null && status.isNotEmpty) {
+      queryParams.add('status=$status');
+    }
+    if (rideId != null && rideId.isNotEmpty) {
+      queryParams.add('rideId=$rideId');
+    }
+    queryParams.add('page=$page');
+    queryParams.add('limit=$limit');
+
+    final queryString = queryParams.join('&');
+    final response = await apiClient.get(
+      '/bookings/driver/requests?$queryString',
+    );
+
+    if (response is Map<String, dynamic> && response['data'] is List) {
+      final list = response['data'] as List<dynamic>;
+      return list
+          .whereType<Map<String, dynamic>>()
+          .map((json) => BookingModel.fromJson(json))
+          .toList();
+    }
+
+    return [];
+  }
+
+  @override
+  Future<BookingModel> acceptBooking(String id) async {
+    final response = await apiClient.patch('/bookings/$id/accept');
+
+    if (response is Map<String, dynamic> && response['data'] != null) {
+      return BookingModel.fromJson(response['data'] as Map<String, dynamic>);
+    }
+
+    throw ApiException('Failed to accept booking. Invalid server response.');
+  }
+
+  @override
+  Future<BookingModel> rejectBooking(String id) async {
+    final response = await apiClient.patch('/bookings/$id/reject');
+
+    if (response is Map<String, dynamic> && response['data'] != null) {
+      return BookingModel.fromJson(response['data'] as Map<String, dynamic>);
+    }
+
+    throw ApiException('Failed to reject booking. Invalid server response.');
   }
 }

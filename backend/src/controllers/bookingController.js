@@ -471,3 +471,348 @@ exports.cancelBooking = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Get booking requests for rides offered by the authenticated driver
+ * @route   GET /api/v1/bookings/driver/requests
+ * @access  Private (Driver)
+ */
+exports.getDriverBookingRequests = async (req, res, next) => {
+  try {
+    const driverId = req.user.id;
+    const { status, rideId, page = 1, limit = 20 } = req.query;
+
+    // 1. Resolve target rides owned by driver
+    let targetRideIds;
+    if (rideId) {
+      if (!mongoose.Types.ObjectId.isValid(rideId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid ride ID format',
+        });
+      }
+      const verifiedRide = await Ride.findOne({ _id: rideId, driver: driverId });
+      if (!verifiedRide) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to view booking requests for this ride',
+        });
+      }
+      targetRideIds = [verifiedRide._id];
+    } else {
+      const driverRides = await Ride.find({ driver: driverId }).select('_id');
+      targetRideIds = driverRides.map((r) => r._id);
+    }
+
+    if (targetRideIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        total: 0,
+        page: Number(page),
+        totalPages: 0,
+        data: [],
+      });
+    }
+
+    // 2. Query bookings belonging to driver's rides
+    const query = { ride: { $in: targetRideIds } };
+    if (status && typeof status === 'string' && status !== 'all') {
+      query.status = status.toLowerCase();
+    }
+
+    const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+    const parsedLimit = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const total = await Booking.countDocuments(query);
+    const bookings = await Booking.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parsedLimit)
+      .populate({
+        path: 'ride',
+        select:
+          'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats bookedSeats pickupPolicy amenities notes',
+        populate: [
+          { path: 'vehicle', select: 'make model year color registrationNumber vehicleType' },
+        ],
+      })
+      .populate(
+        'passenger',
+        'name phone email rating isVerified avatar profileImage'
+      );
+
+    res.status(200).json({
+      success: true,
+      count: bookings.length,
+      total,
+      page: parsedPage,
+      totalPages: Math.ceil(total / parsedLimit),
+      data: bookings,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Accept a pending booking request
+ * @route   PATCH /api/v1/bookings/:id/accept
+ * @access  Private (Driver owning the ride)
+ */
+exports.acceptBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const driverId = req.user.id.toString();
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booking ID format',
+      });
+    }
+
+    // 1. Fetch booking with populated ride
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found',
+      });
+    }
+
+    if (!booking.ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated ride not found',
+      });
+    }
+
+    // 2. Authorization: only ride owner can accept
+    const rideDriverId = booking.ride.driver ? booking.ride.driver.toString() : null;
+    if (rideDriverId !== driverId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to manage booking requests for this ride',
+      });
+    }
+
+    // 3. Status check on booking
+    if (booking.status === 'accepted') {
+      return res.status(409).json({
+        success: false,
+        message: 'Booking request is already accepted',
+      });
+    }
+
+    if (booking.status === 'rejected') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot accept a rejected booking request',
+      });
+    }
+
+    if (booking.status === 'cancelled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot accept a cancelled booking request',
+      });
+    }
+
+    if (booking.status !== 'pending') {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot accept booking with status ${booking.status}`,
+      });
+    }
+
+    // 4. Status check on ride
+    if (booking.ride.status === 'cancelled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot accept booking on a cancelled ride',
+      });
+    }
+
+    if (booking.ride.status === 'completed') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot accept booking on a completed ride',
+      });
+    }
+
+    if (new Date(booking.ride.departureTime) <= new Date()) {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot accept booking on a departed ride',
+      });
+    }
+
+    // 5. Atomic state transition: pending -> accepted
+    const updatedBooking = await Booking.findOneAndUpdate(
+      {
+        _id: id,
+        status: 'pending',
+      },
+      {
+        $set: { status: 'accepted' },
+      },
+      { new: true }
+    );
+
+    if (!updatedBooking) {
+      return res.status(409).json({
+        success: false,
+        message: 'Booking request state conflict. Please refresh and try again.',
+      });
+    }
+
+    // 6. Capacity accounting:
+    // Follow existing Phase 8 model: availableSeats was already decremented on creation.
+    // Therefore, do NOT decrement availableSeats again! Increment bookedSeats by requestedSeats.
+    await Ride.findByIdAndUpdate(booking.ride._id, {
+      $inc: { bookedSeats: booking.requestedSeats },
+    });
+
+    // 7. Populate response
+    const populatedBooking = await Booking.findById(id)
+      .populate({
+        path: 'ride',
+        select:
+          'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats bookedSeats pickupPolicy amenities notes',
+        populate: [
+          { path: 'driver', select: 'name phone email rating isVerified avatar profileImage' },
+          { path: 'vehicle', select: 'make model year color registrationNumber vehicleType' },
+        ],
+      })
+      .populate('passenger', 'name phone email rating isVerified avatar profileImage');
+
+    res.status(200).json({
+      success: true,
+      message: 'Booking request accepted successfully',
+      data: populatedBooking,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Reject a pending booking request
+ * @route   PATCH /api/v1/bookings/:id/reject
+ * @access  Private (Driver owning the ride)
+ */
+exports.rejectBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const driverId = req.user.id.toString();
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booking ID format',
+      });
+    }
+
+    // 1. Fetch booking with populated ride
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found',
+      });
+    }
+
+    if (!booking.ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Associated ride not found',
+      });
+    }
+
+    // 2. Authorization: only ride owner can reject
+    const rideDriverId = booking.ride.driver ? booking.ride.driver.toString() : null;
+    if (rideDriverId !== driverId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to manage booking requests for this ride',
+      });
+    }
+
+    // 3. Status check on booking
+    if (booking.status === 'accepted') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot reject an already accepted booking request',
+      });
+    }
+
+    if (booking.status === 'rejected') {
+      return res.status(409).json({
+        success: false,
+        message: 'Booking request is already rejected',
+      });
+    }
+
+    if (booking.status === 'cancelled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot reject a cancelled booking request',
+      });
+    }
+
+    if (booking.status !== 'pending') {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot reject booking with status ${booking.status}`,
+      });
+    }
+
+    // 4. Atomic state transition: pending -> rejected
+    const updatedBooking = await Booking.findOneAndUpdate(
+      {
+        _id: id,
+        status: 'pending',
+      },
+      {
+        $set: { status: 'rejected' },
+      },
+      { new: true }
+    );
+
+    if (!updatedBooking) {
+      return res.status(409).json({
+        success: false,
+        message: 'Booking request state conflict. Please refresh and try again.',
+      });
+    }
+
+    // 5. Capacity accounting:
+    // Release reserved seats back to ride capacity
+    await Ride.findByIdAndUpdate(booking.ride._id, {
+      $inc: { availableSeats: booking.requestedSeats },
+    });
+
+    // 6. Populate response
+    const populatedBooking = await Booking.findById(id)
+      .populate({
+        path: 'ride',
+        select:
+          'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats bookedSeats pickupPolicy amenities notes',
+        populate: [
+          { path: 'driver', select: 'name phone email rating isVerified avatar profileImage' },
+          { path: 'vehicle', select: 'make model year color registrationNumber vehicleType' },
+        ],
+      })
+      .populate('passenger', 'name phone email rating isVerified avatar profileImage');
+
+    res.status(200).json({
+      success: true,
+      message: 'Booking request rejected successfully',
+      data: populatedBooking,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
