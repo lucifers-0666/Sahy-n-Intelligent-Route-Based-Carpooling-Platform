@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const { MongoMemoryServer, MongoMemoryReplSet } = require('mongodb-memory-server');
 const app = require('../src/app');
 const User = require('../src/models/User');
 const Vehicle = require('../src/models/Vehicle');
@@ -32,12 +32,18 @@ let testRide;
 
 test.before(async () => {
   try {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
     const mongoUri = mongoServer.getUri();
     await mongoose.connect(mongoUri);
   } catch (err) {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sahyan_driver_test';
-    await mongoose.connect(mongoUri);
+    try {
+      mongoServer = await MongoMemoryServer.create();
+      const mongoUri = mongoServer.getUri();
+      await mongoose.connect(mongoUri);
+    } catch (err2) {
+      const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/sahyan_driver_test';
+      await mongoose.connect(mongoUri);
+    }
   }
 
   await Booking.init();
@@ -582,3 +588,87 @@ test('21. Concurrency protection: simultaneous accept and reject resolved determ
     assert.strictEqual(ride.bookedSeats, 0);
   }
 });
+
+test('22. Driver request list validates status parameter (400 for invalid)', async () => {
+  const res = await fetch(`${baseUrl}/bookings/driver/requests?status=invalid_status`, {
+    headers: { Authorization: `Bearer ${driverAToken}` },
+  });
+  assert.strictEqual(res.status, 400);
+  const data = await res.json();
+  assert.strictEqual(data.success, false);
+  assert.ok(data.message.includes('Invalid status filter'));
+});
+
+test('23. Driver request list validates page and limit parameters (400 for invalid)', async () => {
+  const res1 = await fetch(`${baseUrl}/bookings/driver/requests?page=0`, {
+    headers: { Authorization: `Bearer ${driverAToken}` },
+  });
+  assert.strictEqual(res1.status, 400);
+
+  const res2 = await fetch(`${baseUrl}/bookings/driver/requests?limit=-5`, {
+    headers: { Authorization: `Bearer ${driverAToken}` },
+  });
+  assert.strictEqual(res2.status, 400);
+});
+
+test('24. Cannot accept or reject an already completed booking (409)', async () => {
+  const bookingRes = await createPendingBooking(passengerToken, 1);
+  const bookingId = bookingRes.data.id;
+
+  // Mark completed in DB
+  await Booking.findByIdAndUpdate(bookingId, { $set: { status: 'completed' } });
+
+  const acceptRes = await fetch(`${baseUrl}/bookings/${bookingId}/accept`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${driverAToken}` },
+  });
+  assert.strictEqual(acceptRes.status, 409);
+
+  const rejectRes = await fetch(`${baseUrl}/bookings/${bookingId}/reject`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${driverAToken}` },
+  });
+  assert.strictEqual(rejectRes.status, 409);
+});
+
+test('25. Multi-passenger capacity test: Accept A and Reject B maintains exact capacity', async () => {
+  // testRide is created in test.beforeEach with capacity = 4, availableSeats = 4, bookedSeats = 0
+
+  // Passenger A requests 2 seats
+  const bookingARes = await createPendingBooking(passengerToken, 2);
+  const bookingA = bookingARes.data;
+
+  // Passenger B requests 2 seats
+  const bookingBRes = await createPendingBooking(passengerTwoToken, 2);
+  const bookingB = bookingBRes.data;
+
+  // Check state: available = 0, booked = 0
+  let ride = await Ride.findById(testRide._id);
+  assert.strictEqual(ride.availableSeats, 0);
+  assert.strictEqual(ride.bookedSeats, 0);
+
+  // Driver accepts A
+  const acceptA = await fetch(`${baseUrl}/bookings/${bookingA.id}/accept`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${driverAToken}` },
+  });
+  assert.strictEqual(acceptA.status, 200);
+
+  // State after accepting A: available = 0, booked = 2
+  ride = await Ride.findById(testRide._id);
+  assert.strictEqual(ride.availableSeats, 0);
+  assert.strictEqual(ride.bookedSeats, 2);
+
+  // Driver rejects B
+  const rejectB = await fetch(`${baseUrl}/bookings/${bookingB.id}/reject`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${driverAToken}` },
+  });
+  assert.strictEqual(rejectB.status, 200);
+
+  // State after rejecting B: available = 2, booked = 2
+  ride = await Ride.findById(testRide._id);
+  assert.strictEqual(ride.availableSeats, 2);
+  assert.strictEqual(ride.bookedSeats, 2);
+});
+

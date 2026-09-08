@@ -482,7 +482,27 @@ exports.getDriverBookingRequests = async (req, res, next) => {
     const driverId = req.user.id;
     const { status, rideId, page = 1, limit = 20 } = req.query;
 
-    // 1. Resolve target rides owned by driver
+    // 1. Parameter validations
+    if (req.query.page !== undefined) {
+      const parsed = parseInt(req.query.page, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid page parameter: must be a positive integer',
+        });
+      }
+    }
+    if (req.query.limit !== undefined) {
+      const parsed = parseInt(req.query.limit, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid limit parameter: must be a positive integer',
+        });
+      }
+    }
+
+    // 2. Resolve target rides owned by driver
     let targetRideIds;
     if (rideId) {
       if (!mongoose.Types.ObjectId.isValid(rideId)) {
@@ -509,16 +529,32 @@ exports.getDriverBookingRequests = async (req, res, next) => {
         success: true,
         count: 0,
         total: 0,
-        page: Number(page),
+        page: Number(page) || 1,
         totalPages: 0,
         data: [],
       });
     }
 
-    // 2. Query bookings belonging to driver's rides
+    // 3. Query bookings belonging to driver's rides with status validation
     const query = { ride: { $in: targetRideIds } };
-    if (status && typeof status === 'string' && status !== 'all') {
-      query.status = status.toLowerCase();
+    if (status !== undefined && status !== null && status !== '') {
+      if (typeof status !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid status parameter format',
+        });
+      }
+      const normalizedStatus = status.toLowerCase().trim();
+      const validStatuses = ['pending', 'accepted', 'rejected', 'cancelled', 'completed', 'all'];
+      if (!validStatuses.includes(normalizedStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status filter. Allowed values: ${validStatuses.join(', ')}`,
+        });
+      }
+      if (normalizedStatus !== 'all') {
+        query.status = normalizedStatus;
+      }
     }
 
     const parsedPage = Math.max(1, parseInt(page, 10) || 1);
@@ -562,6 +598,7 @@ exports.getDriverBookingRequests = async (req, res, next) => {
  * @access  Private (Driver owning the ride)
  */
 exports.acceptBooking = async (req, res, next) => {
+  let session = null;
   try {
     const { id } = req.params;
     const driverId = req.user.id.toString();
@@ -573,109 +610,332 @@ exports.acceptBooking = async (req, res, next) => {
       });
     }
 
-    // 1. Fetch booking with populated ride
-    const booking = await Booking.findById(id).populate('ride');
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found',
-      });
+    // Attempt Mongoose session transaction where supported (e.g. Atlas / Replica Set)
+    let useTransaction = false;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+      useTransaction = true;
+    } catch (_) {
+      if (session) {
+        try {
+          await session.endSession();
+        } catch (e) {}
+        session = null;
+      }
+      useTransaction = false;
     }
 
-    if (!booking.ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Associated ride not found',
-      });
+    if (useTransaction) {
+      try {
+        // 1. Fetch booking inside session
+        const booking = await Booking.findById(id).session(session);
+        if (!booking) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(404).json({
+            success: false,
+            message: 'Booking not found',
+          });
+        }
+
+        if (!booking.ride) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(404).json({
+            success: false,
+            message: 'Associated ride not found',
+          });
+        }
+
+        // 2. Fetch ride inside session
+        const ride = await Ride.findById(booking.ride).session(session);
+        if (!ride) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(404).json({
+            success: false,
+            message: 'Associated ride not found',
+          });
+        }
+
+        // 3. Authorization check: only ride owner can accept
+        const rideDriverId = ride.driver ? ride.driver.toString() : null;
+        if (rideDriverId !== driverId) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(403).json({
+            success: false,
+            message: 'You are not authorized to manage booking requests for this ride',
+          });
+        }
+
+        // 4. Status checks on booking
+        if (booking.status === 'accepted') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Booking request is already accepted',
+          });
+        }
+
+        if (booking.status === 'rejected') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot accept a rejected booking request',
+          });
+        }
+
+        if (booking.status === 'cancelled') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot accept a cancelled booking request',
+          });
+        }
+
+        if (booking.status === 'completed') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot accept a completed booking',
+          });
+        }
+
+        if (booking.status !== 'pending') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: `Cannot accept booking with status ${booking.status}`,
+          });
+        }
+
+        // 5. Status checks on ride
+        if (ride.status === 'cancelled') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot accept booking on a cancelled ride',
+          });
+        }
+
+        if (ride.status === 'completed') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot accept booking on a completed ride',
+          });
+        }
+
+        if (new Date(ride.departureTime) <= new Date()) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot accept booking on a departed ride',
+          });
+        }
+
+        // 6. Transition booking status pending -> accepted atomically inside session
+        const updatedBooking = await Booking.findOneAndUpdate(
+          {
+            _id: id,
+            status: 'pending',
+          },
+          {
+            $set: { status: 'accepted' },
+          },
+          { new: true, session }
+        );
+
+        if (!updatedBooking) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Booking request state conflict. Please refresh and try again.',
+          });
+        }
+
+        // 7. Increment ride bookedSeats atomically inside session
+        // (Following Phase 8 model: availableSeats was already decremented on creation)
+        await Ride.findByIdAndUpdate(
+          ride._id,
+          {
+            $inc: { bookedSeats: booking.requestedSeats },
+          },
+          { session }
+        );
+
+        // Commit transaction
+        await session.commitTransaction();
+        await session.endSession();
+        session = null;
+      } catch (txErr) {
+        if (session) {
+          try {
+            await session.abortTransaction();
+          } catch (_) {}
+          try {
+            await session.endSession();
+          } catch (_) {}
+          session = null;
+        }
+
+        // Handle MongoDB WriteConflict or transient transaction conflict
+        if (
+          txErr.code === 112 ||
+          txErr.codeName === 'WriteConflict' ||
+          (txErr.message && txErr.message.includes('WriteConflict')) ||
+          (typeof txErr.hasErrorLabel === 'function' && txErr.hasErrorLabel('TransientTransactionError'))
+        ) {
+          return res.status(409).json({
+            success: false,
+            message: 'Booking request state conflict. Please refresh and try again.',
+          });
+        }
+
+        const isTxUnsupported =
+          txErr.message &&
+          (txErr.message.includes('replica set') ||
+            txErr.message.includes('Transaction numbers are only allowed') ||
+            txErr.message.includes('This MongoDB deployment does not support'));
+
+        if (!isTxUnsupported) {
+          throw txErr;
+        }
+
+        useTransaction = false;
+      }
     }
 
-    // 2. Authorization: only ride owner can accept
-    const rideDriverId = booking.ride.driver ? booking.ride.driver.toString() : null;
-    if (rideDriverId !== driverId) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to manage booking requests for this ride',
-      });
+    if (!useTransaction) {
+      // Safest compatible strategy for non-replica-set standalone environments:
+      // Conditional atomic updates with rollback compensation
+      const booking = await Booking.findById(id);
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: 'Booking not found',
+        });
+      }
+
+      if (!booking.ride) {
+        return res.status(404).json({
+          success: false,
+          message: 'Associated ride not found',
+        });
+      }
+
+      const ride = await Ride.findById(booking.ride);
+      if (!ride) {
+        return res.status(404).json({
+          success: false,
+          message: 'Associated ride not found',
+        });
+      }
+
+      const rideDriverId = ride.driver ? ride.driver.toString() : null;
+      if (rideDriverId !== driverId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to manage booking requests for this ride',
+        });
+      }
+
+      if (booking.status === 'accepted') {
+        return res.status(409).json({
+          success: false,
+          message: 'Booking request is already accepted',
+        });
+      }
+
+      if (booking.status === 'rejected') {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot accept a rejected booking request',
+        });
+      }
+
+      if (booking.status === 'cancelled') {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot accept a cancelled booking request',
+        });
+      }
+
+      if (booking.status === 'completed') {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot accept a completed booking',
+        });
+      }
+
+      if (booking.status !== 'pending') {
+        return res.status(409).json({
+          success: false,
+          message: `Cannot accept booking with status ${booking.status}`,
+        });
+      }
+
+      if (ride.status === 'cancelled') {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot accept booking on a cancelled ride',
+        });
+      }
+
+      if (ride.status === 'completed') {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot accept booking on a completed ride',
+        });
+      }
+
+      if (new Date(ride.departureTime) <= new Date()) {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot accept booking on a departed ride',
+        });
+      }
+
+      const updatedBooking = await Booking.findOneAndUpdate(
+        {
+          _id: id,
+          status: 'pending',
+        },
+        {
+          $set: { status: 'accepted' },
+        },
+        { new: true }
+      );
+
+      if (!updatedBooking) {
+        return res.status(409).json({
+          success: false,
+          message: 'Booking request state conflict. Please refresh and try again.',
+        });
+      }
+
+      try {
+        await Ride.findByIdAndUpdate(ride._id, {
+          $inc: { bookedSeats: booking.requestedSeats },
+        });
+      } catch (rideErr) {
+        await Booking.findByIdAndUpdate(id, { $set: { status: 'pending' } });
+        throw rideErr;
+      }
     }
 
-    // 3. Status check on booking
-    if (booking.status === 'accepted') {
-      return res.status(409).json({
-        success: false,
-        message: 'Booking request is already accepted',
-      });
-    }
-
-    if (booking.status === 'rejected') {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot accept a rejected booking request',
-      });
-    }
-
-    if (booking.status === 'cancelled') {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot accept a cancelled booking request',
-      });
-    }
-
-    if (booking.status !== 'pending') {
-      return res.status(409).json({
-        success: false,
-        message: `Cannot accept booking with status ${booking.status}`,
-      });
-    }
-
-    // 4. Status check on ride
-    if (booking.ride.status === 'cancelled') {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot accept booking on a cancelled ride',
-      });
-    }
-
-    if (booking.ride.status === 'completed') {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot accept booking on a completed ride',
-      });
-    }
-
-    if (new Date(booking.ride.departureTime) <= new Date()) {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot accept booking on a departed ride',
-      });
-    }
-
-    // 5. Atomic state transition: pending -> accepted
-    const updatedBooking = await Booking.findOneAndUpdate(
-      {
-        _id: id,
-        status: 'pending',
-      },
-      {
-        $set: { status: 'accepted' },
-      },
-      { new: true }
-    );
-
-    if (!updatedBooking) {
-      return res.status(409).json({
-        success: false,
-        message: 'Booking request state conflict. Please refresh and try again.',
-      });
-    }
-
-    // 6. Capacity accounting:
-    // Follow existing Phase 8 model: availableSeats was already decremented on creation.
-    // Therefore, do NOT decrement availableSeats again! Increment bookedSeats by requestedSeats.
-    await Ride.findByIdAndUpdate(booking.ride._id, {
-      $inc: { bookedSeats: booking.requestedSeats },
-    });
-
-    // 7. Populate response
+    // Populate response
     const populatedBooking = await Booking.findById(id)
       .populate({
         path: 'ride',
@@ -688,12 +948,20 @@ exports.acceptBooking = async (req, res, next) => {
       })
       .populate('passenger', 'name phone email rating isVerified avatar profileImage');
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Booking request accepted successfully',
       data: populatedBooking,
     });
   } catch (error) {
+    if (session) {
+      try {
+        await session.abortTransaction();
+      } catch (_) {}
+      try {
+        await session.endSession();
+      } catch (_) {}
+    }
     next(error);
   }
 };
@@ -704,6 +972,7 @@ exports.acceptBooking = async (req, res, next) => {
  * @access  Private (Driver owning the ride)
  */
 exports.rejectBooking = async (req, res, next) => {
+  let session = null;
   try {
     const { id } = req.params;
     const driverId = req.user.id.toString();
@@ -715,86 +984,280 @@ exports.rejectBooking = async (req, res, next) => {
       });
     }
 
-    // 1. Fetch booking with populated ride
-    const booking = await Booking.findById(id).populate('ride');
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found',
-      });
+    // Attempt Mongoose session transaction where supported
+    let useTransaction = false;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+      useTransaction = true;
+    } catch (_) {
+      if (session) {
+        try {
+          await session.endSession();
+        } catch (e) {}
+        session = null;
+      }
+      useTransaction = false;
     }
 
-    if (!booking.ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Associated ride not found',
-      });
+    if (useTransaction) {
+      try {
+        // 1. Fetch booking inside session
+        const booking = await Booking.findById(id).session(session);
+        if (!booking) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(404).json({
+            success: false,
+            message: 'Booking not found',
+          });
+        }
+
+        if (!booking.ride) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(404).json({
+            success: false,
+            message: 'Associated ride not found',
+          });
+        }
+
+        // 2. Fetch ride inside session
+        const ride = await Ride.findById(booking.ride).session(session);
+        if (!ride) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(404).json({
+            success: false,
+            message: 'Associated ride not found',
+          });
+        }
+
+        // 3. Authorization check: only ride owner can reject
+        const rideDriverId = ride.driver ? ride.driver.toString() : null;
+        if (rideDriverId !== driverId) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(403).json({
+            success: false,
+            message: 'You are not authorized to manage booking requests for this ride',
+          });
+        }
+
+        // 4. Status checks on booking
+        if (booking.status === 'accepted') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot reject an already accepted booking request',
+          });
+        }
+
+        if (booking.status === 'rejected') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Booking request is already rejected',
+          });
+        }
+
+        if (booking.status === 'cancelled') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot reject a cancelled booking request',
+          });
+        }
+
+        if (booking.status === 'completed') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Cannot reject a completed booking',
+          });
+        }
+
+        if (booking.status !== 'pending') {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: `Cannot reject booking with status ${booking.status}`,
+          });
+        }
+
+        // 5. Atomic state transition inside session
+        const updatedBooking = await Booking.findOneAndUpdate(
+          {
+            _id: id,
+            status: 'pending',
+          },
+          {
+            $set: { status: 'rejected' },
+          },
+          { new: true, session }
+        );
+
+        if (!updatedBooking) {
+          await session.abortTransaction();
+          await session.endSession();
+          return res.status(409).json({
+            success: false,
+            message: 'Booking request state conflict. Please refresh and try again.',
+          });
+        }
+
+        // 6. Release reserved seats back to ride capacity inside session
+        await Ride.findByIdAndUpdate(
+          ride._id,
+          {
+            $inc: { availableSeats: booking.requestedSeats },
+          },
+          { session }
+        );
+
+        await session.commitTransaction();
+        await session.endSession();
+        session = null;
+      } catch (txErr) {
+        if (session) {
+          try {
+            await session.abortTransaction();
+          } catch (_) {}
+          try {
+            await session.endSession();
+          } catch (_) {}
+          session = null;
+        }
+
+        // Handle MongoDB WriteConflict or transient transaction conflict
+        if (
+          txErr.code === 112 ||
+          txErr.codeName === 'WriteConflict' ||
+          (txErr.message && txErr.message.includes('WriteConflict')) ||
+          (typeof txErr.hasErrorLabel === 'function' && txErr.hasErrorLabel('TransientTransactionError'))
+        ) {
+          return res.status(409).json({
+            success: false,
+            message: 'Booking request state conflict. Please refresh and try again.',
+          });
+        }
+
+        const isTxUnsupported =
+          txErr.message &&
+          (txErr.message.includes('replica set') ||
+            txErr.message.includes('Transaction numbers are only allowed') ||
+            txErr.message.includes('This MongoDB deployment does not support'));
+
+        if (!isTxUnsupported) {
+          throw txErr;
+        }
+
+        useTransaction = false;
+      }
     }
 
-    // 2. Authorization: only ride owner can reject
-    const rideDriverId = booking.ride.driver ? booking.ride.driver.toString() : null;
-    if (rideDriverId !== driverId) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to manage booking requests for this ride',
-      });
+    if (!useTransaction) {
+      // Safest compatible strategy for non-replica-set standalone environments
+      const booking = await Booking.findById(id);
+      if (!booking) {
+        return res.status(404).json({
+          success: false,
+          message: 'Booking not found',
+        });
+      }
+
+      if (!booking.ride) {
+        return res.status(404).json({
+          success: false,
+          message: 'Associated ride not found',
+        });
+      }
+
+      const ride = await Ride.findById(booking.ride);
+      if (!ride) {
+        return res.status(404).json({
+          success: false,
+          message: 'Associated ride not found',
+        });
+      }
+
+      const rideDriverId = ride.driver ? ride.driver.toString() : null;
+      if (rideDriverId !== driverId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to manage booking requests for this ride',
+        });
+      }
+
+      if (booking.status === 'accepted') {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot reject an already accepted booking request',
+        });
+      }
+
+      if (booking.status === 'rejected') {
+        return res.status(409).json({
+          success: false,
+          message: 'Booking request is already rejected',
+        });
+      }
+
+      if (booking.status === 'cancelled') {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot reject a cancelled booking request',
+        });
+      }
+
+      if (booking.status === 'completed') {
+        return res.status(409).json({
+          success: false,
+          message: 'Cannot reject a completed booking',
+        });
+      }
+
+      if (booking.status !== 'pending') {
+        return res.status(409).json({
+          success: false,
+          message: `Cannot reject booking with status ${booking.status}`,
+        });
+      }
+
+      const updatedBooking = await Booking.findOneAndUpdate(
+        {
+          _id: id,
+          status: 'pending',
+        },
+        {
+          $set: { status: 'rejected' },
+        },
+        { new: true }
+      );
+
+      if (!updatedBooking) {
+        return res.status(409).json({
+          success: false,
+          message: 'Booking request state conflict. Please refresh and try again.',
+        });
+      }
+
+      try {
+        await Ride.findByIdAndUpdate(ride._id, {
+          $inc: { availableSeats: booking.requestedSeats },
+        });
+      } catch (rideErr) {
+        await Booking.findByIdAndUpdate(id, { $set: { status: 'pending' } });
+        throw rideErr;
+      }
     }
 
-    // 3. Status check on booking
-    if (booking.status === 'accepted') {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot reject an already accepted booking request',
-      });
-    }
-
-    if (booking.status === 'rejected') {
-      return res.status(409).json({
-        success: false,
-        message: 'Booking request is already rejected',
-      });
-    }
-
-    if (booking.status === 'cancelled') {
-      return res.status(409).json({
-        success: false,
-        message: 'Cannot reject a cancelled booking request',
-      });
-    }
-
-    if (booking.status !== 'pending') {
-      return res.status(409).json({
-        success: false,
-        message: `Cannot reject booking with status ${booking.status}`,
-      });
-    }
-
-    // 4. Atomic state transition: pending -> rejected
-    const updatedBooking = await Booking.findOneAndUpdate(
-      {
-        _id: id,
-        status: 'pending',
-      },
-      {
-        $set: { status: 'rejected' },
-      },
-      { new: true }
-    );
-
-    if (!updatedBooking) {
-      return res.status(409).json({
-        success: false,
-        message: 'Booking request state conflict. Please refresh and try again.',
-      });
-    }
-
-    // 5. Capacity accounting:
-    // Release reserved seats back to ride capacity
-    await Ride.findByIdAndUpdate(booking.ride._id, {
-      $inc: { availableSeats: booking.requestedSeats },
-    });
-
-    // 6. Populate response
+    // Populate response
     const populatedBooking = await Booking.findById(id)
       .populate({
         path: 'ride',
@@ -807,12 +1270,21 @@ exports.rejectBooking = async (req, res, next) => {
       })
       .populate('passenger', 'name phone email rating isVerified avatar profileImage');
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Booking request rejected successfully',
       data: populatedBooking,
     });
   } catch (error) {
+    if (session) {
+      try {
+        await session.abortTransaction();
+      } catch (_) {}
+      try {
+        await session.endSession();
+      } catch (_) {}
+    }
     next(error);
   }
 };
+
