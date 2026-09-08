@@ -25,6 +25,12 @@ abstract class RideRepository {
 
   Future<RideModel> cancelRide(String id);
 
+  Future<RideModel> startBoarding(String id);
+
+  Future<RideModel> startTrip(String id);
+
+  Future<RideModel> completeTrip(String id);
+
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
@@ -125,6 +131,42 @@ class RideRepositoryImpl implements RideRepository {
     }
 
     throw ApiException('Failed to cancel ride.');
+  }
+
+  @override
+  Future<RideModel> startBoarding(String id) async {
+    final response = await apiClient.patch(
+      '/rides/$id/start-boarding',
+      body: {},
+    );
+
+    if (response is Map<String, dynamic> && response['ride'] != null) {
+      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    }
+
+    throw ApiException('Failed to start boarding.');
+  }
+
+  @override
+  Future<RideModel> startTrip(String id) async {
+    final response = await apiClient.patch('/rides/$id/start', body: {});
+
+    if (response is Map<String, dynamic> && response['ride'] != null) {
+      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    }
+
+    throw ApiException('Failed to start trip.');
+  }
+
+  @override
+  Future<RideModel> completeTrip(String id) async {
+    final response = await apiClient.patch('/rides/$id/complete', body: {});
+
+    if (response is Map<String, dynamic> && response['ride'] != null) {
+      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    }
+
+    throw ApiException('Failed to complete trip.');
   }
 
   @override

@@ -117,6 +117,27 @@ class RideModel extends Equatable {
   int get durationMins =>
       route != null ? route!.durationMinutes : _fallbackDurationMins;
 
+  bool get isScheduled => status == RideStatus.scheduled;
+  bool get isBoarding => status == RideStatus.boarding;
+  bool get isActive => status == RideStatus.active;
+  bool get isCompleted => status == RideStatus.completed;
+  bool get isCancelled => status == RideStatus.cancelled;
+
+  String get statusDisplayName {
+    switch (status) {
+      case RideStatus.scheduled:
+        return 'Scheduled';
+      case RideStatus.boarding:
+        return 'Boarding';
+      case RideStatus.active:
+        return 'Trip in Progress';
+      case RideStatus.completed:
+        return 'Completed';
+      case RideStatus.cancelled:
+        return 'Cancelled';
+    }
+  }
+
   factory RideModel.fromJson(Map<String, dynamic> json) {
     // 1. Resolve Driver details
     String driverId = '';

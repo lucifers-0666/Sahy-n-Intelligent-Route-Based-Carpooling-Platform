@@ -150,6 +150,18 @@ class FakeRideRepo implements RideRepository {
       rides.firstWhere((r) => r.id == id);
 
   @override
+  Future<RideModel> startBoarding(String id) async =>
+      rides.firstWhere((r) => r.id == id);
+
+  @override
+  Future<RideModel> startTrip(String id) async =>
+      rides.firstWhere((r) => r.id == id);
+
+  @override
+  Future<RideModel> completeTrip(String id) async =>
+      rides.firstWhere((r) => r.id == id);
+
+  @override
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
@@ -537,6 +549,8 @@ void main() {
         await tester.pumpAndSettle();
 
         // Tap Accept
+        await tester.ensureVisible(find.text('Accept'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Accept'));
         await tester.pumpAndSettle();
 
@@ -570,6 +584,8 @@ void main() {
         await tester.pumpAndSettle();
 
         // Tap Reject
+        await tester.ensureVisible(find.text('Reject'));
+        await tester.pumpAndSettle();
         await tester.tap(find.text('Reject'));
         await tester.pumpAndSettle();
 

@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const Ride = require('../models/Ride');
 const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
+const Booking = require('../models/Booking');
 const googleMapsService = require('../services/googleMapsService');
 const routeMatchService = require('../services/routeMatchService');
 const { decodePolyline, generateFallbackRoute } = require('../utils/polylineUtils');
@@ -457,11 +458,403 @@ const updateRide = async (req, res, next) => {
 };
 
 /**
+ * @desc    Start passenger boarding for a scheduled ride
+ * @route   PATCH /api/v1/rides/:id/start-boarding
+ * @access  Private (Driver Only)
+ */
+const startBoarding = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ride ID format.',
+      });
+    }
+
+    const ride = await Ride.findById(id);
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ride not found.',
+      });
+    }
+
+    // Enforce driver ownership
+    if (ride.driver.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only start boarding for your own rides.',
+      });
+    }
+
+    if (ride.status === 'boarding') {
+      return res.status(409).json({
+        success: false,
+        message: 'Ride is already in boarding status.',
+      });
+    }
+
+    if (ride.status === 'active') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot transition an active trip in progress back to boarding.',
+      });
+    }
+
+    if (ride.status === 'completed') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot start boarding on a completed ride.',
+      });
+    }
+
+    if (ride.status === 'cancelled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot start boarding on a cancelled ride.',
+      });
+    }
+
+    if (ride.status !== 'scheduled') {
+      return res.status(409).json({
+        success: false,
+        message: `Ride must be scheduled to start boarding. Current status: ${ride.status}.`,
+      });
+    }
+
+    const updatedRide = await Ride.findOneAndUpdate(
+      {
+        _id: id,
+        driver: req.user._id,
+        status: 'scheduled',
+      },
+      {
+        $set: { status: 'boarding' },
+      },
+      { new: true }
+    );
+
+    if (!updatedRide) {
+      return res.status(409).json({
+        success: false,
+        message: 'Ride state conflict. Please refresh and try again.',
+      });
+    }
+
+    await updatedRide.populate([
+      { path: 'vehicle' },
+      { path: 'driver', select: 'name email phone profileImage city rating isVerified isPhoneVerified isIdentityVerified' },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Passenger boarding started successfully.',
+      ride: updatedRide,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Start the trip / activate ride in progress
+ * @route   PATCH /api/v1/rides/:id/start
+ * @access  Private (Driver Only)
+ */
+const startTrip = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ride ID format.',
+      });
+    }
+
+    const ride = await Ride.findById(id);
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ride not found.',
+      });
+    }
+
+    // Enforce driver ownership
+    if (ride.driver.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only start your own rides.',
+      });
+    }
+
+    if (ride.status === 'active') {
+      return res.status(409).json({
+        success: false,
+        message: 'Trip is already in progress.',
+      });
+    }
+
+    if (ride.status === 'scheduled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot start trip directly from scheduled. Please start passenger boarding first.',
+      });
+    }
+
+    if (ride.status === 'completed') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot start a completed ride.',
+      });
+    }
+
+    if (ride.status === 'cancelled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot start a cancelled ride.',
+      });
+    }
+
+    if (ride.status !== 'boarding') {
+      return res.status(409).json({
+        success: false,
+        message: `Ride must be in boarding status to start trip. Current status: ${ride.status}.`,
+      });
+    }
+
+    const updatedRide = await Ride.findOneAndUpdate(
+      {
+        _id: id,
+        driver: req.user._id,
+        status: 'boarding',
+      },
+      {
+        $set: { status: 'active' },
+      },
+      { new: true }
+    );
+
+    if (!updatedRide) {
+      return res.status(409).json({
+        success: false,
+        message: 'Ride state conflict. Please refresh and try again.',
+      });
+    }
+
+    await updatedRide.populate([
+      { path: 'vehicle' },
+      { path: 'driver', select: 'name email phone profileImage city rating isVerified isPhoneVerified isIdentityVerified' },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Trip started successfully. Journey is now in progress.',
+      ride: updatedRide,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Complete an active trip and update associated bookings
+ * @route   PATCH /api/v1/rides/:id/complete
+ * @access  Private (Driver Only)
+ */
+const completeTrip = async (req, res, next) => {
+  let session = null;
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ride ID format.',
+      });
+    }
+
+    const ride = await Ride.findById(id);
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ride not found.',
+      });
+    }
+
+    // Enforce driver ownership
+    if (ride.driver.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You can only complete your own rides.',
+      });
+    }
+
+    if (ride.status === 'completed') {
+      return res.status(409).json({
+        success: false,
+        message: 'Ride is already completed.',
+      });
+    }
+
+    if (ride.status === 'cancelled') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot complete a cancelled ride.',
+      });
+    }
+
+    if (ride.status === 'scheduled' || ride.status === 'boarding') {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot complete a ride that has not started. Current status: ${ride.status}.`,
+      });
+    }
+
+    if (ride.status !== 'active') {
+      return res.status(409).json({
+        success: false,
+        message: `Ride must be active to be completed. Current status: ${ride.status}.`,
+      });
+    }
+
+    // Try MongoDB session transaction where available
+    let useTransaction = false;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+      useTransaction = true;
+    } catch (_) {
+      if (session) {
+        try { await session.endSession(); } catch (e) {}
+        session = null;
+      }
+      useTransaction = false;
+    }
+
+    let updatedRide;
+    if (useTransaction) {
+      try {
+        updatedRide = await Ride.findOneAndUpdate(
+          {
+            _id: id,
+            driver: req.user._id,
+            status: 'active',
+          },
+          {
+            $set: { status: 'completed' },
+          },
+          { new: true, session }
+        );
+
+        if (!updatedRide) {
+          await session.abortTransaction();
+          await session.endSession();
+          session = null;
+          return res.status(409).json({
+            success: false,
+            message: 'Ride state conflict. Please refresh and try again.',
+          });
+        }
+
+        // 1. Transition all accepted bookings associated with this ride to completed
+        await Booking.updateMany(
+          { ride: id, status: 'accepted' },
+          { $set: { status: 'completed' } },
+          { session }
+        );
+
+        // 2. Reject any lingering pending bookings so none remain pending on a completed ride
+        await Booking.updateMany(
+          { ride: id, status: 'pending' },
+          { $set: { status: 'rejected' } },
+          { session }
+        );
+
+        await session.commitTransaction();
+        await session.endSession();
+        session = null;
+      } catch (txErr) {
+        if (session) {
+          try { await session.abortTransaction(); } catch (_) {}
+          try { await session.endSession(); } catch (_) {}
+          session = null;
+        }
+
+        const isTxUnsupported =
+          txErr.message &&
+          (txErr.message.includes('replica set') ||
+            txErr.message.includes('Transaction numbers are only allowed') ||
+            txErr.message.includes('This MongoDB deployment does not support'));
+
+        if (!isTxUnsupported) {
+          throw txErr;
+        }
+
+        useTransaction = false;
+      }
+    }
+
+    if (!useTransaction) {
+      // Standalone non-replica set fallback
+      updatedRide = await Ride.findOneAndUpdate(
+        {
+          _id: id,
+          driver: req.user._id,
+          status: 'active',
+        },
+        {
+          $set: { status: 'completed' },
+        },
+        { new: true }
+      );
+
+      if (!updatedRide) {
+        return res.status(409).json({
+          success: false,
+          message: 'Ride state conflict. Please refresh and try again.',
+        });
+      }
+
+      await Booking.updateMany(
+        { ride: id, status: 'accepted' },
+        { $set: { status: 'completed' } }
+      );
+
+      await Booking.updateMany(
+        { ride: id, status: 'pending' },
+        { $set: { status: 'rejected' } }
+      );
+    }
+
+    await updatedRide.populate([
+      { path: 'vehicle' },
+      { path: 'driver', select: 'name email phone profileImage city rating isVerified isPhoneVerified isIdentityVerified' },
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Trip completed successfully. All passenger bookings marked as completed.',
+      ride: updatedRide,
+    });
+  } catch (error) {
+    if (session) {
+      try { await session.abortTransaction(); } catch (_) {}
+      try { await session.endSession(); } catch (_) {}
+    }
+    next(error);
+  }
+};
+
+/**
  * @desc    Cancel a ride
  * @route   PATCH /api/v1/rides/:id/cancel
  * @access  Private (Driver Only)
  */
 const cancelRide = async (req, res, next) => {
+  let session = null;
   try {
     const { id } = req.params;
 
@@ -503,19 +896,140 @@ const cancelRide = async (req, res, next) => {
       });
     }
 
-    ride.status = 'cancelled';
-    await ride.save();
-    await ride.populate([
+    if (ride.status === 'active') {
+      return res.status(409).json({
+        success: false,
+        message: 'Cannot cancel an active trip in progress.',
+      });
+    }
+
+    // Only scheduled and boarding rides can be cancelled
+    if (ride.status !== 'scheduled' && ride.status !== 'boarding') {
+      return res.status(409).json({
+        success: false,
+        message: `Cannot cancel a ride in '${ride.status}' status.`,
+      });
+    }
+
+    // Try MongoDB session transaction where available
+    let useTransaction = false;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+      useTransaction = true;
+    } catch (_) {
+      if (session) {
+        try { await session.endSession(); } catch (e) {}
+        session = null;
+      }
+      useTransaction = false;
+    }
+
+    let updatedRide;
+    if (useTransaction) {
+      try {
+        updatedRide = await Ride.findOneAndUpdate(
+          {
+            _id: id,
+            driver: req.user._id,
+            status: { $in: ['scheduled', 'boarding'] },
+          },
+          {
+            $set: {
+              status: 'cancelled',
+              availableSeats: ride.totalSeats,
+              bookedSeats: 0,
+            },
+          },
+          { new: true, session }
+        );
+
+        if (!updatedRide) {
+          await session.abortTransaction();
+          await session.endSession();
+          session = null;
+          return res.status(409).json({
+            success: false,
+            message: 'Ride state conflict. Please refresh and try again.',
+          });
+        }
+
+        // Mark any pending and accepted bookings as cancelled
+        await Booking.updateMany(
+          { ride: id, status: { $in: ['pending', 'accepted'] } },
+          { $set: { status: 'cancelled' } },
+          { session }
+        );
+
+        await session.commitTransaction();
+        await session.endSession();
+        session = null;
+      } catch (txErr) {
+        if (session) {
+          try { await session.abortTransaction(); } catch (_) {}
+          try { await session.endSession(); } catch (_) {}
+          session = null;
+        }
+
+        const isTxUnsupported =
+          txErr.message &&
+          (txErr.message.includes('replica set') ||
+            txErr.message.includes('Transaction numbers are only allowed') ||
+            txErr.message.includes('This MongoDB deployment does not support'));
+
+        if (!isTxUnsupported) {
+          throw txErr;
+        }
+
+        useTransaction = false;
+      }
+    }
+
+    if (!useTransaction) {
+      updatedRide = await Ride.findOneAndUpdate(
+        {
+          _id: id,
+          driver: req.user._id,
+          status: { $in: ['scheduled', 'boarding'] },
+        },
+        {
+          $set: {
+            status: 'cancelled',
+            availableSeats: ride.totalSeats,
+            bookedSeats: 0,
+          },
+        },
+        { new: true }
+      );
+
+      if (!updatedRide) {
+        return res.status(409).json({
+          success: false,
+          message: 'Ride state conflict. Please refresh and try again.',
+        });
+      }
+
+      await Booking.updateMany(
+        { ride: id, status: { $in: ['pending', 'accepted'] } },
+        { $set: { status: 'cancelled' } }
+      );
+    }
+
+    await updatedRide.populate([
       { path: 'vehicle' },
       { path: 'driver', select: 'name email phone profileImage city rating isVerified isPhoneVerified isIdentityVerified' },
     ]);
 
     return res.status(200).json({
       success: true,
-      message: 'Ride cancelled successfully.',
-      ride,
+      message: 'Ride cancelled successfully. Associated bookings have been cancelled and capacity released.',
+      ride: updatedRide,
     });
   } catch (error) {
+    if (session) {
+      try { await session.abortTransaction(); } catch (_) {}
+      try { await session.endSession(); } catch (_) {}
+    }
     next(error);
   }
 };
@@ -859,6 +1373,9 @@ module.exports = {
   getRideById,
   updateRide,
   cancelRide,
+  startBoarding,
+  startTrip,
+  completeTrip,
   calculateRoute,
   autocompletePlaces,
   searchRides,

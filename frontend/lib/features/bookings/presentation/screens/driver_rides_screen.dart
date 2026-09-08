@@ -9,6 +9,7 @@ import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
 import 'package:sahyan/features/rides/presentation/rides_provider.dart';
+import 'package:sahyan/shared/models/ride_model.dart';
 
 class DriverRidesScreen extends ConsumerStatefulWidget {
   const DriverRidesScreen({super.key});
@@ -19,6 +20,7 @@ class DriverRidesScreen extends ConsumerStatefulWidget {
 
 class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
   String _selectedFilter = 'all';
+  String? _actionLoadingRideId;
 
   @override
   void initState() {
@@ -69,6 +71,36 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
         return Colors.grey.shade700;
       case BookingStatus.completed:
         return AppColors.primaryForest;
+    }
+  }
+
+  Color _getRideStatusBg(RideStatus status) {
+    switch (status) {
+      case RideStatus.scheduled:
+        return AppColors.softForest;
+      case RideStatus.boarding:
+        return AppColors.softBrass;
+      case RideStatus.active:
+        return Colors.blue.shade50;
+      case RideStatus.completed:
+        return Colors.grey.shade200;
+      case RideStatus.cancelled:
+        return Colors.red.shade50;
+    }
+  }
+
+  Color _getRideStatusText(RideStatus status) {
+    switch (status) {
+      case RideStatus.scheduled:
+        return AppColors.primaryForest;
+      case RideStatus.boarding:
+        return AppColors.mutedBrass;
+      case RideStatus.active:
+        return Colors.blue.shade800;
+      case RideStatus.completed:
+        return Colors.grey.shade800;
+      case RideStatus.cancelled:
+        return Colors.red.shade800;
     }
   }
 
@@ -321,124 +353,11 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
                                       )
                                       .length;
 
-                                  return Card(
-                                    elevation: 0,
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      side: const BorderSide(
-                                        color: AppColors.border,
-                                      ),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(14.0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Wrap(
-                                            alignment:
-                                                WrapAlignment.spaceBetween,
-                                            crossAxisAlignment:
-                                                WrapCrossAlignment.center,
-                                            spacing: 8,
-                                            runSpacing: 4,
-                                            children: [
-                                              Text(
-                                                '${ride.origin.city} → ${ride.destination.city}',
-                                                style: AppTypography.cardTitle
-                                                    .copyWith(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              if (ridePendingCount > 0)
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: AppColors.softBrass,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    '$ridePendingCount pending',
-                                                    style: AppTypography.caption
-                                                        .copyWith(
-                                                          color: AppColors
-                                                              .mutedBrass,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                        ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Wrap(
-                                            spacing: 12,
-                                            runSpacing: 6,
-                                            children: [
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons
-                                                        .calendar_today_rounded,
-                                                    size: 13,
-                                                    color:
-                                                        AppColors.textSecondary,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Flexible(
-                                                    child: Text(
-                                                      dateFormat.format(
-                                                        ride.dateTime,
-                                                      ),
-                                                      style:
-                                                          AppTypography.caption,
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons
-                                                        .airline_seat_recline_normal_rounded,
-                                                    size: 14,
-                                                    color:
-                                                        AppColors.textSecondary,
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Flexible(
-                                                    child: Text(
-                                                      '${ride.availableSeats} of ${ride.totalSeats} seats available',
-                                                      style:
-                                                          AppTypography.caption,
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
+                                  return _buildOfferedRideCard(
+                                    context,
+                                    ride,
+                                    ridePendingCount,
+                                    dateFormat,
                                   );
                                 }),
                                 const SizedBox(height: 16),
@@ -1005,5 +924,581 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
         }
       },
     );
+  }
+
+  Widget _buildOfferedRideCard(
+    BuildContext context,
+    RideModel ride,
+    int ridePendingCount,
+    DateFormat dateFormat,
+  ) {
+    final isActionLoading = _actionLoadingRideId == ride.id;
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Origin -> Dest + Status Badges
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth > 80
+                            ? constraints.maxWidth - 20
+                            : double.infinity,
+                      ),
+                      child: Text(
+                        '${ride.origin.city} → ${ride.destination.city}',
+                        style: AppTypography.cardTitle.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getRideStatusBg(ride.status),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            ride.statusDisplayName,
+                            style: AppTypography.caption.copyWith(
+                              color: _getRideStatusText(ride.status),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (ridePendingCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.softBrass,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '$ridePendingCount pending',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.mutedBrass,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+
+            // Metadata: date, available seats
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.calendar_today_rounded,
+                      size: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        dateFormat.format(ride.dateTime),
+                        style: AppTypography.caption,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.airline_seat_recline_normal_rounded,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        '${ride.availableSeats} of ${ride.totalSeats} seats available',
+                        style: AppTypography.caption,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: AppColors.border),
+            const SizedBox(height: 10),
+
+            // Action Buttons / Status Indicator
+            if (isActionLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primaryForest,
+                    ),
+                  ),
+                ),
+              )
+            else
+              _buildRideActions(context, ride),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRideActions(BuildContext context, RideModel ride) {
+    if (ride.isScheduled) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 340;
+          final cancelBtn = OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              side: BorderSide(color: Colors.red.shade300),
+            ),
+            onPressed: () => _confirmCancelRide(ride),
+            child: Text(
+              'Cancel Ride',
+              style: AppTypography.caption.copyWith(
+                color: Colors.red.shade700,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          );
+
+          final boardingBtn = ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryForest,
+              foregroundColor: AppColors.white,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            icon: const Icon(Icons.directions_walk_rounded, size: 16),
+            label: Text(
+              'Start Boarding',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onPressed: () => _confirmStartBoarding(ride),
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [boardingBtn, const SizedBox(height: 6), cancelBtn],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: cancelBtn),
+              const SizedBox(width: 8),
+              Expanded(flex: 2, child: boardingBtn),
+            ],
+          );
+        },
+      );
+    }
+
+    if (ride.isBoarding) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 340;
+          final cancelBtn = OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              side: BorderSide(color: Colors.red.shade300),
+            ),
+            onPressed: () => _confirmCancelRide(ride),
+            child: Text(
+              'Cancel Ride',
+              style: AppTypography.caption.copyWith(
+                color: Colors.red.shade700,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          );
+
+          final startTripBtn = ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryForest,
+              foregroundColor: AppColors.white,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            icon: const Icon(Icons.play_arrow_rounded, size: 16),
+            label: Text(
+              'Start Trip',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onPressed: () => _confirmStartTrip(ride),
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [startTripBtn, const SizedBox(height: 6), cancelBtn],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: cancelBtn),
+              const SizedBox(width: 8),
+              Expanded(flex: 2, child: startTripBtn),
+            ],
+          );
+        },
+      );
+    }
+
+    if (ride.isActive) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryForest,
+            foregroundColor: AppColors.white,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+          label: Text(
+            'Complete Trip',
+            style: AppTypography.caption.copyWith(
+              color: AppColors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          onPressed: () => _confirmCompleteTrip(ride),
+        ),
+      );
+    }
+
+    if (ride.isCompleted) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.check_circle_rounded,
+            size: 16,
+            color: AppColors.primaryForest,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Trip completed successfully',
+            style: AppTypography.caption.copyWith(
+              color: AppColors.primaryForest,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Ride is cancelled
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.cancel_outlined, size: 16, color: Colors.red.shade700),
+        const SizedBox(width: 6),
+        Text(
+          'Ride has been cancelled',
+          style: AppTypography.caption.copyWith(
+            color: Colors.red.shade700,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmStartBoarding(RideModel ride) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Start Boarding?', style: AppTypography.cardTitle),
+        content: Text(
+          'Passengers will be notified to proceed to their pickup locations for departure.',
+          style: AppTypography.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryForest,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Start Boarding',
+              style: TextStyle(color: AppColors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _actionLoadingRideId = ride.id);
+      try {
+        await ref.read(myRidesProvider.notifier).startBoarding(ride.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Boarding commenced successfully.'),
+            backgroundColor: AppColors.primaryForest,
+          ),
+        );
+        ref.read(driverRequestsNotifierProvider.notifier).fetchDriverRequests();
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _actionLoadingRideId = null);
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmStartTrip(RideModel ride) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Start Trip?', style: AppTypography.cardTitle),
+        content: Text(
+          'This will transition the ride to active in progress.',
+          style: AppTypography.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryForest,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Start Trip',
+              style: TextStyle(color: AppColors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _actionLoadingRideId = ride.id);
+      try {
+        await ref.read(myRidesProvider.notifier).startTrip(ride.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Trip started successfully.'),
+            backgroundColor: AppColors.primaryForest,
+          ),
+        );
+        ref.read(driverRequestsNotifierProvider.notifier).fetchDriverRequests();
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _actionLoadingRideId = null);
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmCompleteTrip(RideModel ride) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Complete Trip?', style: AppTypography.cardTitle),
+        content: Text(
+          'This will complete the ride and transition all accepted passenger bookings to completed.',
+          style: AppTypography.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryForest,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Complete Trip',
+              style: TextStyle(color: AppColors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _actionLoadingRideId = ride.id);
+      try {
+        await ref.read(myRidesProvider.notifier).completeTrip(ride.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Trip completed! All accepted bookings finalized.'),
+            backgroundColor: AppColors.primaryForest,
+          ),
+        );
+        ref.read(driverRequestsNotifierProvider.notifier).fetchDriverRequests();
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _actionLoadingRideId = null);
+        }
+      }
+    }
+  }
+
+  Future<void> _confirmCancelRide(RideModel ride) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Cancel Ride?', style: AppTypography.cardTitle),
+        content: Text(
+          'Are you sure you want to cancel this ride? All pending and accepted booking requests will be cancelled, and reserved seats returned.',
+          style: AppTypography.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep Ride'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Cancel Ride',
+              style: TextStyle(color: AppColors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _actionLoadingRideId = ride.id);
+      try {
+        await ref.read(myRidesProvider.notifier).cancelRide(ride.id);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ride cancelled. Bookings updated.'),
+            backgroundColor: AppColors.primaryForest,
+          ),
+        );
+        ref.read(driverRequestsNotifierProvider.notifier).fetchDriverRequests();
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: Colors.red.shade800,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _actionLoadingRideId = null);
+        }
+      }
+    }
   }
 }

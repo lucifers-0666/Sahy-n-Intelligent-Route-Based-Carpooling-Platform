@@ -64,6 +64,16 @@ class MockSearchRideRepository implements RideRepository {
   Future<RideModel> cancelRide(String id) async => throw UnimplementedError();
 
   @override
+  Future<RideModel> startBoarding(String id) async =>
+      throw UnimplementedError();
+
+  @override
+  Future<RideModel> startTrip(String id) async => throw UnimplementedError();
+
+  @override
+  Future<RideModel> completeTrip(String id) async => throw UnimplementedError();
+
+  @override
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,

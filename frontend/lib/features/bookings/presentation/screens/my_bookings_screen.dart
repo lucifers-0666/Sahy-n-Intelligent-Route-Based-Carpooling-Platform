@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
+import '../../../../shared/models/ride_model.dart';
 import '../../domain/booking_model.dart';
 import '../bookings_provider.dart';
 
@@ -52,6 +53,36 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
         return Colors.grey.shade700;
       case BookingStatus.completed:
         return AppColors.primaryForest;
+    }
+  }
+
+  Color _getRideStatusBg(RideStatus status) {
+    switch (status) {
+      case RideStatus.scheduled:
+        return AppColors.softForest;
+      case RideStatus.boarding:
+        return AppColors.softBrass;
+      case RideStatus.active:
+        return Colors.blue.shade50;
+      case RideStatus.completed:
+        return Colors.grey.shade200;
+      case RideStatus.cancelled:
+        return Colors.red.shade50;
+    }
+  }
+
+  Color _getRideStatusText(RideStatus status) {
+    switch (status) {
+      case RideStatus.scheduled:
+        return AppColors.primaryForest;
+      case RideStatus.boarding:
+        return AppColors.mutedBrass;
+      case RideStatus.active:
+        return Colors.blue.shade800;
+      case RideStatus.completed:
+        return Colors.grey.shade800;
+      case RideStatus.cancelled:
+        return Colors.red.shade800;
     }
   }
 
@@ -245,38 +276,69 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Top row: Status badge + Total contribution
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                                  // Top row: Status badges + Total contribution
+                                  Wrap(
+                                    alignment: WrapAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    spacing: 8,
+                                    runSpacing: 6,
                                     children: [
-                                      Flexible(
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: _getStatusBg(booking.status),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: _getStatusBg(
+                                                booking.status,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              booking.statusDisplayName,
+                                              style: AppTypography.caption
+                                                  .copyWith(
+                                                    color: _getStatusText(
+                                                      booking.status,
+                                                    ),
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                             ),
                                           ),
-                                          child: Text(
-                                            booking.statusDisplayName,
-                                            style: AppTypography.caption
-                                                .copyWith(
-                                                  color: _getStatusText(
-                                                    booking.status,
+                                          if (ride != null)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
                                                   ),
-                                                  fontWeight: FontWeight.bold,
+                                              decoration: BoxDecoration(
+                                                color: _getRideStatusBg(
+                                                  ride.status,
                                                 ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                'Trip: ${ride.statusDisplayName}',
+                                                style: AppTypography.caption
+                                                    .copyWith(
+                                                      color: _getRideStatusText(
+                                                        ride.status,
+                                                      ),
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                              ),
+                                            ),
+                                        ],
                                       ),
-                                      const SizedBox(width: 8),
                                       Text(
                                         '₹${booking.totalContribution.toStringAsFixed(0)}',
                                         style: AppTypography.sectionHeader

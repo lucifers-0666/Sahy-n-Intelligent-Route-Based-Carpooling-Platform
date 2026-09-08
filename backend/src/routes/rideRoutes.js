@@ -7,6 +7,9 @@ const {
   getRideById,
   updateRide,
   cancelRide,
+  startBoarding,
+  startTrip,
+  completeTrip,
   calculateRoute,
   autocompletePlaces,
   searchRides,
@@ -28,10 +31,15 @@ router.post('/', authenticate, createRide);
 // Single ride by ID
 router.get('/:id', getRideById);
 
-
-// Update / Cancel ride
-router.put('/:id', authenticate, updateRide);
+// Trip lifecycle management routes (Driver Only)
+router.patch('/:id/start-boarding', authenticate, startBoarding);
+router.patch('/:id/start', authenticate, startTrip);
+router.patch('/:id/complete', authenticate, completeTrip);
 router.patch('/:id/cancel', authenticate, cancelRide);
+
+// Update / Delete ride
+router.put('/:id', authenticate, updateRide);
 router.delete('/:id', authenticate, cancelRide);
 
 module.exports = router;
+

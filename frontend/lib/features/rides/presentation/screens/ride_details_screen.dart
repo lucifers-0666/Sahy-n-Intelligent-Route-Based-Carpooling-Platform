@@ -236,15 +236,36 @@ class RideDetailsScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Journey Route',
-                          style: AppTypography.sectionHeader.copyWith(
-                            fontWeight: FontWeight.bold,
+                        Flexible(
+                          child: Text(
+                            'Journey Route',
+                            style: AppTypography.sectionHeader.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        Text(departureFormatted, style: AppTypography.caption),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getStatusBg(ride.status),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            ride.statusDisplayName,
+                            style: AppTypography.caption.copyWith(
+                              color: _getStatusText(ride.status),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
+                    const SizedBox(height: 4),
+                    Text(departureFormatted, style: AppTypography.caption),
                     const SizedBox(height: 16),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -584,31 +605,86 @@ class RideDetailsScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(width: 20),
-              Expanded(
-                child: PrimaryButton(
-                  text: 'Request Seat',
-                  onPressed: () {
-                    final isGuest = ref.read(userModeProvider).isGuest;
-                    if (isGuest) {
-                      AuthGateDialog.show(
-                        context,
-                        title: 'Sign In to Request Seat',
-                        message:
-                            'To reserve seats and communicate with verified drivers, please sign in or register.',
-                        intendedRoute: '/home',
-                      );
-                      return;
-                    }
-
-                    // Open booking request confirmation bottom sheet
-                    RequestSeatBottomSheet.show(context, ride);
-                  },
-                ),
-              ),
+              Expanded(child: _buildBookingButton(context, ref, ride)),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildBookingButton(
+    BuildContext context,
+    WidgetRef ref,
+    RideModel ride,
+  ) {
+    if (ride.isBoarding) {
+      return const PrimaryButton(
+        text: 'Boarding in Progress',
+        isDisabled: true,
+      );
+    }
+    if (ride.isActive) {
+      return const PrimaryButton(text: 'Trip in Progress', isDisabled: true);
+    }
+    if (ride.isCompleted) {
+      return const PrimaryButton(text: 'Trip Completed', isDisabled: true);
+    }
+    if (ride.isCancelled) {
+      return const PrimaryButton(text: 'Ride Cancelled', isDisabled: true);
+    }
+    if (ride.availableSeats <= 0) {
+      return const PrimaryButton(text: 'Ride Full', isDisabled: true);
+    }
+
+    return PrimaryButton(
+      text: 'Request Seat',
+      onPressed: () {
+        final isGuest = ref.read(userModeProvider).isGuest;
+        if (isGuest) {
+          AuthGateDialog.show(
+            context,
+            title: 'Sign In to Request Seat',
+            message:
+                'To reserve seats and communicate with verified drivers, please sign in or register.',
+            intendedRoute: '/home',
+          );
+          return;
+        }
+
+        // Open booking request confirmation bottom sheet
+        RequestSeatBottomSheet.show(context, ride);
+      },
+    );
+  }
+
+  Color _getStatusBg(RideStatus status) {
+    switch (status) {
+      case RideStatus.scheduled:
+        return AppColors.softForest;
+      case RideStatus.boarding:
+        return AppColors.softBrass;
+      case RideStatus.active:
+        return Colors.blue.shade50;
+      case RideStatus.completed:
+        return Colors.grey.shade200;
+      case RideStatus.cancelled:
+        return Colors.red.shade50;
+    }
+  }
+
+  Color _getStatusText(RideStatus status) {
+    switch (status) {
+      case RideStatus.scheduled:
+        return AppColors.primaryForest;
+      case RideStatus.boarding:
+        return AppColors.mutedBrass;
+      case RideStatus.active:
+        return Colors.blue.shade800;
+      case RideStatus.completed:
+        return Colors.grey.shade800;
+      case RideStatus.cancelled:
+        return Colors.red.shade800;
+    }
   }
 }

@@ -121,6 +121,21 @@ class MockRideRepository implements RideRepository {
   }
 
   @override
+  Future<RideModel> startBoarding(String id) async {
+    throw Exception('Not implemented');
+  }
+
+  @override
+  Future<RideModel> startTrip(String id) async {
+    throw Exception('Not implemented');
+  }
+
+  @override
+  Future<RideModel> completeTrip(String id) async {
+    throw Exception('Not implemented');
+  }
+
+  @override
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,

@@ -147,7 +147,7 @@ class MyRidesNotifier extends AsyncNotifier<List<RideModel>> {
     });
   }
 
-  Future<void> cancelRide(String id) async {
+  Future<RideModel> cancelRide(String id) async {
     final repo = ref.read(rideApiRepositoryProvider);
     final cancelledRide = await repo.cancelRide(id);
 
@@ -155,6 +155,34 @@ class MyRidesNotifier extends AsyncNotifier<List<RideModel>> {
     state = AsyncData(
       current.map((r) => r.id == id ? cancelledRide : r).toList(),
     );
+    return cancelledRide;
+  }
+
+  Future<RideModel> startBoarding(String id) async {
+    final repo = ref.read(rideApiRepositoryProvider);
+    final updated = await repo.startBoarding(id);
+
+    final current = state.value ?? [];
+    state = AsyncData(current.map((r) => r.id == id ? updated : r).toList());
+    return updated;
+  }
+
+  Future<RideModel> startTrip(String id) async {
+    final repo = ref.read(rideApiRepositoryProvider);
+    final updated = await repo.startTrip(id);
+
+    final current = state.value ?? [];
+    state = AsyncData(current.map((r) => r.id == id ? updated : r).toList());
+    return updated;
+  }
+
+  Future<RideModel> completeTrip(String id) async {
+    final repo = ref.read(rideApiRepositoryProvider);
+    final updated = await repo.completeTrip(id);
+
+    final current = state.value ?? [];
+    state = AsyncData(current.map((r) => r.id == id ? updated : r).toList());
+    return updated;
   }
 }
 

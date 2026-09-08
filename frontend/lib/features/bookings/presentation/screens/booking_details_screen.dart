@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../shared/models/location_model.dart';
+import '../../../../shared/models/ride_model.dart';
 import '../../domain/booking_model.dart';
 import '../bookings_provider.dart';
 
@@ -162,6 +163,69 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
     }
   }
 
+  Color _getRideStatusBgColor(RideStatus status) {
+    switch (status) {
+      case RideStatus.scheduled:
+        return AppColors.softForest;
+      case RideStatus.boarding:
+        return AppColors.softBrass;
+      case RideStatus.active:
+        return Colors.blue.shade50;
+      case RideStatus.completed:
+        return Colors.grey.shade200;
+      case RideStatus.cancelled:
+        return Colors.red.shade50;
+    }
+  }
+
+  Color _getRideStatusTextColor(RideStatus status) {
+    switch (status) {
+      case RideStatus.scheduled:
+        return AppColors.primaryForest;
+      case RideStatus.boarding:
+        return AppColors.mutedBrass;
+      case RideStatus.active:
+        return Colors.blue.shade800;
+      case RideStatus.completed:
+        return Colors.grey.shade800;
+      case RideStatus.cancelled:
+        return Colors.red.shade800;
+    }
+  }
+
+  String _getStatusExplanation(BookingModel booking, RideModel? ride) {
+    if (booking.isPending) {
+      return 'The driver will review and decide on your seat request shortly.';
+    }
+    if (booking.isCompleted) {
+      return 'Booking and trip completed successfully.';
+    }
+    if (booking.isAccepted) {
+      if (ride != null) {
+        if (ride.isBoarding) {
+          return 'Boarding in progress! Please be at your pickup point for departure.';
+        }
+        if (ride.isActive) {
+          return 'Trip is currently in progress.';
+        }
+        if (ride.isCompleted) {
+          return 'Trip completed. Thank you for carpooling with Sahyān!';
+        }
+        if (ride.isCancelled) {
+          return 'This ride was cancelled by the driver.';
+        }
+      }
+      return 'The driver has accepted your booking request. Your seats are confirmed.';
+    }
+    if (booking.isRejected) {
+      return 'The driver was unable to accept your request. Reserved seats have been released.';
+    }
+    if (booking.isCancelled) {
+      return 'This booking request was cancelled. Reserved seats were returned.';
+    }
+    return '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('d MMM yyyy, h:mm a');
@@ -195,12 +259,13 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Booking Status Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Flexible(
                           child: Text(
-                            'Request Status',
+                            'Booking Status',
                             style: AppTypography.caption.copyWith(
                               color: AppColors.textSecondary,
                             ),
@@ -230,27 +295,54 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    if (_booking.isPending)
-                      Text(
-                        'The driver will review and decide on your seat request shortly.',
-                        style: AppTypography.secondary,
-                      )
-                    else if (_booking.isAccepted)
-                      Text(
-                        'The driver has accepted your booking request. Your seats are confirmed.',
-                        style: AppTypography.secondary,
-                      )
-                    else if (_booking.isRejected)
-                      Text(
-                        'The driver was unable to accept your request. Reserved seats have been released.',
-                        style: AppTypography.secondary,
-                      )
-                    else if (_booking.isCancelled)
-                      Text(
-                        'This booking request was cancelled. Reserved seats were returned.',
-                        style: AppTypography.secondary,
+
+                    // Trip Status Row (if ride is present)
+                    if (ride != null) ...[
+                      const SizedBox(height: 10),
+                      const Divider(height: 1, color: AppColors.border),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              'Trip Status',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _getRideStatusBgColor(ride.status),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                ride.statusDisplayName,
+                                style: AppTypography.caption.copyWith(
+                                  color: _getRideStatusTextColor(ride.status),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                    ],
+
+                    const SizedBox(height: 12),
+                    Text(
+                      _getStatusExplanation(_booking, ride),
+                      style: AppTypography.secondary,
+                    ),
                   ],
                 ),
               ),
