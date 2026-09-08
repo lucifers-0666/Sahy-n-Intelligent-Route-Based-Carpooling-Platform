@@ -28,8 +28,15 @@ abstract class AppColors {
   static const Color white = Color(0xFFFFFFFF);
   static const Color cardBackground = Color(0xFFFFFFFF);
 
+  /// Tonal Surface Containers (from Stitch specification)
+  static const Color surfaceContainerLow = Color(0xFFF3F4F1);
+  static const Color surfaceContainer = Color(0xFFEDEEEB);
+  static const Color surfaceContainerHigh = Color(0xFFE7E8E6);
+  static const Color surfaceDim = Color(0xFFDCDAD4);
+
   /// Dividers and Input Borders
   static const Color border = Color(0xFFE2E7E3);
+  static const Color borderLight = Color(0xFFEFF2F0);
 
   /// Text Primary - Dominant dark text
   static const Color textPrimary = Color(0xFF18211D);
@@ -37,11 +44,20 @@ abstract class AppColors {
   /// Text Secondary - Muted subtitles, timestamps, captions
   static const Color textSecondary = Color(0xFF68736C);
 
+  /// Text Tertiary - Inactive placeholders, subtle hints
+  static const Color textTertiary = Color(0xFF9AA39E);
+
   /// Error / Alert / Cancellation - Muted Rust
   static const Color mutedRust = Color(0xFFA65B4B);
 
+  /// Soft Rust container tint for cancellation and error banners
+  static const Color softRust = Color(0xFFFCEAE8);
+
   /// Success State Tint
   static const Color success = Color(0xFF285A4A);
+
+  /// Surface Tint Accent
+  static const Color surfaceTint = Color(0xFF366757);
 
   /// Transparent
   static const Color transparent = Colors.transparent;

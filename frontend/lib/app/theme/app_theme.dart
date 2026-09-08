@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
+import 'app_radii.dart';
+import 'app_spacing.dart';
 import 'app_typography.dart';
 
 /// Sahyān Application Theme configuration.
+/// Applies the standardized Plus Jakarta Sans typography and organic Forest palette.
 abstract class AppTheme {
   static ThemeData get lightTheme {
     final baseTextTheme = GoogleFonts.plusJakartaSansTextTheme();
@@ -22,9 +25,10 @@ abstract class AppTheme {
       ),
       textTheme: baseTextTheme.copyWith(
         displayLarge: AppTypography.displayHero,
-        headlineLarge: AppTypography.screenTitle,
+        headlineLarge: AppTypography.pageTitle,
         headlineMedium: AppTypography.sectionHeader,
         titleMedium: AppTypography.fieldLabel,
+        titleSmall: AppTypography.cardTitle,
         bodyLarge: AppTypography.bodyLarge,
         bodyMedium: AppTypography.bodyMedium,
         bodySmall: AppTypography.secondary,
@@ -35,6 +39,7 @@ abstract class AppTheme {
         backgroundColor: AppColors.warmBackground,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: AppTypography.sectionHeader,
       ),
@@ -45,7 +50,7 @@ abstract class AppTheme {
           elevation: 0,
           minimumSize: const Size(double.infinity, 50),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadii.md),
           ),
           textStyle: AppTypography.button,
         ),
@@ -56,7 +61,7 @@ abstract class AppTheme {
           minimumSize: const Size(double.infinity, 50),
           side: const BorderSide(color: AppColors.primaryForest, width: 1.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadii.md),
           ),
           textStyle: AppTypography.button.copyWith(
             color: AppColors.primaryForest,
@@ -67,7 +72,7 @@ abstract class AppTheme {
         color: AppColors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadii.lg),
           side: const BorderSide(color: AppColors.border, width: 1),
         ),
         margin: EdgeInsets.zero,
@@ -76,28 +81,28 @@ abstract class AppTheme {
         filled: true,
         fillColor: AppColors.white,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: AppSpacing.base,
+          vertical: AppSpacing.md,
         ),
         hintStyle: AppTypography.secondary,
         labelStyle: AppTypography.secondary,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: const BorderSide(
             color: AppColors.primaryForest,
             width: 1.5,
           ),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: const BorderSide(color: AppColors.mutedRust),
         ),
       ),
@@ -107,6 +112,18 @@ abstract class AppTheme {
         unselectedItemColor: AppColors.textSecondary,
         elevation: 8,
         type: BottomNavigationBarType.fixed,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.border,
+        thickness: 1,
+        space: 1,
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: AppColors.white,
+        elevation: 6,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+        ),
       ),
     );
   }
