@@ -4,13 +4,18 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
+import 'package:sahyan/app/theme/app_radii.dart';
+import 'package:sahyan/app/theme/app_spacing.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
-import 'package:sahyan/core/widgets/verification_badge.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';
+import 'package:sahyan/core/widgets/sahyan_avatar.dart';
+import 'package:sahyan/core/widgets/sahyan_card.dart';
+import 'package:sahyan/core/widgets/sahyan_status_badge.dart';
+import 'package:sahyan/core/widgets/verification_badge.dart';
+import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_sheet.dart';
 import 'package:sahyan/features/rides/presentation/widgets/route_map_preview.dart';
 import 'package:sahyan/features/rides/presentation/widgets/route_match_breakdown_widget.dart';
-import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_sheet.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
 import '../rides_provider.dart';
@@ -32,10 +37,6 @@ class RideDetailsScreen extends ConsumerWidget {
         body: const Center(child: Text('No ride selected')),
       );
     }
-
-    final driverInitial = ride.driverName.isNotEmpty
-        ? ride.driverName.substring(0, 1).toUpperCase()
-        : 'D';
 
     final departureFormatted = DateFormat(
       'EEE, dd MMM yyyy',
@@ -166,414 +167,347 @@ class RideDetailsScreen extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // Driver Profile Header Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppColors.border),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 26,
-                      backgroundColor: AppColors.softForest,
-                      child: Text(
-                        driverInitial,
-                        style: AppTypography.screenTitle.copyWith(
-                          color: AppColors.primaryForest,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  ride.driverName,
-                                  style: AppTypography.sectionHeader.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+            SahyanCard(
+              padding: AppSpacing.paddingCard,
+              child: Row(
+                children: [
+                  SahyanAvatar(name: ride.driverName, radius: 26),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                ride.driverName,
+                                style: AppTypography.sectionHeader.copyWith(
+                                  fontWeight: FontWeight.bold,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(width: 6),
-                              VerificationBadge(
-                                isVerified: ride.isDriverVerified,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          RatingDisplay(rating: ride.driverRating),
-                        ],
-                      ),
+                            ),
+                            const SizedBox(width: 6),
+                            VerificationBadge(
+                              isVerified: ride.isDriverVerified,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        RatingDisplay(rating: ride.driverRating),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
             const SizedBox(height: 16),
 
             // Journey Route Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppColors.border),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            SahyanCard(
+              padding: AppSpacing.paddingCardLarge,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          'Journey Route',
+                          style: AppTypography.sectionHeader.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SahyanStatusBadge.fromRideStatus(ride.status),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(departureFormatted, style: AppTypography.caption),
+                  const SizedBox(height: 16),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Column(
+                        children: [
+                          const Icon(
+                            Icons.radio_button_checked,
+                            size: 18,
+                            color: AppColors.primaryForest,
+                          ),
+                          Container(
+                            width: 2,
+                            height: 48,
+                            color: AppColors.border,
+                          ),
+                          const Icon(
+                            Icons.location_on,
+                            size: 18,
+                            color: AppColors.mutedSage,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              ride.departureTime,
+                              style: AppTypography.caption.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryForest,
+                              ),
+                            ),
+                            Text(
+                              ride.origin.address.isNotEmpty
+                                  ? ride.origin.address
+                                  : ride.origin.name,
+                              style: AppTypography.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (ride.origin.city.isNotEmpty)
+                              Text(
+                                ride.origin.city,
+                                style: AppTypography.secondary,
+                              ),
+                            const SizedBox(height: 16),
+                            Text(
+                              ride.estimatedArrival,
+                              style: AppTypography.caption.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Text(
+                              ride.destination.address.isNotEmpty
+                                  ? ride.destination.address
+                                  : ride.destination.name,
+                              style: AppTypography.bodyLarge.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (ride.destination.city.isNotEmpty)
+                              Text(
+                                ride.destination.city,
+                                style: AppTypography.secondary,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (ride.route != null) ...[
+                    const SizedBox(height: 14),
+                    const Divider(color: AppColors.border, height: 1),
+                    const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Flexible(
-                          child: Text(
-                            'Journey Route',
-                            style: AppTypography.sectionHeader.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                        Text(
+                          'Estimated Distance',
+                          style: AppTypography.secondary,
                         ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusBg(ride.status),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            ride.statusDisplayName,
-                            style: AppTypography.caption.copyWith(
-                              color: _getStatusText(ride.status),
-                              fontWeight: FontWeight.bold,
-                            ),
+                        Text(
+                          ride.route!.formattedDistance,
+                          style: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(departureFormatted, style: AppTypography.caption),
-                    const SizedBox(height: 16),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          children: [
-                            const Icon(
-                              Icons.radio_button_checked,
-                              size: 18,
-                              color: AppColors.primaryForest,
-                            ),
-                            Container(
-                              width: 2,
-                              height: 48,
-                              color: AppColors.border,
-                            ),
-                            const Icon(
-                              Icons.location_on,
-                              size: 18,
-                              color: AppColors.mutedSage,
-                            ),
-                          ],
+                        Text(
+                          'Estimated Travel Time',
+                          style: AppTypography.secondary,
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                ride.departureTime,
-                                style: AppTypography.caption.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryForest,
-                                ),
-                              ),
-                              Text(
-                                ride.origin.address.isNotEmpty
-                                    ? ride.origin.address
-                                    : ride.origin.name,
-                                style: AppTypography.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (ride.origin.city.isNotEmpty)
-                                Text(
-                                  ride.origin.city,
-                                  style: AppTypography.secondary,
-                                ),
-                              const SizedBox(height: 16),
-                              Text(
-                                ride.estimatedArrival,
-                                style: AppTypography.caption.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              Text(
-                                ride.destination.address.isNotEmpty
-                                    ? ride.destination.address
-                                    : ride.destination.name,
-                                style: AppTypography.bodyLarge.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              if (ride.destination.city.isNotEmpty)
-                                Text(
-                                  ride.destination.city,
-                                  style: AppTypography.secondary,
-                                ),
-                            ],
+                        Text(
+                          ride.route!.formattedDuration,
+                          style: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    if (ride.route != null) ...[
-                      const SizedBox(height: 14),
-                      const Divider(color: AppColors.border, height: 1),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Estimated Distance',
-                            style: AppTypography.secondary,
-                          ),
-                          Text(
-                            ride.route!.formattedDistance,
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Estimated Travel Time',
-                            style: AppTypography.secondary,
-                          ),
-                          Text(
-                            ride.route!.formattedDuration,
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
-                ),
+                ],
               ),
             ),
 
             const SizedBox(height: 16),
 
             // Vehicle Information Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppColors.border),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.warmBackground,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.directions_car_rounded,
-                        color: AppColors.primaryForest,
-                        size: 26,
-                      ),
+            SahyanCard(
+              padding: AppSpacing.paddingCard,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.warmBackground,
+                      borderRadius: BorderRadius.circular(AppRadii.md),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            ride.vehicle.fullName,
-                            style: AppTypography.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Plate: ${ride.vehicle.registrationNumber} • ${ride.vehicle.color}',
-                            style: AppTypography.secondary,
-                          ),
-                        ],
-                      ),
+                    child: const Icon(
+                      Icons.directions_car_rounded,
+                      color: AppColors.primaryForest,
+                      size: 26,
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.softForest,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '${ride.availableSeats} of ${ride.totalSeats} seats open',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.primaryForest,
-                          fontWeight: FontWeight.w600,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ride.vehicle.fullName,
+                          style: AppTypography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Plate: ${ride.vehicle.registrationNumber} • ${ride.vehicle.color}',
+                          style: AppTypography.secondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.softForest,
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                    ),
+                    child: Text(
+                      '${ride.availableSeats} of ${ride.totalSeats} seats open',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.primaryForest,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
 
             const SizedBox(height: 16),
 
             // Pickup Policy Card
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: const BorderSide(color: AppColors.border),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.softForest,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        ride.pickupPolicy == PickupPolicy.exact
-                            ? Icons.pin_drop_rounded
-                            : Icons.near_me_rounded,
-                        color: AppColors.primaryForest,
-                        size: 20,
-                      ),
+            SahyanCard(
+              padding: AppSpacing.paddingCard,
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: const BoxDecoration(
+                      color: AppColors.softForest,
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            ride.pickupPolicy == PickupPolicy.exact
-                                ? 'Exact Pickup Policy'
-                                : 'Nearby Hub Meeting Policy',
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            ride.pickupPolicy == PickupPolicy.exact
-                                ? 'Driver meets passenger at the exact requested address.'
-                                : 'Driver meets passenger at the nearest designated hub or highway landmark.',
-                            style: AppTypography.caption,
-                          ),
-                        ],
-                      ),
+                    child: Icon(
+                      ride.pickupPolicy == PickupPolicy.exact
+                          ? Icons.pin_drop_rounded
+                          : Icons.near_me_rounded,
+                      color: AppColors.primaryForest,
+                      size: 20,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ride.pickupPolicy == PickupPolicy.exact
+                              ? 'Exact Pickup Policy'
+                              : 'Nearby Hub Meeting Policy',
+                          style: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          ride.pickupPolicy == PickupPolicy.exact
+                              ? 'Driver meets passenger at the exact requested address.'
+                              : 'Driver meets passenger at the nearest designated hub or highway landmark.',
+                          style: AppTypography.caption,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
 
             if (ride.amenities.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Ride Amenities',
-                        style: AppTypography.sectionHeader.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+              SahyanCard(
+                padding: AppSpacing.paddingCard,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ride Amenities',
+                      style: AppTypography.sectionHeader.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: ride.amenities.map((amenity) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: ride.amenities.map((amenity) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.warmBackground,
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Text(
+                            amenity,
+                            style: AppTypography.caption.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.warmBackground,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Text(
-                              amenity,
-                              style: AppTypography.caption.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
                 ),
               ),
             ],
 
             if (ride.notes != null && ride.notes!.isNotEmpty) ...[
               const SizedBox(height: 16),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Driver Notes',
-                        style: AppTypography.sectionHeader.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+              SahyanCard(
+                padding: AppSpacing.paddingCard,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Driver Notes',
+                      style: AppTypography.sectionHeader.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 8),
-                      Text(ride.notes!, style: AppTypography.bodyMedium),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(ride.notes!, style: AppTypography.bodyMedium),
+                  ],
                 ),
               ),
             ],
@@ -656,35 +590,5 @@ class RideDetailsScreen extends ConsumerWidget {
         RequestSeatBottomSheet.show(context, ride);
       },
     );
-  }
-
-  Color _getStatusBg(RideStatus status) {
-    switch (status) {
-      case RideStatus.scheduled:
-        return AppColors.softForest;
-      case RideStatus.boarding:
-        return AppColors.softBrass;
-      case RideStatus.active:
-        return AppColors.softForest;
-      case RideStatus.completed:
-        return AppColors.border.withValues(alpha: 0.6);
-      case RideStatus.cancelled:
-        return AppColors.mutedRust.withValues(alpha: 0.12);
-    }
-  }
-
-  Color _getStatusText(RideStatus status) {
-    switch (status) {
-      case RideStatus.scheduled:
-        return AppColors.primaryForest;
-      case RideStatus.boarding:
-        return AppColors.mutedBrass;
-      case RideStatus.active:
-        return AppColors.deepForest;
-      case RideStatus.completed:
-        return AppColors.textSecondary;
-      case RideStatus.cancelled:
-        return AppColors.mutedRust;
-    }
   }
 }

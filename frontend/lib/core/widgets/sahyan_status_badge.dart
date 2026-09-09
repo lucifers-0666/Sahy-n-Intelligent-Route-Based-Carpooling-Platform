@@ -27,39 +27,39 @@ class SahyanStatusBadge extends StatelessWidget {
   });
 
   /// Factory constructor for RideStatus
-  factory SahyanStatusBadge.fromRideStatus(RideStatus status) {
+  factory SahyanStatusBadge.fromRideStatus(RideStatus status, {String? label}) {
     switch (status) {
       case RideStatus.scheduled:
-        return const SahyanStatusBadge(
-          label: 'Scheduled',
+        return SahyanStatusBadge(
+          label: label ?? 'Scheduled',
           backgroundColor: AppColors.softForest,
           textColor: AppColors.primaryForest,
           icon: Icons.calendar_today_outlined,
         );
       case RideStatus.boarding:
-        return const SahyanStatusBadge(
-          label: 'Boarding',
+        return SahyanStatusBadge(
+          label: label ?? 'Boarding',
           backgroundColor: AppColors.softBrass,
           textColor: AppColors.mutedBrass,
           icon: Icons.access_time_rounded,
         );
       case RideStatus.active:
-        return const SahyanStatusBadge(
-          label: 'Trip in Progress',
+        return SahyanStatusBadge(
+          label: label ?? 'Trip in Progress',
           backgroundColor: AppColors.softForest,
           textColor: AppColors.deepForest,
           icon: Icons.navigation_rounded,
         );
       case RideStatus.completed:
         return SahyanStatusBadge(
-          label: 'Completed',
+          label: label ?? 'Completed',
           backgroundColor: AppColors.border.withValues(alpha: 0.6),
           textColor: AppColors.textSecondary,
           icon: Icons.check_circle_outline_rounded,
         );
       case RideStatus.cancelled:
         return SahyanStatusBadge(
-          label: 'Cancelled',
+          label: label ?? 'Cancelled',
           backgroundColor: AppColors.mutedRust.withValues(alpha: 0.12),
           textColor: AppColors.mutedRust,
           icon: Icons.cancel_outlined,
@@ -68,39 +68,42 @@ class SahyanStatusBadge extends StatelessWidget {
   }
 
   /// Factory constructor for BookingStatus
-  factory SahyanStatusBadge.fromBookingStatus(BookingStatus status) {
+  factory SahyanStatusBadge.fromBookingStatus(
+    BookingStatus status, {
+    String? label,
+  }) {
     switch (status) {
       case BookingStatus.pending:
-        return const SahyanStatusBadge(
-          label: 'Pending Approval',
+        return SahyanStatusBadge(
+          label: label ?? 'Pending Approval',
           backgroundColor: AppColors.softBrass,
           textColor: AppColors.mutedBrass,
           icon: Icons.hourglass_top_rounded,
         );
       case BookingStatus.accepted:
-        return const SahyanStatusBadge(
-          label: 'Confirmed',
+        return SahyanStatusBadge(
+          label: label ?? 'Confirmed',
           backgroundColor: AppColors.softForest,
           textColor: AppColors.primaryForest,
           icon: Icons.check_circle_rounded,
         );
       case BookingStatus.completed:
-        return const SahyanStatusBadge(
-          label: 'Completed',
+        return SahyanStatusBadge(
+          label: label ?? 'Completed',
           backgroundColor: AppColors.softForest,
           textColor: AppColors.deepForest,
           icon: Icons.task_alt_rounded,
         );
       case BookingStatus.rejected:
         return SahyanStatusBadge(
-          label: 'Declined',
+          label: label ?? 'Declined',
           backgroundColor: AppColors.border.withValues(alpha: 0.6),
           textColor: AppColors.textSecondary,
           icon: Icons.block_rounded,
         );
       case BookingStatus.cancelled:
         return SahyanStatusBadge(
-          label: 'Cancelled',
+          label: label ?? 'Cancelled',
           backgroundColor: AppColors.mutedRust.withValues(alpha: 0.12),
           textColor: AppColors.mutedRust,
           icon: Icons.cancel_outlined,
@@ -165,23 +168,36 @@ class SahyanStatusBadge extends StatelessWidget {
         borderRadius: AppRadii.radiusPill,
         border: border != null ? Border.fromBorderSide(border!) : null,
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 13, color: textColor),
-            const SizedBox(width: AppSpacing.xs),
-          ],
-          Text(
-            label,
-            style: AppTypography.caption.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w600,
-              fontSize: 11.5,
+      child: icon == null
+          ? Text(
+              label,
+              style: AppTypography.caption.copyWith(
+                color: textColor,
+                fontWeight: FontWeight.w600,
+                fontSize: 11.5,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 13, color: textColor),
+                const SizedBox(width: AppSpacing.xs),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: AppTypography.caption.copyWith(
+                      color: textColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11.5,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

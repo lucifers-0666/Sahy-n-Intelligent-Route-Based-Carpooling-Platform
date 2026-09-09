@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radii.dart';
+import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../shared/widgets/auth_gate_dialog.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/sahyan_card.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
 import '../bookings_provider.dart';
@@ -77,7 +80,7 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
             _errorMessage ?? 'Failed to submit seat request',
             style: AppTypography.bodyMedium.copyWith(color: AppColors.white),
           ),
-          backgroundColor: Colors.red.shade800,
+          backgroundColor: AppColors.mutedRust,
         ),
       );
     }
@@ -110,94 +113,90 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.containerMargin),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Journey Overview
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Journey Details', style: AppTypography.sectionHeader),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.directions_car_filled,
-                          color: AppColors.primaryForest,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            '${ride.origin.city} → ${ride.destination.city}',
-                            style: AppTypography.bodyLarge.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+            SahyanCard(
+              padding: AppSpacing.paddingCardLarge,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Journey Details', style: AppTypography.sectionHeader),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.directions_car_filled,
+                        color: AppColors.primaryForest,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          '${ride.origin.city} → ${ride.destination.city}',
+                          style: AppTypography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Driver: ${ride.driverName} (${ride.vehicle.fullName})',
-                      style: AppTypography.secondary,
-                    ),
-                    Text(
-                      'Seats Requested: ${selectedSeats.length} (${selectedSeats.join(', ')})',
-                      style: AppTypography.secondary,
-                    ),
-                    Text(
-                      'Departure: ${ride.departureTime}',
-                      style: AppTypography.secondary,
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Driver: ${ride.driverName} (${ride.vehicle.fullName})',
+                    style: AppTypography.secondary,
+                  ),
+                  Text(
+                    'Seats Requested: ${selectedSeats.length} (${selectedSeats.join(', ')})',
+                    style: AppTypography.secondary,
+                  ),
+                  Text(
+                    'Departure: ${ride.departureTime}',
+                    style: AppTypography.secondary,
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.base),
 
             // Contribution Breakdown Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Contribution Details',
-                      style: AppTypography.sectionHeader,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildContributionRow(
-                      'Seat Contribution (${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''})',
-                      '₹${totalContribution.toStringAsFixed(0)}',
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12.0),
-                      child: Divider(color: AppColors.border),
-                    ),
-                    _buildContributionRow(
-                      'Total Contribution',
-                      '₹${totalContribution.toStringAsFixed(0)}',
-                      isTotal: true,
-                    ),
-                  ],
-                ),
+            SahyanCard(
+              padding: AppSpacing.paddingCardLarge,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Contribution Details',
+                    style: AppTypography.sectionHeader,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildContributionRow(
+                    'Seat Contribution (${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''})',
+                    '₹${totalContribution.toStringAsFixed(0)}',
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12.0),
+                    child: Divider(color: AppColors.border),
+                  ),
+                  _buildContributionRow(
+                    'Total Contribution',
+                    '₹${totalContribution.toStringAsFixed(0)}',
+                    isTotal: true,
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.base),
 
             // Request Policy Info Card
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.base),
               decoration: BoxDecoration(
                 color: AppColors.softForest,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadii.md),
                 border: Border.all(
                   color: AppColors.primaryForest.withValues(alpha: 0.2),
                 ),
@@ -234,19 +233,21 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
             ),
 
             if (_errorMessage != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.base),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.red.shade200),
+                  color: AppColors.softRust,
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  border: Border.all(
+                    color: AppColors.mutedRust.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Text(
                   _errorMessage!,
                   style: AppTypography.caption.copyWith(
-                    color: Colors.red.shade900,
+                    color: AppColors.mutedRust,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -255,16 +256,18 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          border: Border(top: BorderSide(color: AppColors.border)),
-        ),
-        child: PrimaryButton(
-          text: 'Send Request',
-          isLoading: _isProcessing,
-          onPressed: _handleConfirmBooking,
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.base),
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            border: Border(top: BorderSide(color: AppColors.border)),
+          ),
+          child: PrimaryButton(
+            text: 'Send Request',
+            isLoading: _isProcessing,
+            onPressed: _handleConfirmBooking,
+          ),
         ),
       ),
     );

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/sahyan_card.dart';
+import '../../../../core/widgets/sahyan_status_badge.dart';
 import '../../../../core/widgets/secondary_button.dart';
 import '../bookings_provider.dart';
 
@@ -39,7 +42,10 @@ class BookingConfirmationScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.containerMargin,
+            vertical: AppSpacing.base,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -61,24 +67,17 @@ class BookingConfirmationScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               Text('Request Sent', style: AppTypography.screenTitle),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.softBrass,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Pending Driver Approval',
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.mutedBrass,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+              const SizedBox(height: 10),
+              booking != null
+                  ? SahyanStatusBadge.fromBookingStatus(
+                      booking.status,
+                      label: booking.statusDisplayName,
+                    )
+                  : SahyanStatusBadge.variant(
+                      label: 'Pending Approval',
+                      variant: SahyanBadgeVariant.warning,
+                      icon: Icons.hourglass_top_rounded,
+                    ),
               const SizedBox(height: 12),
               Text(
                 'The driver needs to approve your request. You will be notified once $driverName confirms.',
@@ -90,49 +89,42 @@ class BookingConfirmationScreen extends ConsumerWidget {
 
               // Comprehensive Details Card
               if (booking != null)
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: AppColors.border),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        _buildDetailRow(
-                          'Route',
-                          '$routeOrigin → $routeDest',
-                          isBold: true,
-                        ),
-                        const Divider(height: 16, color: AppColors.border),
-                        _buildDetailRow('Departure', departure),
-                        const Divider(height: 16, color: AppColors.border),
-                        _buildDetailRow('Driver', driverName),
-                        const Divider(height: 16, color: AppColors.border),
-                        _buildDetailRow('Vehicle', vehicleName),
-                        const Divider(height: 16, color: AppColors.border),
-                        _buildDetailRow(
-                          'Seats Requested',
-                          '${booking.requestedSeats} seat${booking.requestedSeats > 1 ? 's' : ''}',
-                        ),
-                        const Divider(height: 16, color: AppColors.border),
-                        _buildDetailRow(
-                          'Contribution Per Seat',
-                          '₹${booking.contributionPerSeat.toStringAsFixed(0)}',
-                        ),
-                        const Divider(height: 16, color: AppColors.border),
-                        _buildDetailRow(
-                          'Total Contribution',
-                          '₹${booking.totalContribution.toStringAsFixed(0)}',
-                          highlight: true,
-                        ),
-                        const Divider(height: 16, color: AppColors.border),
-                        _buildDetailRow('Pickup Point', booking.pickup.name),
-                        const Divider(height: 16, color: AppColors.border),
-                        _buildDetailRow('Drop Point', booking.drop.name),
-                      ],
-                    ),
+                SahyanCard(
+                  padding: AppSpacing.paddingCardLarge,
+                  child: Column(
+                    children: [
+                      _buildDetailRow(
+                        'Route',
+                        '$routeOrigin → $routeDest',
+                        isBold: true,
+                      ),
+                      const Divider(height: 16, color: AppColors.border),
+                      _buildDetailRow('Departure', departure),
+                      const Divider(height: 16, color: AppColors.border),
+                      _buildDetailRow('Driver', driverName),
+                      const Divider(height: 16, color: AppColors.border),
+                      _buildDetailRow('Vehicle', vehicleName),
+                      const Divider(height: 16, color: AppColors.border),
+                      _buildDetailRow(
+                        'Seats Requested',
+                        '${booking.requestedSeats} seat${booking.requestedSeats > 1 ? 's' : ''}',
+                      ),
+                      const Divider(height: 16, color: AppColors.border),
+                      _buildDetailRow(
+                        'Contribution Per Seat',
+                        '₹${booking.contributionPerSeat.toStringAsFixed(0)}',
+                      ),
+                      const Divider(height: 16, color: AppColors.border),
+                      _buildDetailRow(
+                        'Total Contribution',
+                        '₹${booking.totalContribution.toStringAsFixed(0)}',
+                        highlight: true,
+                      ),
+                      const Divider(height: 16, color: AppColors.border),
+                      _buildDetailRow('Pickup Point', booking.pickup.name),
+                      const Divider(height: 16, color: AppColors.border),
+                      _buildDetailRow('Drop Point', booking.drop.name),
+                    ],
                   ),
                 ),
 

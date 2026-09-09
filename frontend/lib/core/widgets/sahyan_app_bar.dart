@@ -32,7 +32,8 @@ class SahyanAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final canPop =
-        Navigator.of(context).canPop() || GoRouter.of(context).canPop();
+        Navigator.of(context).canPop() ||
+        (GoRouter.maybeOf(context)?.canPop() ?? false);
 
     return AppBar(
       backgroundColor: backgroundColor,
@@ -53,7 +54,7 @@ class SahyanAppBar extends StatelessWidget implements PreferredSizeWidget {
                   () {
                     if (Navigator.of(context).canPop()) {
                       Navigator.of(context).pop();
-                    } else if (GoRouter.of(context).canPop()) {
+                    } else if (GoRouter.maybeOf(context)?.canPop() ?? false) {
                       context.pop();
                     }
                   },

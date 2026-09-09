@@ -37,16 +37,19 @@ class SahyanCard extends StatelessWidget {
     return Container(
       margin: margin,
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.white,
         borderRadius: effectiveRadius,
-        border: hasBorder
-            ? Border.all(color: borderColor ?? AppColors.border, width: 1.0)
-            : null,
         boxShadow: hasShadow ? AppElevation.card : null,
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: effectiveRadius,
+      child: Card(
+        margin: EdgeInsets.zero,
+        elevation: 0,
+        color: backgroundColor ?? AppColors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: effectiveRadius,
+          side: hasBorder
+              ? BorderSide(color: borderColor ?? AppColors.border, width: 1.0)
+              : BorderSide.none,
+        ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
