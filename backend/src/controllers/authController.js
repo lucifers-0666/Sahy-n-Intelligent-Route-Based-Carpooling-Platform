@@ -126,8 +126,8 @@ const register = async (req, res, next) => {
  */
 const login = async (req, res, next) => {
   try {
-    const { emailOrPhone, identifier, password } = req.body;
-    const targetIdentifier = identifier || emailOrPhone;
+    const { emailOrPhone, identifier, email, phone, password } = req.body;
+    const targetIdentifier = identifier || emailOrPhone || email || phone;
 
     if (!targetIdentifier || !password) {
       return res.status(400).json({ success: false, message: 'Please provide email/phone and password' });
@@ -345,7 +345,8 @@ const forgotPassword = async (req, res, next) => {
  */
 const resetPassword = async (req, res, next) => {
   try {
-    const { token, newPassword } = req.body;
+    const token = req.body.token;
+    const newPassword = req.body.newPassword || req.body.password;
     if (!token || !newPassword) {
       return res.status(400).json({ success: false, message: 'Valid token and new password are required' });
     }

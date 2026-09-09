@@ -132,7 +132,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     return await apiClient.post(
       '/auth/reset-password',
-      body: {'token': token, 'password': newPassword},
+      body: {
+        'token': token,
+        'newPassword': newPassword,
+        'password': newPassword,
+      },
     );
   }
 

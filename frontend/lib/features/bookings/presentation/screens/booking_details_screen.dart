@@ -48,6 +48,26 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
           ),
           createdAt: DateTime.now(),
         );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshBooking();
+    });
+  }
+
+  Future<void> _refreshBooking() async {
+    if (_booking.id.isEmpty) return;
+    try {
+      final fresh = await ref
+          .read(bookingsNotifierProvider.notifier)
+          .fetchBookingById(_booking.id);
+      if (mounted) {
+        setState(() {
+          _booking = fresh;
+        });
+        ref.read(selectedBookingProvider.notifier).state = fresh;
+      }
+    } catch (_) {
+      // Keep existing data on transient offline error
+    }
   }
 
   Future<void> _handleCancelBooking() async {
@@ -242,71 +262,34 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
         elevation: 0,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Status Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Booking Status Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            'Booking Status',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getStatusBgColor(_booking.status),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              _booking.statusDisplayName,
-                              style: AppTypography.caption.copyWith(
-                                color: _getStatusTextColor(_booking.status),
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Trip Status Row (if ride is present)
-                    if (ride != null) ...[
-                      const SizedBox(height: 10),
-                      const Divider(height: 1, color: AppColors.border),
-                      const SizedBox(height: 10),
+        child: RefreshIndicator(
+          onRefresh: _refreshBooking,
+          color: AppColors.primaryForest,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Status Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Booking Status Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Flexible(
                             child: Text(
-                              'Trip Status',
+                              'Booking Status',
                               style: AppTypography.caption.copyWith(
                                 color: AppColors.textSecondary,
                               ),
@@ -320,13 +303,13 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: _getRideStatusBgColor(ride.status),
+                                color: _getStatusBgColor(_booking.status),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                ride.statusDisplayName,
+                                _booking.statusDisplayName,
                                 style: AppTypography.caption.copyWith(
-                                  color: _getRideStatusTextColor(ride.status),
+                                  color: _getStatusTextColor(_booking.status),
                                   fontWeight: FontWeight.bold,
                                 ),
                                 maxLines: 1,
@@ -336,138 +319,61 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                           ),
                         ],
                       ),
-                    ],
 
-                    const SizedBox(height: 12),
-                    Text(
-                      _getStatusExplanation(_booking, ride),
-                      style: AppTypography.secondary,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Route & Schedule Card
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Journey Overview',
-                        style: AppTypography.sectionHeader.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Departure time
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.access_time_rounded,
-                            size: 18,
-                            color: AppColors.primaryForest,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Departure Time',
-                                  style: AppTypography.caption,
+                      // Trip Status Row (if ride is present)
+                      if (ride != null) ...[
+                        const SizedBox(height: 10),
+                        const Divider(height: 1, color: AppColors.border),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                'Trip Status',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.textSecondary,
                                 ),
-                                Text(
-                                  formattedDeparture,
-                                  style: AppTypography.bodyMedium.copyWith(
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _getRideStatusBgColor(ride.status),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  ride.statusDisplayName,
+                                  style: AppTypography.caption.copyWith(
+                                    color: _getRideStatusTextColor(ride.status),
                                     fontWeight: FontWeight.bold,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 24, color: AppColors.border),
+                          ],
+                        ),
+                      ],
 
-                      // Pickup
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.my_location_rounded,
-                            size: 18,
-                            color: AppColors.primaryForest,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Pickup Point',
-                                  style: AppTypography.caption,
-                                ),
-                                Text(
-                                  _booking.pickup.name,
-                                  style: AppTypography.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Drop
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.location_on_rounded,
-                            size: 18,
-                            color: Colors.redAccent,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Drop Point',
-                                  style: AppTypography.caption,
-                                ),
-                                Text(
-                                  _booking.drop.name,
-                                  style: AppTypography.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 12),
+                      Text(
+                        _getStatusExplanation(_booking, ride),
+                        style: AppTypography.secondary,
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // Driver & Vehicle Card (if ride populated)
-              if (ride != null) ...[
+                // Route & Schedule Card
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -480,53 +386,20 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Driver & Vehicle',
+                          'Journey Overview',
                           style: AppTypography.sectionHeader.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 22,
-                              backgroundColor: AppColors.softForest,
-                              child: Text(
-                                ride.driverName.isNotEmpty
-                                    ? ride.driverName[0].toUpperCase()
-                                    : 'D',
-                                style: AppTypography.sectionHeader.copyWith(
-                                  color: AppColors.primaryForest,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    ride.driverName,
-                                    style: AppTypography.bodyLarge.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Rating: ${ride.driverRating.toStringAsFixed(1)} / 5.0',
-                                    style: AppTypography.secondary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 24, color: AppColors.border),
+                        const SizedBox(height: 16),
+
+                        // Departure time
                         Row(
                           children: [
                             const Icon(
-                              Icons.directions_car_rounded,
-                              size: 20,
-                              color: AppColors.textSecondary,
+                              Icons.access_time_rounded,
+                              size: 18,
+                              color: AppColors.primaryForest,
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -534,14 +407,76 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    ride.vehicle.fullName,
+                                    'Departure Time',
+                                    style: AppTypography.caption,
+                                  ),
+                                  Text(
+                                    formattedDeparture,
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24, color: AppColors.border),
+
+                        // Pickup
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.my_location_rounded,
+                              size: 18,
+                              color: AppColors.primaryForest,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Pickup Point',
+                                    style: AppTypography.caption,
+                                  ),
+                                  Text(
+                                    _booking.pickup.name,
                                     style: AppTypography.bodyMedium.copyWith(
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Drop
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.location_on_rounded,
+                              size: 18,
+                              color: Colors.redAccent,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
                                   Text(
-                                    'Plate: ${ride.vehicle.registrationNumber} • ${ride.vehicle.color}',
+                                    'Drop Point',
                                     style: AppTypography.caption,
+                                  ),
+                                  Text(
+                                    _booking.drop.name,
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -552,94 +487,99 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-              ],
 
-              // Seats & Contribution Card
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.border),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Contribution Details',
-                        style: AppTypography.sectionHeader.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                const SizedBox(height: 16),
+
+                // Driver & Vehicle Card (if ride populated)
+                if (ride != null) ...[
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              'Seats Requested',
-                              style: AppTypography.secondary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
                           Text(
-                            '${_booking.requestedSeats} seat${_booking.requestedSeats > 1 ? 's' : ''}',
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Contribution Per Seat',
-                              style: AppTypography.secondary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '₹${_booking.contributionPerSeat.toStringAsFixed(0)}',
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 20, color: AppColors.border),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Total Contribution',
-                              style: AppTypography.bodyLarge.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '₹${_booking.totalContribution.toStringAsFixed(0)}',
+                            'Driver & Vehicle',
                             style: AppTypography.sectionHeader.copyWith(
-                              color: AppColors.primaryForest,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: AppColors.softForest,
+                                child: Text(
+                                  ride.driverName.isNotEmpty
+                                      ? ride.driverName[0].toUpperCase()
+                                      : 'D',
+                                  style: AppTypography.sectionHeader.copyWith(
+                                    color: AppColors.primaryForest,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      ride.driverName,
+                                      style: AppTypography.bodyLarge.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Rating: ${ride.driverRating.toStringAsFixed(1)} / 5.0',
+                                      style: AppTypography.secondary,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const Divider(height: 24, color: AppColors.border),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.directions_car_rounded,
+                                size: 20,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      ride.vehicle.fullName,
+                                      style: AppTypography.bodyMedium.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Plate: ${ride.vehicle.registrationNumber} • ${ride.vehicle.color}',
+                                      style: AppTypography.caption,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+                  const SizedBox(height: 16),
+                ],
 
-              if (_booking.passengerNote.isNotEmpty) ...[
-                const SizedBox(height: 16),
+                // Seats & Contribution Card
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -651,66 +591,151 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Your Note', style: AppTypography.caption),
-                        const SizedBox(height: 4),
                         Text(
-                          _booking.passengerNote,
-                          style: AppTypography.bodyMedium,
+                          'Contribution Details',
+                          style: AppTypography.sectionHeader.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Seats Requested',
+                                style: AppTypography.secondary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${_booking.requestedSeats} seat${_booking.requestedSeats > 1 ? 's' : ''}',
+                              style: AppTypography.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Contribution Per Seat',
+                                style: AppTypography.secondary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '₹${_booking.contributionPerSeat.toStringAsFixed(0)}',
+                              style: AppTypography.bodyMedium.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 20, color: AppColors.border),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Total Contribution',
+                                style: AppTypography.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              '₹${_booking.totalContribution.toStringAsFixed(0)}',
+                              style: AppTypography.sectionHeader.copyWith(
+                                color: AppColors.primaryForest,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
-              ],
 
-              const SizedBox(height: 16),
-
-              // Request timestamp note
-              Center(
-                child: Text(
-                  'Request placed on $formattedRequestDate',
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Cancel button for pending bookings
-              if (_booking.isPending) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      side: BorderSide(color: Colors.red.shade300),
+                if (_booking.passengerNote.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: const BorderSide(color: AppColors.border),
                     ),
-                    onPressed: _isCancelling ? null : _handleCancelBooking,
-                    child: _isCancelling
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.red,
-                            ),
-                          )
-                        : Text(
-                            'Cancel Request',
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red.shade700,
-                            ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Your Note', style: AppTypography.caption),
+                          const SizedBox(height: 4),
+                          Text(
+                            _booking.passengerNote,
+                            style: AppTypography.bodyMedium,
                           ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 16),
+
+                // Request timestamp note
+                Center(
+                  child: Text(
+                    'Request placed on $formattedRequestDate',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
+
+                const SizedBox(height: 24),
+
+                // Cancel button for pending bookings
+                if (_booking.isPending) ...[
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: Colors.red.shade300),
+                      ),
+                      onPressed: _isCancelling ? null : _handleCancelBooking,
+                      child: _isCancelling
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.red,
+                              ),
+                            )
+                          : Text(
+                              'Cancel Request',
+                              style: AppTypography.bodyMedium.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red.shade700,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

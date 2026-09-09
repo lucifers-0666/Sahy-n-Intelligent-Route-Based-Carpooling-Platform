@@ -84,6 +84,23 @@ class BookingsNotifier extends StateNotifier<AsyncValue<List<BookingModel>>> {
 
     return updated;
   }
+
+  Future<BookingModel> fetchBookingById(String bookingId) async {
+    final fresh = await repository.getBookingById(bookingId);
+    if (!mounted) return fresh;
+
+    state.whenData((bookings) {
+      final updatedList = bookings.map((b) {
+        if (b.id == bookingId) {
+          return fresh;
+        }
+        return b;
+      }).toList();
+      state = AsyncValue.data(updatedList);
+    });
+
+    return fresh;
+  }
 }
 
 final bookingsNotifierProvider =
@@ -162,6 +179,24 @@ class DriverRequestsNotifier
     });
 
     return updated;
+  }
+
+  Future<BookingModel> fetchRequestById(String bookingId) async {
+    final fresh = await repository.getBookingById(bookingId);
+    if (!mounted) return fresh;
+
+    state.whenData((requests) {
+      final exists = requests.any((b) => b.id == bookingId);
+      if (exists) {
+        state = AsyncValue.data(
+          requests.map((b) => b.id == bookingId ? fresh : b).toList(),
+        );
+      } else {
+        state = AsyncValue.data([fresh, ...requests]);
+      }
+    });
+
+    return fresh;
   }
 }
 

@@ -564,3 +564,34 @@ test('PASSWORD RESET: Should execute forgot password and reset password flow wit
   assert.strictEqual(newLoginRes.status, 200);
   assert.strictEqual(newLoginData.success, true);
 });
+
+test('Password Reset: Contract accepts password field name for client compatibility', async () => {
+  const user = await User.findOne({ email: 'arjun.test@example.com' });
+  const { rawToken, hashedToken, expiresAt } = passwordService.generateResetToken();
+  user.resetPasswordInfo = { token: hashedToken, expiresAt };
+  await user.save();
+
+  const resetRes = await fetch(`${baseUrl}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      token: rawToken,
+      password: 'AlternativePassword123!',
+    }),
+  });
+
+  const resetData = await resetRes.json();
+  assert.strictEqual(resetRes.status, 200);
+  assert.strictEqual(resetData.success, true);
+
+  // Verify login works with the reset password
+  const loginRes = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      identifier: 'arjun.test@example.com',
+      password: 'AlternativePassword123!',
+    }),
+  });
+  assert.strictEqual(loginRes.status, 200);
+});
