@@ -1134,6 +1134,9 @@ const KNOWN_HUBS = {
   bhavnagar: { lat: 21.7645, lng: 72.1519, name: 'Bhavnagar' },
   jamnagar: { lat: 22.4707, lng: 70.0577, name: 'Jamnagar' },
   gandhinagar: { lat: 23.2156, lng: 72.6369, name: 'Gandhinagar' },
+  gift: { lat: 23.1611, lng: 72.6841, name: 'GIFT City' },
+  'gift city': { lat: 23.1611, lng: 72.6841, name: 'GIFT City' },
+  'sg highway': { lat: 23.0338, lng: 72.5074, name: 'SG Highway, Ahmedabad' },
   mehsana: { lat: 23.5880, lng: 72.3693, name: 'Mehsana' },
   morbi: { lat: 22.8125, lng: 70.8384, name: 'Morbi' },
 };

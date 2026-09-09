@@ -92,9 +92,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
 
+    LocationModel? originLoc = _originLocation;
+    if (originLoc == null || originLoc.latitude == 0.0) {
+      final originHub = _popularHubs.firstWhere(
+        (h) => originText.toLowerCase().contains(
+          (h['name'] as String).toLowerCase(),
+        ),
+        orElse: () => {'name': originText, 'lat': 0.0, 'lng': 0.0},
+      );
+      if ((originHub['lat'] as num) != 0.0) {
+        originLoc = LocationModel.fromCoordinates(
+          name: originText,
+          latitude: (originHub['lat'] as num).toDouble(),
+          longitude: (originHub['lng'] as num).toDouble(),
+        );
+      }
+    }
+
+    LocationModel? destLoc = _destinationLocation;
+    if (destLoc == null || destLoc.latitude == 0.0) {
+      final destHub = _popularHubs.firstWhere(
+        (h) => destText.toLowerCase().contains(
+          (h['name'] as String).toLowerCase(),
+        ),
+        orElse: () => {'name': destText, 'lat': 0.0, 'lng': 0.0},
+      );
+      if ((destHub['lat'] as num) != 0.0) {
+        destLoc = LocationModel.fromCoordinates(
+          name: destText,
+          latitude: (destHub['lat'] as num).toDouble(),
+          longitude: (destHub['lng'] as num).toDouble(),
+        );
+      }
+    }
+
     ref.read(rideSearchQueryProvider.notifier).state = RideSearchQuery(
-      originLocation: _originLocation,
-      destinationLocation: _destinationLocation,
+      originLocation: originLoc,
+      destinationLocation: destLoc,
       origin: originText,
       destination: destText,
       date: _selectedDate,
