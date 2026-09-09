@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahyan/app/providers/app_startup_provider.dart';
 import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/core/storage/secure_storage_service.dart';
@@ -204,6 +205,74 @@ void main() {
       modeNotifier.clearPendingIntent();
       expect(modeNotifier.state.pendingProtectedIntent, isNull);
     });
+
+    test('clearGuestMode clears guest access and pending intent', () {
+      final modeNotifier = UserModeNotifier();
+      modeNotifier.setGuestMode();
+      modeNotifier.setPendingProtectedIntent('/offer-ride');
+      expect(modeNotifier.state.isGuest, isTrue);
+
+      modeNotifier.clearGuestMode();
+      expect(modeNotifier.state.isGuest, isFalse);
+      expect(modeNotifier.state.accessMode, AccessMode.authenticated);
+      expect(modeNotifier.state.pendingProtectedIntent, isNull);
+    });
+
+    test('resetOnLogout clears guest mode and restores defaults', () {
+      final modeNotifier = UserModeNotifier();
+      modeNotifier.setGuestMode();
+      modeNotifier.setOperationalMode(OperationalMode.driver);
+      modeNotifier.setPendingProtectedIntent('/profile');
+
+      modeNotifier.resetOnLogout();
+      expect(modeNotifier.state.isGuest, isFalse);
+      expect(modeNotifier.state.accessMode, AccessMode.authenticated);
+      expect(modeNotifier.state.operationalMode, OperationalMode.rider);
+      expect(modeNotifier.state.pendingProtectedIntent, isNull);
+    });
+
+    test(
+      'userModeProvider automatically clears guest mode on authProvider authentication',
+      () {
+        final container = ProviderContainer(
+          overrides: [
+            secureStorageServiceProvider.overrideWithValue(storage),
+            authRepositoryProvider.overrideWithValue(repo),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Set guest mode initially
+        container.read(userModeProvider.notifier).setGuestMode();
+        container
+            .read(userModeProvider.notifier)
+            .setPendingProtectedIntent('/offer-ride');
+        expect(container.read(userModeProvider).isGuest, isTrue);
+
+        // Authenticate authProvider
+        container.read(authProvider.notifier).state = const AuthState(
+          status: AuthStatus.authenticated,
+          user: UserModel(
+            id: 'usr_auth_1',
+            name: 'Zaid Amreliya',
+            phone: '+919876543210',
+            email: 'zaid@example.com',
+            city: 'Ahmedabad',
+            verificationStatus: UserVerificationStatus.verified,
+            rating: 5.0,
+            totalRides: 12,
+          ),
+        );
+
+        // userModeProvider should reactively clear guest mode
+        expect(container.read(userModeProvider).isGuest, isFalse);
+        expect(
+          container.read(userModeProvider).accessMode,
+          AccessMode.authenticated,
+        );
+        expect(container.read(userModeProvider).pendingProtectedIntent, isNull);
+      },
+    );
   });
 
   group('UserModel Unified Capabilities Tests', () {

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../app/providers/user_mode_provider.dart';
 import '../../app/theme/app_colors.dart';
+import '../../features/auth/presentation/auth_provider.dart';
 import 'auth_gate_dialog.dart';
 
 class AppShell extends ConsumerWidget {
@@ -13,7 +14,9 @@ class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.navigationShell});
 
   void _handleNavigation(BuildContext context, WidgetRef ref, int index) {
-    final isGuest = ref.read(userModeProvider).isGuest;
+    final authState = ref.read(authProvider);
+    final isGuest =
+        ref.read(userModeProvider).isGuest && !authState.isAuthenticated;
 
     // Gated actions for unauthenticated guests
     if (isGuest && index != 0 && index != 1) {

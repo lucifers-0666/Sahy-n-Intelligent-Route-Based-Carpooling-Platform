@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/presentation/auth_provider.dart';
 
 enum AccessMode { authenticated, guest }
 
@@ -47,6 +48,13 @@ class UserModeNotifier extends StateNotifier<UserModeState> {
     state = state.copyWith(accessMode: AccessMode.authenticated);
   }
 
+  void clearGuestMode() {
+    state = state.copyWith(
+      accessMode: AccessMode.authenticated,
+      clearPendingIntent: true,
+    );
+  }
+
   void setOperationalMode(OperationalMode mode) {
     state = state.copyWith(operationalMode: mode);
   }
@@ -58,10 +66,26 @@ class UserModeNotifier extends StateNotifier<UserModeState> {
   void clearPendingIntent() {
     state = state.copyWith(clearPendingIntent: true);
   }
+
+  void resetOnLogout() {
+    state = const UserModeState(
+      accessMode: AccessMode.authenticated,
+      operationalMode: OperationalMode.rider,
+    );
+  }
 }
 
 final userModeProvider = StateNotifierProvider<UserModeNotifier, UserModeState>(
   (ref) {
-    return UserModeNotifier();
+    final notifier = UserModeNotifier();
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated && next.user != null) {
+        notifier.setAuthenticatedMode();
+        notifier.clearPendingIntent();
+      } else if (next.status == AuthStatus.unauthenticated) {
+        notifier.resetOnLogout();
+      }
+    });
+    return notifier;
   },
 );

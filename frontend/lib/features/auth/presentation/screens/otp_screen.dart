@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
@@ -70,7 +71,11 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
     final success = await ref.read(authProvider.notifier).verifyOtp(otp);
     if (success && mounted) {
-      context.go('/home');
+      ref.read(userModeProvider.notifier).clearGuestMode();
+      final destination =
+          ref.read(userModeProvider).pendingProtectedIntent ?? '/home';
+      ref.read(userModeProvider.notifier).clearPendingIntent();
+      context.go(destination);
     } else if (mounted) {
       final errorMsg = ref.read(authProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(

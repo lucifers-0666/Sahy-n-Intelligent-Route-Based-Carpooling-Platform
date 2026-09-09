@@ -136,10 +136,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final isGuest = ref.watch(userModeProvider).isGuest;
-    final displayName = isGuest
-        ? 'Guest Traveler'
-        : (authState.user?.name.split(' ').first ?? 'Member');
+    final userMode = ref.watch(userModeProvider);
+    final isGuest = userMode.isGuest && !authState.isAuthenticated;
+    final displayName =
+        (!isGuest &&
+            authState.user != null &&
+            authState.user!.name.trim().isNotEmpty)
+        ? authState.user!.name.trim().split(' ').first
+        : 'Guest Traveler';
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,

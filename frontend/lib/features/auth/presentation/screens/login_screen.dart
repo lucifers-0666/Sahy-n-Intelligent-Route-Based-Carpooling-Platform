@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
@@ -20,11 +21,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordFormKey = GlobalKey<FormState>();
   final _otpFormKey = GlobalKey<FormState>();
 
-  _LoginMethod _selectedMethod = _LoginMethod.password;
+  final _identifierController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _otpPhoneController = TextEditingController();
 
-  final TextEditingController _identifierController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _otpPhoneController = TextEditingController();
+  _LoginMethod _selectedMethod = _LoginMethod.password;
 
   @override
   void dispose() {
@@ -40,14 +41,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final rawIdentifier = _identifierController.text.trim();
     final password = _passwordController.text;
 
-    String cleanIdentifier = rawIdentifier;
-    if (rawIdentifier.contains('@')) {
-      cleanIdentifier = rawIdentifier.toLowerCase();
-    } else {
+    // Normalize phone numbers if numeric
+    final String cleanIdentifier;
+    if (!rawIdentifier.contains('@') &&
+        RegExp(r'^\+?\d+$').hasMatch(rawIdentifier)) {
       final digits = rawIdentifier.replaceAll(RegExp(r'\D'), '');
       cleanIdentifier = digits.length == 12 && digits.startsWith('91')
           ? digits.substring(2)
           : digits;
+    } else {
+      cleanIdentifier = rawIdentifier;
     }
 
     final success = await ref
@@ -55,7 +58,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         .login(identifier: cleanIdentifier, password: password);
 
     if (success && mounted) {
-      context.go('/home');
+      final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
+      ref.read(userModeProvider.notifier).setAuthenticatedMode();
+      ref.read(userModeProvider.notifier).clearPendingIntent();
+      if (pendingIntent != null && pendingIntent.isNotEmpty) {
+        context.go(pendingIntent);
+      } else {
+        context.go('/home');
+      }
     } else if (mounted) {
       final errorMsg = ref.read(authProvider).errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
