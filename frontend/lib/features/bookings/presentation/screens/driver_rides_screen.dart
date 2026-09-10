@@ -122,6 +122,14 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
         showBackButton: true,
         actions: [
           IconButton(
+            icon: const Icon(
+              Icons.account_balance_wallet_outlined,
+              color: AppColors.primaryForest,
+            ),
+            tooltip: 'Payout & Earnings',
+            onPressed: () => context.push('/driver/payout'),
+          ),
+          IconButton(
             icon: const Icon(Icons.add_rounded, color: AppColors.primaryForest),
             tooltip: 'Offer a Ride',
             onPressed: () => context.go('/offer-ride'),

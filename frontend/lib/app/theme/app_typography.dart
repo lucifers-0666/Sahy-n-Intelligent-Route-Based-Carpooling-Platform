@@ -79,6 +79,9 @@ abstract class AppTypography {
     height: 1.35,
   );
 
+  /// Backwards-compatible alias for bodySmall (13sp, 400 Regular)
+  static TextStyle get bodySmall => secondary;
+
   /// Captions, helper text, and timestamps (12sp, 500 Medium)
   static TextStyle get caption => GoogleFonts.plusJakartaSans(
     fontSize: 12,

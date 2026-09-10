@@ -200,7 +200,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // App Header with User Avatar & Notification Action
                   HomeHeader(
                     displayName: displayName,
-                    onNotificationTap: () => context.go('/my-bookings'),
+                    onNotificationTap: () => context.push('/notifications'),
                     onProfileTap: () => context.go('/profile'),
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -308,10 +308,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: _buildServiceTile(
                 icon: Icons.shield_outlined,
                 title: 'Safety Center',
-                subtitle: 'SOS & emergency',
+                subtitle: 'Protocols & SOS',
                 badgeColor: AppColors.softForest,
                 iconColor: AppColors.primaryForest,
-                onTap: () => context.push('/emergency-contacts'),
+                onTap: () => context.push('/trip-safety'),
               ),
             ),
           ],
@@ -359,9 +359,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 Text(
                   subtitle,
-                  style: AppTypography.secondary.copyWith(
-                    fontSize: 11,
-                  ),
+                  style: AppTypography.secondary.copyWith(fontSize: 11),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

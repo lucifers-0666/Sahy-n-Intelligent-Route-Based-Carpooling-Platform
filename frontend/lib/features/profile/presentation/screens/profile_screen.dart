@@ -53,7 +53,7 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Welcome to Sahyān',
+                        'Unable to Load Profile',
                         style: AppTypography.screenTitle.copyWith(fontSize: 20),
                         textAlign: TextAlign.center,
                       ),
@@ -358,6 +358,55 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           const Divider(color: AppColors.border, height: 1),
                           _buildNavTile(
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: 'Driver Earnings & Payout',
+                            subtitle: 'Settlement ledger and payout account',
+                            onTap: () {
+                              context.push('/driver/payout');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
+                            icon: Icons.history_rounded,
+                            title: 'Ride History',
+                            subtitle:
+                                'Past completed and cancelled carpool journeys',
+                            onTap: () {
+                              context.push('/ride-history');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
+                            icon: Icons.star_outline_rounded,
+                            title: 'Reviews & Ratings',
+                            subtitle:
+                                'Community feedback and driver trust score',
+                            onTap: () {
+                              context.push('/reviews');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
+                            icon: Icons.location_on_outlined,
+                            title: 'Saved Places',
+                            subtitle:
+                                'Home, Work, and frequent pickup locations',
+                            onTap: () {
+                              context.push('/saved-places');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
+                            icon: Icons.payment_rounded,
+                            title: 'Payment Methods',
+                            subtitle:
+                                'Saved UPI handles and carpool sharing preferences',
+                            onTap: () {
+                              context.push('/payment-methods');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
                             icon: Icons.person_outline_rounded,
                             title: 'Edit Profile & Preferences',
                             subtitle: 'Name, City, Bio, and Travel Preferences',
@@ -367,12 +416,22 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           const Divider(color: AppColors.border, height: 1),
                           _buildNavTile(
-                            icon: Icons.emergency_outlined,
+                            icon: Icons.shield_outlined,
                             title: 'Safety Center & SOS Contacts',
                             subtitle:
-                                'Manage ride tracking and emergency contacts',
+                                'Emergency protocols and roadside assistance',
                             onTap: () {
-                              context.push('/emergency-contacts');
+                              context.push('/trip-safety');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
+                            icon: Icons.settings_outlined,
+                            title: 'Settings',
+                            subtitle:
+                                'Notifications, Privacy, Security and Legal',
+                            onTap: () {
+                              context.push('/settings');
                             },
                           ),
                           const Divider(color: AppColors.border, height: 1),

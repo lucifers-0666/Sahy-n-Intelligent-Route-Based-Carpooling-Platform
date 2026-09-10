@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
@@ -591,6 +592,37 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                 ),
 
                 const SizedBox(height: AppSpacing.xl),
+
+                // Active journey button for accepted bookings
+                if (_booking.isAccepted) ...[
+                  SahyanButton(
+                    text: 'View Active Journey & Boarding PIN',
+                    icon: Icons.directions_car_rounded,
+                    onPressed: () {
+                      context.push('/active-journey', extra: _booking);
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SahyanButton(
+                    text: 'Message Driver',
+                    icon: Icons.chat_bubble_outline_rounded,
+                    variant: SahyanButtonVariant.secondary,
+                    onPressed: () => context.push('/messages'),
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                ],
+
+                // Completed summary for finished bookings
+                if (_booking.isCompleted) ...[
+                  SahyanButton(
+                    text: 'View Journey Summary & Receipt',
+                    icon: Icons.check_circle_outline_rounded,
+                    onPressed: () {
+                      context.push('/journey-completed', extra: _booking);
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                ],
 
                 // Cancel button for pending bookings
                 if (_booking.isPending) ...[

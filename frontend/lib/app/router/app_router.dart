@@ -27,6 +27,23 @@ import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/features/vehicles/presentation/screens/my_vehicles_screen.dart';
 import 'package:sahyan/features/vehicles/presentation/screens/add_vehicle_screen.dart';
 import 'package:sahyan/features/vehicles/presentation/screens/edit_vehicle_screen.dart';
+import 'package:sahyan/features/notifications/domain/notification_model.dart';
+import 'package:sahyan/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:sahyan/features/notifications/presentation/screens/notification_details_screen.dart';
+import 'package:sahyan/features/messaging/domain/messaging_model.dart';
+import 'package:sahyan/features/messaging/presentation/screens/messages_screen.dart';
+import 'package:sahyan/features/messaging/presentation/screens/chat_detail_screen.dart';
+import 'package:sahyan/features/trip/presentation/screens/active_journey_screen.dart';
+import 'package:sahyan/features/trip/presentation/screens/journey_completed_screen.dart';
+import 'package:sahyan/features/trip/presentation/screens/trip_safety_screen.dart';
+import 'package:sahyan/features/trip/presentation/screens/live_ride_tracking_screen.dart';
+import 'package:sahyan/features/settings/presentation/screens/settings_screen.dart';
+import 'package:sahyan/features/profile/presentation/screens/saved_places_screen.dart';
+import 'package:sahyan/features/profile/presentation/screens/reviews_ratings_screen.dart';
+import 'package:sahyan/features/rides/presentation/screens/ride_history_screen.dart';
+import 'package:sahyan/features/payments/presentation/screens/payment_methods_screen.dart';
+import 'package:sahyan/features/payments/presentation/screens/driver_payout_screen.dart';
+import 'package:sahyan/features/payments/presentation/screens/payout_account_screen.dart';
 import 'package:sahyan/shared/widgets/app_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -117,6 +134,79 @@ final appRouter = GoRouter(
         final request = state.extra as BookingModel?;
         return DriverRequestDetailsScreen(initialRequest: request);
       },
+    ),
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
+      path: '/notifications/:id',
+      builder: (context, state) {
+        final item = state.extra as NotificationItem?;
+        return NotificationDetailsScreen(notification: item);
+      },
+    ),
+    GoRoute(
+      path: '/messages',
+      builder: (context, state) => const MessagesScreen(),
+    ),
+    GoRoute(
+      path: '/messages/:conversationId',
+      builder: (context, state) {
+        final conv = state.extra as Conversation?;
+        final id = state.pathParameters['conversationId'];
+        return ChatDetailScreen(initialConversation: conv, conversationId: id);
+      },
+    ),
+    GoRoute(
+      path: '/active-journey',
+      builder: (context, state) {
+        final booking = state.extra as BookingModel?;
+        return ActiveJourneyScreen(initialBooking: booking);
+      },
+    ),
+    GoRoute(
+      path: '/journey-completed',
+      builder: (context, state) {
+        final booking = state.extra as BookingModel?;
+        return JourneyCompletedScreen(booking: booking);
+      },
+    ),
+    GoRoute(
+      path: '/trip-safety',
+      builder: (context, state) => const TripSafetyScreen(),
+    ),
+    GoRoute(
+      path: '/live-tracking',
+      builder: (context, state) => const LiveRideTrackingScreen(),
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/saved-places',
+      builder: (context, state) => const SavedPlacesScreen(),
+    ),
+    GoRoute(
+      path: '/ride-history',
+      builder: (context, state) => const RideHistoryScreen(),
+    ),
+    GoRoute(
+      path: '/reviews',
+      builder: (context, state) => const ReviewsRatingsScreen(),
+    ),
+    GoRoute(
+      path: '/payment-methods',
+      builder: (context, state) => const PaymentMethodsScreen(),
+    ),
+    GoRoute(
+      path: '/driver/payout',
+      builder: (context, state) => const DriverPayoutScreen(),
+    ),
+    GoRoute(
+      path: '/driver/payout-account',
+      builder: (context, state) => const PayoutAccountScreen(),
     ),
 
     // Bottom Navigation Shell
