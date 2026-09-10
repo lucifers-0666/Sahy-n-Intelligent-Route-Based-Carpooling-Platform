@@ -407,9 +407,18 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           const Divider(color: AppColors.border, height: 1),
                           _buildNavTile(
+                            icon: Icons.badge_outlined,
+                            title: 'Personal Details & Legal Identity',
+                            subtitle: 'Legal name, verified phone badge, and bio',
+                            onTap: () {
+                              context.push('/personal-details');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
                             icon: Icons.person_outline_rounded,
                             title: 'Edit Profile & Preferences',
-                            subtitle: 'Name, City, Bio, and Travel Preferences',
+                            subtitle: 'City, Bio, and Travel Preferences',
                             onTap: () {
                               context.push('/edit-profile');
                             },
@@ -417,11 +426,11 @@ class ProfileScreen extends ConsumerWidget {
                           const Divider(color: AppColors.border, height: 1),
                           _buildNavTile(
                             icon: Icons.shield_outlined,
-                            title: 'Safety Center & SOS Contacts',
+                            title: 'Safety Center',
                             subtitle:
-                                'Emergency protocols and roadside assistance',
+                                'Trust score, verified documents, and SOS hub',
                             onTap: () {
-                              context.push('/trip-safety');
+                              context.push('/safety-center');
                             },
                           ),
                           const Divider(color: AppColors.border, height: 1),
@@ -439,9 +448,9 @@ class ProfileScreen extends ConsumerWidget {
                             icon: Icons.help_outline_rounded,
                             title: 'Help & Support',
                             subtitle:
-                                'Safety guidelines and assistance information',
+                                'Knowledge hub, FAQ, and priority member desk',
                             onTap: () {
-                              _showHelpDialog(context);
+                              context.push('/help-support');
                             },
                           ),
                         ],
@@ -604,31 +613,6 @@ class ProfileScreen extends ConsumerWidget {
         color: AppColors.textSecondary,
       ),
       onTap: onTap,
-    );
-  }
-
-  void _showHelpDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Help & Support', style: AppTypography.cardTitle),
-        content: Text(
-          'For assistance during your journey, use the Emergency Contacts section to notify your trusted safety circle. Additional customer support channels and route assistance guides will be available in upcoming releases.',
-          style: AppTypography.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'OK',
-              style: AppTypography.button.copyWith(
-                color: AppColors.primaryForest,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

@@ -56,6 +56,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         Icons.chevron_right_rounded,
                         color: AppColors.textSecondary,
                       ),
+                      onTap: () => context.push('/personal-details'),
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.edit_outlined,
+                        color: AppColors.primaryForest,
+                      ),
+                      title: Text(
+                        'Edit Profile & Travel Preferences',
+                        style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'City, bio, and co-traveler preferences',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary,
+                      ),
                       onTap: () => context.push('/edit-profile'),
                     ),
                     const Divider(height: 1, color: AppColors.border),
@@ -254,6 +276,72 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.shield_outlined,
+                        color: AppColors.primaryForest,
+                      ),
+                      title: Text(
+                        'Safety Center & Protocols',
+                        style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'Trust score, verification, and roadside emergency',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                      onTap: () => context.push('/safety-center'),
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.help_outline_rounded,
+                        color: AppColors.primaryForest,
+                      ),
+                      title: Text(
+                        'Help & Support',
+                        style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'FAQ, dispute resolution, and member desk',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                      onTap: () => context.push('/help-support'),
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
+                    ListTile(
+                      leading: const Icon(
+                        Icons.developer_mode_outlined,
+                        color: AppColors.primaryForest,
+                      ),
+                      title: Text(
+                        'System States & Diagnostics',
+                        style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'Test offline mode, refunds, and edge scenarios',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                      onTap: () => context.push('/system-states'),
                     ),
                   ],
                 ),

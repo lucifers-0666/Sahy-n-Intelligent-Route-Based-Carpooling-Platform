@@ -1122,27 +1122,67 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
     }
 
     if (ride.isActive) {
-      return SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryForest,
-            foregroundColor: AppColors.white,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadii.sm),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 280;
+          final hudBtn = OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+              side: const BorderSide(color: AppColors.primaryForest),
             ),
-          ),
-          icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
-          label: Text(
-            'Complete Trip',
-            style: AppTypography.caption.copyWith(
-              color: AppColors.white,
-              fontWeight: FontWeight.bold,
+            icon: const Icon(Icons.navigation_rounded, size: 16, color: AppColors.primaryForest),
+            label: Text(
+              'Drive HUD',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.primaryForest,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          onPressed: () => _confirmCompleteTrip(ride),
-        ),
+            onPressed: () => context.push('/driver/active-ride', extra: ride),
+          );
+
+          final completeBtn = ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryForest,
+              foregroundColor: AppColors.white,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+            ),
+            icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+            label: Text(
+              'Complete Trip',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            onPressed: () => _confirmCompleteTrip(ride),
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                hudBtn,
+                const SizedBox(height: 6),
+                completeBtn,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: hudBtn),
+              const SizedBox(width: 8),
+              Expanded(child: completeBtn),
+            ],
+          );
+        },
       );
     }
 
@@ -1282,6 +1322,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
           ),
         );
         ref.read(driverRequestsNotifierProvider.notifier).fetchDriverRequests();
+        context.push('/driver/active-ride', extra: ride);
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

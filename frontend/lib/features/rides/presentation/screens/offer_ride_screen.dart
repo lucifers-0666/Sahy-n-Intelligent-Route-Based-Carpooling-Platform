@@ -154,80 +154,8 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
       final ride = await ref.read(offerRideProvider.notifier).publishRide();
       if (!mounted) return;
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              const Icon(
-                Icons.check_circle,
-                color: Color(0xFF2E6B4B),
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Journey Published',
-                style: AppTypography.cardTitle.copyWith(
-                  color: AppColors.deepForest,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Your carpool journey from ${ride.origin.name} to ${ride.destination.name} has been published successfully.',
-                style: AppTypography.bodyMedium,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Departure: ${DateFormat('dd MMM yyyy').format(ride.dateTime)} at ${ride.departureTime}',
-                style: AppTypography.secondary,
-              ),
-              Text(
-                'Seats: ${ride.availableSeats} | ₹${ride.contributionPerSeat.toStringAsFixed(0)} per seat',
-                style: AppTypography.secondary,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                ref.read(offerRideProvider.notifier).reset();
-                context.push('/driver/rides');
-              },
-              child: const Text(
-                'View My Rides',
-                style: TextStyle(color: AppColors.primaryForest),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryForest,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                ref.read(offerRideProvider.notifier).reset();
-                context.go('/home');
-              },
-              child: const Text(
-                'Done',
-                style: TextStyle(color: AppColors.white),
-              ),
-            ),
-          ],
-        ),
-      );
+      ref.read(offerRideProvider.notifier).reset();
+      context.pushReplacement('/ride-published', extra: ride);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

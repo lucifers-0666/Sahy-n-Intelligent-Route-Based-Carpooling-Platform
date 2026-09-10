@@ -131,17 +131,29 @@ class BookingConfirmationScreen extends ConsumerWidget {
               const SizedBox(height: 28),
 
               PrimaryButton(
+                text: 'Track Booking Request',
+                onPressed: () {
+                  context.push('/booking-request', extra: booking);
+                },
+              ),
+              const SizedBox(height: 12),
+              SecondaryButton(
                 text: 'View My Bookings',
                 onPressed: () {
                   context.go('/my-bookings');
                 },
               ),
               const SizedBox(height: 12),
-              SecondaryButton(
-                text: 'Back to Home',
+              TextButton(
                 onPressed: () {
                   context.go('/home');
                 },
+                child: Text(
+                  'Back to Home',
+                  style: AppTypography.button.copyWith(
+                    color: AppColors.primaryForest,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
             ],

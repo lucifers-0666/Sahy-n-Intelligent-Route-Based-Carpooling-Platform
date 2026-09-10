@@ -132,6 +132,18 @@ class TripSafetyScreen extends StatelessWidget {
                 },
               ),
 
+              const SizedBox(height: AppSpacing.sm),
+
+              // Safety Center Hub
+              _buildActionTile(
+                context,
+                icon: Icons.health_and_safety_outlined,
+                title: 'Comprehensive Safety Center',
+                subtitle:
+                    'Explore our safety toolkit, audio recording, 24/7 hotline, and guidelines',
+                onTap: () => context.push('/safety-center'),
+              ),
+
               const SizedBox(height: AppSpacing.lg),
 
               Text(

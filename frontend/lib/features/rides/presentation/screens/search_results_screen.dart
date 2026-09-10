@@ -18,18 +18,6 @@ import '../rides_provider.dart';
 class SearchResultsScreen extends ConsumerWidget {
   const SearchResultsScreen({super.key});
 
-  void _showFilterModal(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
-      ),
-      builder: (ctx) => const SearchFiltersBottomSheet(),
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final query = ref.watch(rideSearchQueryProvider);
@@ -116,7 +104,7 @@ class SearchResultsScreen extends ConsumerWidget {
                   size: 20,
                 ),
                 tooltip: 'Filter Search',
-                onPressed: () => _showFilterModal(context, ref),
+                onPressed: () => context.push('/filter-rides'),
               ),
             ),
           ),

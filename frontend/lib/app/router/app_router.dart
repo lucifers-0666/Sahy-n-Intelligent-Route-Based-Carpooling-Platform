@@ -44,6 +44,17 @@ import 'package:sahyan/features/rides/presentation/screens/ride_history_screen.d
 import 'package:sahyan/features/payments/presentation/screens/payment_methods_screen.dart';
 import 'package:sahyan/features/payments/presentation/screens/driver_payout_screen.dart';
 import 'package:sahyan/features/payments/presentation/screens/payout_account_screen.dart';
+import 'package:sahyan/features/auth/presentation/screens/auth_success_screen.dart';
+import 'package:sahyan/features/profile/presentation/screens/personal_details_screen.dart';
+import 'package:sahyan/features/rides/presentation/screens/filter_rides_screen.dart';
+import 'package:sahyan/features/rides/presentation/screens/ride_published_screen.dart';
+import 'package:sahyan/features/rides/domain/ride_model.dart';
+import 'package:sahyan/features/bookings/presentation/screens/booking_request_screen.dart';
+import 'package:sahyan/features/bookings/presentation/screens/cancel_booking_screen.dart';
+import 'package:sahyan/features/trip/presentation/screens/driver_active_ride_screen.dart';
+import 'package:sahyan/features/trip/presentation/screens/safety_center_screen.dart';
+import 'package:sahyan/features/settings/presentation/screens/help_support_screen.dart';
+import 'package:sahyan/features/home/presentation/screens/system_states_screen.dart';
 import 'package:sahyan/shared/widgets/app_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -207,6 +218,58 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/driver/payout-account',
       builder: (context, state) => const PayoutAccountScreen(),
+    ),
+    GoRoute(
+      path: '/auth-success',
+      builder: (context, state) => const AuthSuccessScreen(),
+    ),
+    GoRoute(
+      path: '/personal-details',
+      builder: (context, state) => const PersonalDetailsScreen(),
+    ),
+    GoRoute(
+      path: '/filter-rides',
+      builder: (context, state) => const FilterRidesScreen(),
+    ),
+    GoRoute(
+      path: '/booking-request',
+      builder: (context, state) {
+        final booking = state.extra as BookingModel?;
+        return BookingRequestScreen(initialBooking: booking);
+      },
+    ),
+    GoRoute(
+      path: '/cancel-booking',
+      builder: (context, state) {
+        final booking = state.extra as BookingModel?;
+        return CancelBookingScreen(initialBooking: booking);
+      },
+    ),
+    GoRoute(
+      path: '/ride-published',
+      builder: (context, state) {
+        final ride = state.extra as RideModel?;
+        return RidePublishedScreen(publishedRide: ride);
+      },
+    ),
+    GoRoute(
+      path: '/driver/active-ride',
+      builder: (context, state) {
+        final ride = state.extra as RideModel?;
+        return DriverActiveRideScreen(initialRide: ride);
+      },
+    ),
+    GoRoute(
+      path: '/safety-center',
+      builder: (context, state) => const SafetyCenterScreen(),
+    ),
+    GoRoute(
+      path: '/help-support',
+      builder: (context, state) => const HelpSupportScreen(),
+    ),
+    GoRoute(
+      path: '/system-states',
+      builder: (context, state) => const SystemStatesScreen(),
     ),
 
     // Bottom Navigation Shell

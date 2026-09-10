@@ -73,7 +73,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     if (success && mounted) {
       ref.read(userModeProvider.notifier).clearGuestMode();
       final destination =
-          ref.read(userModeProvider).pendingProtectedIntent ?? '/home';
+          ref.read(userModeProvider).pendingProtectedIntent ?? '/auth-success';
       ref.read(userModeProvider.notifier).clearPendingIntent();
       context.go(destination);
     } else if (mounted) {

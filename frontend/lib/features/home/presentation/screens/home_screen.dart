@@ -311,7 +311,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 subtitle: 'Protocols & SOS',
                 badgeColor: AppColors.softForest,
                 iconColor: AppColors.primaryForest,
-                onTap: () => context.push('/trip-safety'),
+                onTap: () => context.push('/safety-center'),
               ),
             ),
           ],

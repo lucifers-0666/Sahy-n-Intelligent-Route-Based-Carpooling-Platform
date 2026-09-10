@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/rating_display.dart';
@@ -29,7 +28,6 @@ class BookingDetailsScreen extends ConsumerStatefulWidget {
 
 class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
   late BookingModel _booking;
-  bool _isCancelling = false;
 
   @override
   void initState() {
@@ -76,95 +74,6 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
       }
     } catch (_) {
       // Keep existing data on transient offline error
-    }
-  }
-
-  Future<void> _handleCancelBooking() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: AppColors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-            side: const BorderSide(color: AppColors.border),
-          ),
-          title: Text(
-            'Cancel Seat Request?',
-            style: AppTypography.sectionHeader,
-          ),
-          content: Text(
-            'Are you sure you want to cancel this booking request? Your reserved capacity will be released back to the driver.',
-            style: AppTypography.bodyMedium,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(
-                'Keep Request',
-                style: AppTypography.button.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.mutedRust,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                ),
-                elevation: 0,
-              ),
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: const Text('Cancel Request'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmed != true) return;
-
-    setState(() => _isCancelling = true);
-
-    try {
-      final cancelled = await ref
-          .read(bookingsNotifierProvider.notifier)
-          .cancelBooking(_booking.id);
-
-      if (!mounted) return;
-
-      setState(() {
-        _isCancelling = false;
-        _booking = cancelled;
-      });
-
-      ref.read(selectedBookingProvider.notifier).state = cancelled;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Booking request cancelled. Reserved seats released.',
-            style: AppTypography.bodyMedium.copyWith(color: AppColors.white),
-          ),
-          backgroundColor: AppColors.primaryForest,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _isCancelling = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceAll('Exception: ', ''),
-            style: AppTypography.bodyMedium.copyWith(color: AppColors.white),
-          ),
-          backgroundColor: AppColors.mutedRust,
-        ),
-      );
     }
   }
 
@@ -629,8 +538,13 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                   SahyanButton(
                     text: 'Cancel Request',
                     variant: SahyanButtonVariant.destructive,
-                    isLoading: _isCancelling,
-                    onPressed: _handleCancelBooking,
+                    isLoading: false,
+                    onPressed: () async {
+                      await context.push('/cancel-booking', extra: _booking);
+                      if (mounted) {
+                        _refreshBooking();
+                      }
+                    },
                   ),
                   const SizedBox(height: AppSpacing.base),
                 ],
