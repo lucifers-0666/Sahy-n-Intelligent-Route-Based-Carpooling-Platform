@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
@@ -9,13 +8,16 @@ import 'package:sahyan/app/theme/app_spacing.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';
+import 'package:sahyan/core/widgets/sahyan_app_bar.dart';
 import 'package:sahyan/core/widgets/sahyan_avatar.dart';
 import 'package:sahyan/core/widgets/sahyan_card.dart';
+import 'package:sahyan/core/widgets/sahyan_match_score_badge.dart';
 import 'package:sahyan/core/widgets/sahyan_status_badge.dart';
 import 'package:sahyan/core/widgets/verification_badge.dart';
+import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
+import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_sheet.dart';
 import 'package:sahyan/features/rides/presentation/widgets/route_map_preview.dart';
-import 'package:sahyan/features/rides/presentation/widgets/route_match_breakdown_widget.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
 import '../rides_provider.dart';
@@ -31,9 +33,7 @@ class RideDetailsScreen extends ConsumerWidget {
     if (ride == null) {
       return Scaffold(
         backgroundColor: AppColors.warmBackground,
-        appBar: AppBar(
-          title: Text('Ride Overview', style: AppTypography.sectionHeader),
-        ),
+        appBar: const SahyanAppBar(title: 'Ride Overview'),
         body: const Center(child: Text('No ride selected')),
       );
     }
@@ -44,117 +44,48 @@ class RideDetailsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => context.pop(),
-        ),
-        title: Text('Ride Overview', style: AppTypography.sectionHeader),
-      ),
+      appBar: const SahyanAppBar(title: 'Ride Overview'),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Match engine info from search (if available)
-            if (searchResult != null)
+            // Match breakdown card if search match details are available
+            if (searchResult?.match != null) ...[
+              SahyanMatchScoreBreakdownCard(matchDetails: searchResult!.match!),
+              const SizedBox(height: AppSpacing.md),
+            ] else if (searchResult != null) ...[
               Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
                   color: AppColors.softForest,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadii.card),
                   border: Border.all(
                     color: AppColors.primaryForest.withValues(alpha: 0.3),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        if (searchResult.match != null) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryForest,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${searchResult.match!.score}% Match',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              searchResult.match!.grade,
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.deepForest,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              minimumSize: const Size(50, 24),
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            ),
-                            onPressed: () =>
-                                RouteMatchBreakdownWidget.showModal(
-                                  context,
-                                  searchResult.match!,
-                                ),
-                            child: Text(
-                              'Why this match?',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.primaryForest,
-                                fontWeight: FontWeight.bold,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ] else ...[
-                          const Icon(
-                            Icons.near_me_rounded,
-                            color: AppColors.primaryForest,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Preliminary Proximity Match',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.primaryForest,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
+                    const Icon(
+                      Icons.near_me_rounded,
+                      color: AppColors.primaryForest,
+                      size: 20,
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      searchResult.match != null &&
-                              searchResult.match!.reasons.isNotEmpty
-                          ? searchResult.match!.reasons.first
-                          : searchResult.matchPreview,
-                      style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.deepForest,
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        searchResult.matchPreview,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.deepForest,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: AppSpacing.md),
+            ],
 
             // Route Map Preview Canvas
             RouteMapPreview(
@@ -164,7 +95,7 @@ class RideDetailsScreen extends ConsumerWidget {
               height: 200,
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Driver Profile Header Card
             SahyanCard(
@@ -204,7 +135,7 @@ class RideDetailsScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Journey Route Card
             SahyanCard(
@@ -229,7 +160,7 @@ class RideDetailsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(departureFormatted, style: AppTypography.caption),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -343,44 +274,77 @@ class RideDetailsScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
-            // Vehicle Information Card
+            // Vehicle Information Card with Sahyān Vehicle System
             SahyanCard(
               padding: AppSpacing.paddingCard,
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    width: 72,
+                    height: 48,
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppColors.warmBackground,
+                      color: AppColors.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(AppRadii.md),
+                      border: Border.all(color: AppColors.border),
                     ),
-                    child: const Icon(
-                      Icons.directions_car_rounded,
-                      color: AppColors.primaryForest,
-                      size: 26,
+                    child: VehicleIcon.illustration(
+                      type: ride.vehicle.type,
+                      width: 64,
+                      height: 40,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          ride.vehicle.fullName,
-                          style: AppTypography.bodyLarge.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                ride.vehicle.fullName,
+                                style: AppTypography.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (ride.vehicle.type.isElectric) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.softForest,
+                                  borderRadius: BorderRadius.circular(AppRadii.full),
+                                ),
+                                child: Text(
+                                  'EV',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.primary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Plate: ${ride.vehicle.registrationNumber} • ${ride.vehicle.color}',
+                          '${ride.vehicle.type.displayName} \u2022 Plate: ${ride.vehicle.registrationNumber}',
                           style: AppTypography.secondary,
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: AppSpacing.xs),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -391,7 +355,7 @@ class RideDetailsScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(AppRadii.sm),
                     ),
                     child: Text(
-                      '${ride.availableSeats} of ${ride.totalSeats} seats open',
+                      '${ride.availableSeats} of ${ride.totalSeats} open',
                       style: AppTypography.caption.copyWith(
                         color: AppColors.primaryForest,
                         fontWeight: FontWeight.w600,
@@ -402,7 +366,7 @@ class RideDetailsScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
 
             // Pickup Policy Card
             SahyanCard(
@@ -451,7 +415,7 @@ class RideDetailsScreen extends ConsumerWidget {
             ),
 
             if (ride.amenities.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               SahyanCard(
                 padding: AppSpacing.paddingCard,
                 child: Column(
@@ -493,7 +457,7 @@ class RideDetailsScreen extends ConsumerWidget {
             ],
 
             if (ride.notes != null && ride.notes!.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
               SahyanCard(
                 padding: AppSpacing.paddingCard,
                 child: Column(
@@ -512,7 +476,7 @@ class RideDetailsScreen extends ConsumerWidget {
               ),
             ],
 
-            const SizedBox(height: 30),
+            const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),
@@ -531,7 +495,7 @@ class RideDetailsScreen extends ConsumerWidget {
                 children: [
                   Text('Seat Contribution', style: AppTypography.caption),
                   Text(
-                    '₹${ride.contributionPerSeat.toStringAsFixed(0)}',
+                    '\u20B9${ride.contributionPerSeat.toStringAsFixed(0)}',
                     style: AppTypography.screenTitle.copyWith(
                       color: AppColors.primaryForest,
                     ),
@@ -571,23 +535,24 @@ class RideDetailsScreen extends ConsumerWidget {
       return const PrimaryButton(text: 'Ride Full', isDisabled: true);
     }
 
+    final isGuest = ref.watch(userModeProvider).isGuest;
+
     return PrimaryButton(
       text: 'Request Seat',
-      onPressed: () {
-        final isGuest = ref.read(userModeProvider).isGuest;
+      onPressed: () async {
         if (isGuest) {
-          AuthGateDialog.show(
+          final authed = await AuthGateDialog.show(
             context,
             title: 'Sign In to Request Seat',
             message:
-                'To reserve seats and communicate with verified drivers, please sign in or register.',
-            intendedRoute: '/home',
+                'Create or sign in to your Sahy\u0101n profile to request and confirm seats.',
           );
-          return;
+          if (authed && context.mounted) {
+            RequestSeatBottomSheet.show(context, ride);
+          }
+        } else {
+          RequestSeatBottomSheet.show(context, ride);
         }
-
-        // Open booking request confirmation bottom sheet
-        RequestSeatBottomSheet.show(context, ride);
       },
     );
   }

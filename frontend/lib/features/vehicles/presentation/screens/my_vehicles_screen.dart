@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
+import 'package:sahyan/app/theme/app_radii.dart';
+import 'package:sahyan/app/theme/app_spacing.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
+import 'package:sahyan/core/widgets/sahyan_app_bar.dart';
+import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
+import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
 
 class MyVehiclesScreen extends ConsumerWidget {
@@ -16,17 +21,8 @@ class MyVehiclesScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.warmBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.pop(),
-        ),
-        title: Text('My Vehicles', style: AppTypography.screenTitle),
+      appBar: SahyanAppBar(
+        title: 'My Vehicles',
         actions: [
           IconButton(
             icon: const Icon(Icons.add_rounded, color: AppColors.primaryForest),
@@ -42,7 +38,7 @@ class MyVehiclesScreen extends ConsumerWidget {
           ),
           error: (error, _) => Center(
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -51,18 +47,18 @@ class MyVehiclesScreen extends ConsumerWidget {
                     size: 48,
                     color: AppColors.mutedRust,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'Failed to Load Vehicles',
                     style: AppTypography.screenTitle.copyWith(fontSize: 18),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     error.toString(),
                     style: AppTypography.secondary,
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpacing.md),
                   PrimaryButton(
                     text: 'Try Again',
                     onPressed: () =>
@@ -86,24 +82,25 @@ class MyVehiclesScreen extends ConsumerWidget {
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
+              width: 120,
+              height: 120,
+              decoration: const BoxDecoration(
                 color: AppColors.softForest,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.directions_car_filled_rounded,
-                size: 44,
-                color: AppColors.primaryForest,
+              alignment: Alignment.center,
+              child: const VehicleIcon.illustration(
+                type: VehicleType.sedan,
+                width: 90,
+                height: 56,
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'No Vehicles Registered',
               style: AppTypography.screenTitle.copyWith(fontSize: 20),
@@ -115,7 +112,7 @@ class MyVehiclesScreen extends ConsumerWidget {
               style: AppTypography.secondary.copyWith(fontSize: 14),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: AppSpacing.xl),
             PrimaryButton(
               text: 'Add Your First Vehicle',
               onPressed: () => context.push('/vehicles/add'),
@@ -132,7 +129,7 @@ class MyVehiclesScreen extends ConsumerWidget {
     List<VehicleModel> vehicles,
   ) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -146,20 +143,20 @@ class MyVehiclesScreen extends ConsumerWidget {
             'Active vehicles eligible for route pooling and ride offerings.',
             style: AppTypography.secondary.copyWith(fontSize: 13),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.md),
           ...vehicles.map(
             (vehicle) => Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: _buildVehicleCard(context, ref, vehicle),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               side: const BorderSide(color: AppColors.primaryForest),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadii.button),
               ),
             ),
             icon: const Icon(
@@ -175,7 +172,7 @@ class MyVehiclesScreen extends ConsumerWidget {
             ),
             onPressed: () => context.push('/vehicles/add'),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.lg),
         ],
       ),
     );
@@ -189,12 +186,12 @@ class MyVehiclesScreen extends ConsumerWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadii.card),
         side: const BorderSide(color: AppColors.border, width: 1),
       ),
       color: AppColors.cardBackground,
       child: Padding(
-        padding: const EdgeInsets.all(14.0),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -202,45 +199,72 @@ class MyVehiclesScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 50,
+                  height: 36,
+                  padding: const EdgeInsets.all(2),
                   decoration: BoxDecoration(
-                    color: AppColors.softForest,
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
+                    border: Border.all(color: AppColors.border),
                   ),
-                  child: Icon(
-                    vehicle.vehicleType == 'motorcycle'
-                        ? Icons.two_wheeler_rounded
-                        : Icons.directions_car_rounded,
-                    color: AppColors.primaryForest,
-                    size: 24,
+                  child: VehicleIcon.illustration(
+                    type: vehicle.type,
+                    width: 46,
+                    height: 30,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        vehicle.displayName,
-                        style: AppTypography.screenTitle.copyWith(fontSize: 17),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              vehicle.displayName,
+                              style: AppTypography.screenTitle.copyWith(fontSize: 15),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (vehicle.type.isElectric) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppColors.softForest,
+                                borderRadius: BorderRadius.circular(AppRadii.full),
+                              ),
+                              child: Text(
+                                'EV',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
+                          horizontal: 6,
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.warmBackground,
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(AppRadii.xs),
                           border: Border.all(color: AppColors.border),
                         ),
                         child: Text(
                           vehicle.registrationNumber,
                           style: AppTypography.caption.copyWith(
                             fontWeight: FontWeight.w700,
-                            letterSpacing: 1.1,
+                            letterSpacing: 1.0,
+                            fontSize: 11,
                             color: AppColors.textPrimary,
                           ),
                         ),
@@ -248,16 +272,17 @@ class MyVehiclesScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 6,
+                    vertical: 2,
                   ),
                   decoration: BoxDecoration(
                     color: vehicle.status == 'active'
                         ? AppColors.softForest
                         : AppColors.warmBackground,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(AppRadii.xs),
                   ),
                   child: Text(
                     vehicle.status == 'active' ? 'Active' : 'Inactive',
@@ -266,76 +291,70 @@ class MyVehiclesScreen extends ConsumerWidget {
                           ? AppColors.primaryForest
                           : AppColors.textSecondary,
                       fontWeight: FontWeight.w600,
+                      fontSize: 11,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: AppSpacing.md),
             const Divider(color: AppColors.border, height: 1),
             const SizedBox(height: 10),
             Wrap(
-              spacing: 12,
-              runSpacing: 8,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                _buildDetailChip(
-                  icon: Icons.category_outlined,
-                  label: vehicle.typeDisplay,
+                _buildInfoPill(
+                  Icons.category_outlined,
+                  vehicle.type.displayName,
                 ),
-                _buildDetailChip(
-                  icon: Icons.calendar_today_outlined,
-                  label: '${vehicle.year}',
+                _buildInfoPill(
+                  Icons.airline_seat_recline_normal_rounded,
+                  '${vehicle.seatCapacity} Seats',
                 ),
-                _buildDetailChip(
-                  icon: Icons.palette_outlined,
-                  label: vehicle.color,
-                ),
-                _buildDetailChip(
-                  icon: Icons.airline_seat_recline_normal_rounded,
-                  label: '${vehicle.seatCapacity} Seats',
+                _buildInfoPill(Icons.palette_outlined, vehicle.color),
+                _buildInfoPill(
+                  Icons.calendar_today_outlined,
+                  vehicle.year.toString(),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: AppSpacing.xs,
+              runSpacing: 4,
               children: [
                 TextButton.icon(
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.mutedRust,
-                  ),
-                  icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                  label: const Text('Delete'),
-                  onPressed: () => _confirmDelete(context, ref, vehicle),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 36),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    side: const BorderSide(color: AppColors.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
                   icon: const Icon(
                     Icons.edit_outlined,
-                    size: 18,
-                    color: AppColors.textPrimary,
+                    size: 16,
+                    color: AppColors.primaryForest,
                   ),
                   label: Text(
                     'Edit',
-                    style: AppTypography.button.copyWith(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.primaryForest,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  onPressed: () {
-                    context.push('/vehicles/edit', extra: vehicle);
-                  },
+                  onPressed: () => context.push('/vehicles/edit', extra: vehicle),
+                ),
+                TextButton.icon(
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    size: 16,
+                    color: AppColors.mutedRust,
+                  ),
+                  label: Text(
+                    'Delete',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.mutedRust,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onPressed: () => _confirmDelete(context, ref, vehicle),
                 ),
               ],
             ),
@@ -345,14 +364,27 @@ class MyVehiclesScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDetailChip({required IconData icon, required String label}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: AppColors.textSecondary),
-        const SizedBox(width: 4),
-        Text(label, style: AppTypography.secondary.copyWith(fontSize: 13)),
-      ],
+  Widget _buildInfoPill(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.warmBackground,
+        borderRadius: BorderRadius.circular(AppRadii.xs),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: AppTypography.caption.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -364,41 +396,28 @@ class MyVehiclesScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Vehicle', style: AppTypography.cardTitle),
+        backgroundColor: AppColors.cardBackground,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
+        title: Text('Delete Vehicle', style: AppTypography.screenTitle.copyWith(fontSize: 18)),
         content: Text(
           'Are you sure you want to delete ${vehicle.displayName} (${vehicle.registrationNumber})? This will remove the vehicle from your fleet.',
           style: AppTypography.bodyMedium,
         ),
         actions: [
           TextButton(
+            child: Text('Cancel', style: AppTypography.button.copyWith(color: AppColors.textSecondary)),
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancel',
-              style: AppTypography.button.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.mutedRust,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
+          TextButton(
+            child: Text('Delete', style: AppTypography.button.copyWith(color: AppColors.mutedRust)),
             onPressed: () async {
               Navigator.of(ctx).pop();
               try {
-                await ref
-                    .read(vehiclesProvider.notifier)
-                    .deleteVehicle(vehicle.id);
+                await ref.read(vehiclesProvider.notifier).deleteVehicle(vehicle.id);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        '${vehicle.displayName} deleted successfully',
-                      ),
+                    const SnackBar(
+                      content: Text('Vehicle deleted.'),
                       backgroundColor: AppColors.primaryForest,
                     ),
                   );
@@ -407,17 +426,13 @@ class MyVehiclesScreen extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Failed to delete: ${e.toString()}'),
+                      content: Text(e.toString().replaceAll('ApiException: ', '')),
                       backgroundColor: AppColors.mutedRust,
                     ),
                   );
                 }
               }
             },
-            child: Text(
-              'Delete',
-              style: AppTypography.button.copyWith(color: Colors.white),
-            ),
           ),
         ],
       ),

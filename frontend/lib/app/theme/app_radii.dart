@@ -24,6 +24,10 @@ abstract class AppRadii {
   /// 9999dp - Fully rounded pill shape for status badges and chip selectors
   static const double full = 9999.0;
 
+  /// Standard component aliases
+  static const double card = lg;
+  static const double button = md;
+
   /// BorderRadius presets
   static const BorderRadius radiusXs = BorderRadius.all(Radius.circular(xs));
   static const BorderRadius radiusSm = BorderRadius.all(Radius.circular(sm));

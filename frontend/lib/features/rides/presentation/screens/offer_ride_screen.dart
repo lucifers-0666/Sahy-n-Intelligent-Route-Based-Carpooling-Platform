@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
+import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/rides/presentation/rides_provider.dart';
 import 'package:sahyan/features/rides/presentation/widgets/route_map_preview.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
+import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
@@ -437,12 +439,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                       value: v,
                       child: Row(
                         children: [
-                          Icon(
-                            v.vehicleType.toLowerCase() == 'motorcycle'
-                                ? Icons.two_wheeler
-                                : Icons.directions_car,
-                            size: 18,
-                            color: AppColors.primaryForest,
+                          VehicleIcon.illustration(
+                            type: v.type,
+                            width: 34,
+                            height: 20,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -1044,10 +1044,10 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.directions_car,
-                      size: 16,
-                      color: AppColors.primaryForest,
+                    VehicleIcon.illustration(
+                      type: draft.selectedVehicle?.type ?? VehicleType.sedan,
+                      width: 34,
+                      height: 20,
                     ),
                     const SizedBox(width: 8),
                     Expanded(

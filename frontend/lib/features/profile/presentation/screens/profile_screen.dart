@@ -426,7 +426,7 @@ class ProfileScreen extends ConsumerWidget {
                           const Divider(color: AppColors.border, height: 1),
                           _buildNavTile(
                             icon: Icons.shield_outlined,
-                            title: 'Safety Center',
+                            title: 'Safety Center & SOS Contacts',
                             subtitle:
                                 'Trust score, verified documents, and SOS hub',
                             onTap: () {
@@ -448,9 +448,9 @@ class ProfileScreen extends ConsumerWidget {
                             icon: Icons.help_outline_rounded,
                             title: 'Help & Support',
                             subtitle:
-                                'Knowledge hub, FAQ, and priority member desk',
+                                'Safety guidelines and assistance information',
                             onTap: () {
-                              context.push('/help-support');
+                              _showHelpDialog(context);
                             },
                           ),
                         ],
@@ -613,6 +613,31 @@ class ProfileScreen extends ConsumerWidget {
         color: AppColors.textSecondary,
       ),
       onTap: onTap,
+    );
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Help & Support', style: AppTypography.cardTitle),
+        content: Text(
+          'For assistance during your journey, use the Emergency Contacts section to notify your trusted safety circle. Additional customer support channels and route assistance guides will be available in upcoming releases.',
+          style: AppTypography.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'OK',
+              style: AppTypography.button.copyWith(
+                color: AppColors.primaryForest,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

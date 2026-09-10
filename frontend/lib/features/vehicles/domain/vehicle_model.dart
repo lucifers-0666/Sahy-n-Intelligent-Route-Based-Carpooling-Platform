@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'vehicle_type.dart';
 
 class VehicleModel extends Equatable {
   final String id;
@@ -35,22 +36,9 @@ class VehicleModel extends Equatable {
   String get fullName =>
       color.isNotEmpty ? '$make $model ($color)' : '$make $model';
 
-  String get typeDisplay {
-    switch (vehicleType.toLowerCase()) {
-      case 'hatchback':
-        return 'Hatchback';
-      case 'sedan':
-        return 'Sedan';
-      case 'suv':
-        return 'SUV';
-      case 'motorcycle':
-        return 'Motorcycle';
-      default:
-        return vehicleType.isNotEmpty
-            ? vehicleType[0].toUpperCase() + vehicleType.substring(1)
-            : 'Vehicle';
-    }
-  }
+  VehicleType get type => VehicleTypeExtension.fromString(vehicleType);
+
+  String get typeDisplay => type.displayName;
 
   factory VehicleModel.fromJson(Map<String, dynamic> json) {
     return VehicleModel(

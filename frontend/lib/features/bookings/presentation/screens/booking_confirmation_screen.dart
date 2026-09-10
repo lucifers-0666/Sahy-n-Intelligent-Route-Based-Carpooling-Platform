@@ -5,9 +5,11 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/sahyan_app_bar.dart';
 import '../../../../core/widgets/sahyan_card.dart';
 import '../../../../core/widgets/sahyan_status_badge.dart';
 import '../../../../core/widgets/secondary_button.dart';
+import '../../../../core/widgets/vehicles/vehicle_icon.dart';
 import '../bookings_provider.dart';
 
 class BookingConfirmationScreen extends ConsumerWidget {
@@ -35,10 +37,9 @@ class BookingConfirmationScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text('Request Confirmation', style: AppTypography.screenTitle),
-        elevation: 0,
+      appBar: const SahyanAppBar(
+        title: 'Request Confirmation',
+        showBackButton: false,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -95,7 +96,7 @@ class BookingConfirmationScreen extends ConsumerWidget {
                     children: [
                       _buildDetailRow(
                         'Route',
-                        '$routeOrigin → $routeDest',
+                        '$routeOrigin \u2192 $routeDest',
                         isBold: true,
                       ),
                       const Divider(height: 16, color: AppColors.border),
@@ -103,7 +104,44 @@ class BookingConfirmationScreen extends ConsumerWidget {
                       const Divider(height: 16, color: AppColors.border),
                       _buildDetailRow('Driver', driverName),
                       const Divider(height: 16, color: AppColors.border),
-                      _buildDetailRow('Vehicle', vehicleName),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text('Vehicle', style: AppTypography.secondary),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 3,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                if (ride != null) ...[
+                                  VehicleIcon.illustration(
+                                    type: ride.vehicle.type,
+                                    width: 32,
+                                    height: 20,
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
+                                Flexible(
+                                  child: Text(
+                                    vehicleName,
+                                    style: AppTypography.bodyMedium.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    textAlign: TextAlign.right,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       const Divider(height: 16, color: AppColors.border),
                       _buildDetailRow(
                         'Seats Requested',
@@ -112,12 +150,12 @@ class BookingConfirmationScreen extends ConsumerWidget {
                       const Divider(height: 16, color: AppColors.border),
                       _buildDetailRow(
                         'Contribution Per Seat',
-                        '₹${booking.contributionPerSeat.toStringAsFixed(0)}',
+                        '\u20B9${booking.contributionPerSeat.toStringAsFixed(0)}',
                       ),
                       const Divider(height: 16, color: AppColors.border),
                       _buildDetailRow(
                         'Total Contribution',
-                        '₹${booking.totalContribution.toStringAsFixed(0)}',
+                        '\u20B9${booking.totalContribution.toStringAsFixed(0)}',
                         highlight: true,
                       ),
                       const Divider(height: 16, color: AppColors.border),
@@ -179,15 +217,11 @@ class BookingConfirmationScreen extends ConsumerWidget {
           flex: 3,
           child: Text(
             value,
-            textAlign: TextAlign.right,
             style: AppTypography.bodyMedium.copyWith(
-              fontWeight: (isBold || highlight)
-                  ? FontWeight.bold
-                  : FontWeight.w600,
-              color: highlight
-                  ? AppColors.primaryForest
-                  : AppColors.textPrimary,
+              fontWeight: isBold || highlight ? FontWeight.bold : FontWeight.w500,
+              color: highlight ? AppColors.primaryForest : AppColors.textPrimary,
             ),
+            textAlign: TextAlign.right,
           ),
         ),
       ],

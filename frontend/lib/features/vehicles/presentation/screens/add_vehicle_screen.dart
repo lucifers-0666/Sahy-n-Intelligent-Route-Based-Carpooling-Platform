@@ -3,10 +3,28 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
+import 'package:sahyan/app/theme/app_radii.dart';
+import 'package:sahyan/app/theme/app_spacing.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
 import 'package:sahyan/core/widgets/app_text_field.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
+import 'package:sahyan/core/widgets/sahyan_app_bar.dart';
+import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
+import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(),
+      selection: newValue.selection,
+    );
+  }
+}
 
 class AddVehicleScreen extends ConsumerStatefulWidget {
   const AddVehicleScreen({super.key});
@@ -18,7 +36,7 @@ class AddVehicleScreen extends ConsumerStatefulWidget {
 class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  String _vehicleType = 'hatchback';
+  VehicleType _selectedType = VehicleType.hatchback;
   final _makeController = TextEditingController();
   final _modelController = TextEditingController();
   final _regController = TextEditingController();
@@ -26,14 +44,6 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
   final _colorController = TextEditingController();
   int _seatCapacity = 4;
   bool _isSubmitting = false;
-
-  final List<Map<String, String>> _vehicleTypes = [
-    {'value': 'hatchback', 'label': 'Hatchback'},
-    {'value': 'sedan', 'label': 'Sedan'},
-    {'value': 'suv', 'label': 'SUV'},
-    {'value': 'motorcycle', 'label': 'Motorcycle'},
-    {'value': 'other', 'label': 'Other'},
-  ];
 
   @override
   void dispose() {
@@ -43,6 +53,13 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
     _yearController.dispose();
     _colorController.dispose();
     super.dispose();
+  }
+
+  void _onVehicleTypeChanged(VehicleType type) {
+    setState(() {
+      _selectedType = type;
+      _seatCapacity = type.defaultSeatCapacity;
+    });
   }
 
   Future<void> _submit() async {
@@ -63,7 +80,7 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
           .read(vehiclesProvider.notifier)
           .addVehicle(
             registrationNumber: normalizedReg,
-            vehicleType: _vehicleType,
+            vehicleType: _selectedType.code,
             make: _makeController.text.trim(),
             model: _modelController.text.trim(),
             year: parsedYear,
@@ -102,35 +119,88 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.warmBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_rounded,
-            color: AppColors.textPrimary,
-          ),
-          onPressed: () => context.pop(),
-        ),
-        title: Text('Add Vehicle', style: AppTypography.screenTitle),
-      ),
+      appBar: const SahyanAppBar(title: 'Add Vehicle'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Live Vehicle Illustration Preview Card
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 90,
+                        alignment: Alignment.center,
+                        child: VehicleIcon.illustration(
+                          type: _selectedType,
+                          width: 140,
+                          height: 80,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _selectedType.displayName,
+                            style: AppTypography.bodyLarge.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          if (_selectedType.isElectric) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.softForest,
+                                borderRadius: BorderRadius.circular(AppRadii.full),
+                              ),
+                              child: Text(
+                                'EV',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${_selectedType.categoryGroup.displayName} \u2022 Default Capacity: ${_selectedType.defaultSeatCapacity} seats',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: AppSpacing.md),
+
+                // Form Container
                 Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppRadii.card),
                     side: const BorderSide(color: AppColors.border, width: 1),
                   ),
                   color: AppColors.cardBackground,
                   child: Padding(
-                    padding: const EdgeInsets.all(20.0),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -140,14 +210,14 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Provide accurate details for route matching and rider trust.',
+                          'Select your vehicle category and provide official registration details.',
                           style: AppTypography.secondary.copyWith(fontSize: 13),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.md),
 
-                        // Vehicle Type Dropdown
+                        // Vehicle Type Selector Dropdown with all 19 categories
                         Text(
-                          'Vehicle Type',
+                          'Vehicle Category',
                           style: AppTypography.bodyMedium.copyWith(
                             fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary,
@@ -155,49 +225,59 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
                           decoration: BoxDecoration(
                             color: AppColors.warmBackground,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
                             border: Border.all(color: AppColors.border),
                           ),
                           child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _vehicleType,
+                            child: DropdownButton<VehicleType>(
+                              value: _selectedType,
                               isExpanded: true,
                               icon: const Icon(
                                 Icons.keyboard_arrow_down_rounded,
                                 color: AppColors.textPrimary,
                               ),
-                              items: _vehicleTypes.map((type) {
-                                return DropdownMenuItem<String>(
-                                  value: type['value'],
-                                  child: Text(
-                                    type['label']!,
-                                    style: AppTypography.bodyMedium,
+                              items: VehicleType.values.map((type) {
+                                return DropdownMenuItem<VehicleType>(
+                                  value: type,
+                                  child: Row(
+                                    children: [
+                                      VehicleIcon.illustration(
+                                        type: type,
+                                        width: 32,
+                                        height: 20,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          '${type.displayName} (${type.categoryGroup.displayName})',
+                                          style: AppTypography.bodyMedium.copyWith(
+                                            fontSize: 13,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 );
                               }).toList(),
                               onChanged: (val) {
                                 if (val != null) {
-                                  setState(() {
-                                    _vehicleType = val;
-                                    if (val == 'motorcycle' &&
-                                        _seatCapacity > 1) {
-                                      _seatCapacity = 1;
-                                    }
-                                  });
+                                  _onVehicleTypeChanged(val);
                                 }
                               },
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Make Field
                         AppTextField(
                           label: 'Make',
-                          hint: 'e.g. Maruti Suzuki, Hyundai, Tata',
+                          hint: 'e.g. Maruti Suzuki, Hyundai, Tata, Honda',
                           controller: _makeController,
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) {
@@ -206,12 +286,12 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Model Field
                         AppTextField(
                           label: 'Model',
-                          hint: 'e.g. Swift VXI, Creta, Nexon',
+                          hint: 'e.g. Swift VXI, Creta, Nexon, Activa',
                           controller: _modelController,
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) {
@@ -220,7 +300,7 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Registration Number
                         AppTextField(
@@ -244,7 +324,7 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Year Field
                         AppTextField(
@@ -268,7 +348,7 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Color Field
                         AppTextField(
@@ -282,7 +362,7 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: AppSpacing.md),
 
                         // Seat Capacity Counter
                         Text(
@@ -294,18 +374,18 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Total seats available for co-commuters excluding the driver.',
-                          style: AppTypography.secondary.copyWith(fontSize: 12),
+                          'Number of passenger seats you can offer (excluding driver).',
+                          style: AppTypography.caption,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 10,
+                            vertical: 8,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.warmBackground,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
                             border: Border.all(color: AppColors.border),
                           ),
                           child: Row(
@@ -347,16 +427,12 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                                 icon: const Icon(
                                   Icons.add_circle_outline_rounded,
                                 ),
-                                color:
-                                    _seatCapacity <
-                                        (_vehicleType == 'motorcycle' ? 1 : 8)
+                                color: _seatCapacity < 20
                                     ? AppColors.primaryForest
                                     : AppColors.textSecondary.withValues(
                                         alpha: 0.5,
                                       ),
-                                onPressed:
-                                    _seatCapacity <
-                                        (_vehicleType == 'motorcycle' ? 1 : 8)
+                                onPressed: _seatCapacity < 20
                                     ? () => setState(() => _seatCapacity++)
                                     : null,
                               ),
@@ -367,31 +443,21 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+
+                const SizedBox(height: AppSpacing.lg),
+
+                // Register CTA Button
                 PrimaryButton(
                   text: 'Register Vehicle',
                   isLoading: _isSubmitting,
                   onPressed: _submit,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.lg),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-}
-
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(),
-      selection: newValue.selection,
     );
   }
 }

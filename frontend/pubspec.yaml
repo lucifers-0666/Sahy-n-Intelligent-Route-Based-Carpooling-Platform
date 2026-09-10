@@ -41,6 +41,7 @@ dependencies:
   equatable: ^2.1.0
   flutter_secure_storage: ^11.0.0
   http: ^1.6.0
+  google_maps_flutter: ^2.18.0
 
 dev_dependencies:
   flutter_test:
@@ -64,10 +65,26 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    - assets/icons/vehicles/sedan/
+    - assets/icons/vehicles/hatchback/
+    - assets/icons/vehicles/suv/
+    - assets/icons/vehicles/muv/
+    - assets/icons/vehicles/crossover/
+    - assets/icons/vehicles/luxury_sedan/
+    - assets/icons/vehicles/electric_car/
+    - assets/icons/vehicles/motorcycle/
+    - assets/icons/vehicles/scooter/
+    - assets/icons/vehicles/electric_scooter/
+    - assets/icons/vehicles/bicycle/
+    - assets/icons/vehicles/electric_bicycle/
+    - assets/icons/vehicles/auto_rickshaw/
+    - assets/icons/vehicles/electric_auto_rickshaw/
+    - assets/icons/vehicles/van/
+    - assets/icons/vehicles/mini_van/
+    - assets/icons/vehicles/pickup_truck/
+    - assets/icons/vehicles/tempo/
+    - assets/icons/vehicles/mini_bus/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

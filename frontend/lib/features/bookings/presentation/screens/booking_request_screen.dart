@@ -12,6 +12,7 @@ import '../../../../core/widgets/sahyan_avatar.dart';
 import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../core/widgets/sahyan_card.dart';
 import '../../../../core/widgets/sahyan_status_badge.dart';
+import '../../../../core/widgets/vehicles/vehicle_icon.dart';
 import '../../../../shared/models/location_model.dart';
 import '../../domain/booking_model.dart';
 import '../bookings_provider.dart';
@@ -290,27 +291,38 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                               ),
                             ),
                             if (vehicle != null)
-                              Flexible(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      vehicle.fullName,
-                                      style: AppTypography.caption.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.deepForest,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  VehicleIcon.illustration(
+                                    type: vehicle.type,
+                                    width: 38,
+                                    height: 24,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          vehicle.fullName,
+                                          style: AppTypography.caption.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.deepForest,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          vehicle.registrationNumber,
+                                          style: AppTypography.caption,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      vehicle.registrationNumber,
-                                      style: AppTypography.caption,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                           ],
                         ),

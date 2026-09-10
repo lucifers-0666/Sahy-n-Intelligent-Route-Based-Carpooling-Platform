@@ -104,7 +104,19 @@ class SearchResultsScreen extends ConsumerWidget {
                   size: 20,
                 ),
                 tooltip: 'Filter Search',
-                onPressed: () => context.push('/filter-rides'),
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: AppColors.cardBackground,
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(AppRadii.lg),
+                      ),
+                    ),
+                    builder: (ctx) => const SearchFiltersBottomSheet(),
+                  );
+                },
               ),
             ),
           ),

@@ -7,12 +7,13 @@ import '../../core/widgets/rating_display.dart';
 import '../../core/widgets/sahyan_avatar.dart';
 import '../../core/widgets/sahyan_card.dart';
 import '../../core/widgets/verification_badge.dart';
+import '../../core/widgets/vehicles/vehicle_icon.dart';
 import '../../features/rides/domain/ride_search_result.dart';
 import '../../features/rides/presentation/widgets/route_match_breakdown_widget.dart';
 import '../models/ride_model.dart';
 
 /// Redesigned Sahyān Ride Card matching Figma & Stitch design specifications.
-/// Presents ride details, intelligent match breakdown, route timeline, driver credentials, and pricing.
+/// Presents ride details, intelligent match breakdown, route timeline, vehicle icon, driver credentials, and pricing.
 class RideCard extends StatelessWidget {
   final RideModel ride;
   final RideSearchResult? searchResult;
@@ -31,7 +32,7 @@ class RideCard extends StatelessWidget {
     final proximityBadge = searchResult != null
         ? (searchResult!.pickupDistanceKm <= 1.0
               ? 'Direct Pickup'
-              : 'Pickup ~${searchResult!.pickupDistanceKm} km')
+              : 'Pickup ~${searchResult!.pickupDistanceKm.toStringAsFixed(1)} km')
         : 'Direct Route';
 
     return SahyanCard(
@@ -166,7 +167,7 @@ class RideCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadii.sm),
                 ),
                 child: Text(
-                  '₹${ride.contributionPerSeat.toStringAsFixed(0)} / seat',
+                  '\u20B9${ride.contributionPerSeat.toStringAsFixed(0)} / seat',
                   style: AppTypography.bodyMedium.copyWith(
                     color: AppColors.primaryForest,
                     fontWeight: FontWeight.w800,
@@ -333,7 +334,7 @@ class RideCard extends StatelessWidget {
                               child: Text(
                                 match.reasons.isNotEmpty
                                     ? match.reasons.first
-                                    : '${match.metrics.routeOverlapPercentage}% route overlap · ${match.metrics.pickupDistanceKm} km pickup deviation',
+                                    : '${match.metrics.routeOverlapPercentage}% route overlap \u2022 ${match.metrics.pickupDistanceKm.toStringAsFixed(1)} km pickup deviation',
                                 style: AppTypography.caption.copyWith(
                                   color: AppColors.deepForest,
                                   fontWeight: FontWeight.w600,
@@ -366,7 +367,7 @@ class RideCard extends StatelessWidget {
                         child: Text(
                           match.reasons.isNotEmpty
                               ? match.reasons.first
-                              : '${match.metrics.routeOverlapPercentage}% route overlap · ${match.metrics.pickupDistanceKm} km pickup deviation',
+                              : '${match.metrics.routeOverlapPercentage}% route overlap \u2022 ${match.metrics.pickupDistanceKm.toStringAsFixed(1)} km pickup deviation',
                           style: AppTypography.caption.copyWith(
                             color: AppColors.deepForest,
                             fontWeight: FontWeight.w600,
@@ -388,10 +389,10 @@ class RideCard extends StatelessWidget {
           const Divider(color: AppColors.border, height: 1),
           const SizedBox(height: AppSpacing.md),
 
-          // Footer: Driver Identity & Seats Badge
+          // Footer: Driver Identity, Vehicle Illustration & Seats Badge
           LayoutBuilder(
             builder: (context, constraints) {
-              final isCompact = constraints.maxWidth < 300;
+              final isCompact = constraints.maxWidth < 320;
               final seatsLeftWidget = Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.sm,
@@ -457,7 +458,7 @@ class RideCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                '• ${ride.vehicle.fullName}',
+                                '\u2022 ${ride.vehicle.fullName}',
                                 style: AppTypography.caption.copyWith(
                                   fontSize: 11,
                                   color: AppColors.textSecondary,
@@ -470,6 +471,12 @@ class RideCard extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  VehicleIcon.illustration(
+                    type: ride.vehicle.type,
+                    width: 42,
+                    height: 26,
                   ),
                 ],
               );

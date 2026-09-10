@@ -6,8 +6,11 @@ import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
+import '../../../../core/widgets/sahyan_app_bar.dart';
 import '../../../../core/widgets/sahyan_card.dart';
 import '../../../../core/widgets/seat_selector.dart';
+import '../../../../core/widgets/vehicles/vehicle_icon.dart';
+import '../../../../features/vehicles/domain/vehicle_type.dart';
 import '../rides_provider.dart';
 
 class SeatSelectionScreen extends ConsumerWidget {
@@ -19,9 +22,9 @@ class SeatSelectionScreen extends ConsumerWidget {
     final selectedSeats = ref.watch(selectedSeatsProvider);
 
     if (ride == null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('No ride selected')),
+      return const Scaffold(
+        appBar: SahyanAppBar(title: 'Select Vehicle Seats'),
+        body: Center(child: Text('No ride selected')),
       );
     }
 
@@ -29,33 +32,30 @@ class SeatSelectionScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => context.pop(),
-        ),
-        title: Text('Select Vehicle Seats', style: AppTypography.sectionHeader),
-      ),
+      appBar: const SahyanAppBar(title: 'Select Vehicle Seats'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.containerMargin),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Vehicle Info Card
+            // Vehicle Info Card with VehicleIcon
             SahyanCard(
               padding: AppSpacing.paddingCard,
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                    width: 72,
+                    height: 48,
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppColors.softForest,
+                      color: AppColors.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(AppRadii.md),
+                      border: Border.all(color: AppColors.border),
                     ),
-                    child: const Icon(
-                      Icons.airline_seat_recline_extra_rounded,
-                      color: AppColors.primaryForest,
-                      size: 26,
+                    child: VehicleIcon.illustration(
+                      type: ride.vehicle.type,
+                      width: 64,
+                      height: 40,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -71,7 +71,7 @@ class SeatSelectionScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Available Seats: ${ride.availableSeats} of ${ride.totalSeats}',
+                          '${ride.vehicle.type.displayName} \u2022 Open: ${ride.availableSeats} of ${ride.totalSeats} seats',
                           style: AppTypography.secondary,
                         ),
                       ],
@@ -140,7 +140,7 @@ class SeatSelectionScreen extends ConsumerWidget {
                     style: AppTypography.caption,
                   ),
                   Text(
-                    '₹${totalAmount.toStringAsFixed(0)}',
+                    '\u20B9${totalAmount.toStringAsFixed(0)}',
                     style: AppTypography.screenTitle.copyWith(
                       color: AppColors.primaryForest,
                     ),

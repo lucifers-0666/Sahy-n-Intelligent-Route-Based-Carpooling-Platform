@@ -31,12 +31,9 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text('My Bookings', style: AppTypography.screenTitle),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.transparent,
+      appBar: SahyanAppBar(
+        title: 'My Bookings',
+        showBackButton: false,
         actions: [
           TextButton.icon(
             style: TextButton.styleFrom(
@@ -211,7 +208,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                                       ],
                                     ),
                                     Text(
-                                      '₹${booking.totalContribution.toStringAsFixed(0)}',
+                                      '\u20B9${booking.totalContribution.toStringAsFixed(0)}',
                                       style: AppTypography.cardTitle.copyWith(
                                         color: AppColors.primaryForest,
                                         fontWeight: FontWeight.w700,
@@ -223,7 +220,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
 
                                 // Route
                                 Text(
-                                  '$originName → $destinationName',
+                                  '$originName \u2192 $destinationName',
                                   style: AppTypography.cardTitle,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
@@ -251,19 +248,19 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
 
-                                // Driver and seats
+                                // Driver, Vehicle, and seats
                                 Row(
                                   children: [
                                     if (ride != null) ...[
-                                      const Icon(
-                                        Icons.person_rounded,
-                                        size: 14,
-                                        color: AppColors.textSecondary,
+                                      VehicleIcon.illustration(
+                                        type: ride.vehicle.type,
+                                        width: 32,
+                                        height: 18,
                                       ),
-                                      const SizedBox(width: AppSpacing.xs),
+                                      const SizedBox(width: 6),
                                       Flexible(
                                         child: Text(
-                                          ride.driverName,
+                                          '${ride.driverName} \u2022 ${ride.vehicle.displayName}',
                                           style: AppTypography.secondary,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,

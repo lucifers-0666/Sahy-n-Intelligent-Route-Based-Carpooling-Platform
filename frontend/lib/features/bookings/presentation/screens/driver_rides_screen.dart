@@ -16,6 +16,7 @@ import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
 import 'package:sahyan/features/rides/presentation/rides_provider.dart';
+import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 
 class DriverRidesScreen extends ConsumerStatefulWidget {
@@ -961,6 +962,28 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
                     child: Text(
                       '${ride.availableSeats} of ${ride.totalSeats} seats available',
                       style: AppTypography.caption,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  VehicleIcon.illustration(
+                    type: ride.vehicle.type,
+                    width: 32,
+                    height: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      '${ride.vehicle.fullName} (${ride.vehicle.registrationNumber})',
+                      style: AppTypography.caption.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.deepForest,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),

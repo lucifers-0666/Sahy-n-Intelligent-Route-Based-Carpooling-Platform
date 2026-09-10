@@ -39,12 +39,23 @@ abstract class AppTypography {
     height: 1.3,
   );
 
+  /// Standard Heading 3 alias
+  static TextStyle get h3 => sectionHeader;
+
   /// Card titles within widgets (16sp, 600 SemiBold)
   static TextStyle get cardTitle => GoogleFonts.plusJakartaSans(
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: AppColors.textPrimary,
     height: 1.3,
+  );
+
+  /// Small bold body text
+  static TextStyle get bodySmallBold => GoogleFonts.plusJakartaSans(
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textPrimary,
+    height: 1.35,
   );
 
   /// Field labels above input controls (14sp, 600 SemiBold)

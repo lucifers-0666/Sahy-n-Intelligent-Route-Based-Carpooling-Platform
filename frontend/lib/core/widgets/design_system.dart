@@ -27,3 +27,7 @@ export 'sahyan_text_field.dart';
 export 'seat_selector.dart';
 export 'secondary_button.dart';
 export 'verification_badge.dart';
+export 'sahyan_match_score_badge.dart';
+export 'vehicles/vehicle_icon.dart';
+export 'vehicles/vehicle_painters.dart';
+export 'vehicles/vehicle_map_marker_service.dart';

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/design_system.dart';
+import '../../../vehicles/domain/vehicle_type.dart';
 
 class LiveRideTrackingScreen extends StatelessWidget {
   final String? originName;
   final String? destinationName;
   final String? driverName;
   final String? vehicleInfo;
+  final VehicleType vehicleType;
 
   const LiveRideTrackingScreen({
     super.key,
@@ -14,6 +16,7 @@ class LiveRideTrackingScreen extends StatelessWidget {
     this.destinationName,
     this.driverName,
     this.vehicleInfo,
+    this.vehicleType = VehicleType.sedan,
   });
 
   @override
@@ -21,7 +24,7 @@ class LiveRideTrackingScreen extends StatelessWidget {
     final origin = originName ?? 'Iscon Cross Roads, Ahmedabad';
     final destination = destinationName ?? 'GIFT Tower 1, Gandhinagar';
     final driver = driverName ?? 'Karan Patel';
-    final vehicle = vehicleInfo ?? 'Hyundai Creta • GJ-01-AB-1234';
+    final vehicle = vehicleInfo ?? 'Hyundai Creta \u2022 GJ-01-AB-1234';
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
@@ -52,10 +55,10 @@ class LiveRideTrackingScreen extends StatelessWidget {
                 color: const Color(0xFFE5EBE7),
                 child: Stack(
                   children: [
-                    // Stylized Route Grid Canvas
+                    // Stylized Route Grid Canvas with active vehicle marker
                     CustomPaint(
                       size: Size.infinite,
-                      painter: _RouteMapPainter(),
+                      painter: _RouteMapPainter(type: vehicleType),
                     ),
 
                     // ETA Floating Card at top
@@ -190,7 +193,7 @@ class LiveRideTrackingScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Driver Overview
+                      // Driver Overview with Vehicle Illustration
                       Row(
                         children: [
                           SahyanAvatar(name: driver, radius: 22),
@@ -215,6 +218,12 @@ class LiveRideTrackingScreen extends StatelessWidget {
                               ],
                             ),
                           ),
+                          VehicleIcon.illustration(
+                            type: vehicleType,
+                            width: 44,
+                            height: 28,
+                          ),
+                          const SizedBox(width: 6),
                           IconButton(
                             icon: const Icon(
                               Icons.phone_outlined,
@@ -346,6 +355,10 @@ class LiveRideTrackingScreen extends StatelessWidget {
 }
 
 class _RouteMapPainter extends CustomPainter {
+  final VehicleType type;
+
+  _RouteMapPainter({this.type = VehicleType.sedan});
+
   @override
   void paint(Canvas canvas, Size size) {
     final bgPaint = Paint()..color = const Color(0xFFE9F0EC);
@@ -391,8 +404,22 @@ class _RouteMapPainter extends CustomPainter {
     final destDot = Paint()..color = AppColors.primaryForest;
     final destOffset = Offset(size.width * 0.75, size.height * 0.25);
     canvas.drawCircle(destOffset, 9, destDot);
+
+    // Live Vehicle Marker on Route with Heading
+    final vehiclePos = Offset(size.width * 0.48, size.height * 0.56);
+    canvas.save();
+    canvas.translate(vehiclePos.dx - 22, vehiclePos.dy - 22);
+    final markerPainter = VehicleMarkerPainter(
+      type: type,
+      primaryColor: AppColors.primaryForest,
+      isActive: true,
+      heading: 48.0,
+    );
+    markerPainter.paint(canvas, const Size(44, 44));
+    canvas.restore();
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _RouteMapPainter oldDelegate) =>
+      oldDelegate.type != type;
 }

@@ -56,8 +56,15 @@ abstract class AppColors {
   /// Success State Tint
   static const Color success = Color(0xFF285A4A);
 
-  /// Surface Tint Accent
-  static const Color surfaceTint = Color(0xFF366757);
+  /// Standard design token aliases
+  static const Color primary = primaryForest;
+  static const Color primaryDark = deepForest;
+  static const Color primaryLight = softForest;
+  static const Color accent = mutedBrass;
+  static const Color surface = warmBackground;
+  static const Color surfaceVariant = surfaceContainerLow;
+  static const Color error = mutedRust;
+  static const Color errorContainer = softRust;
 
   /// Transparent
   static const Color transparent = Colors.transparent;
