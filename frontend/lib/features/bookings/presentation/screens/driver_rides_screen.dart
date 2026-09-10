@@ -117,9 +117,17 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: const SahyanAppBar(
+      appBar: SahyanAppBar(
         title: 'Offered Rides & Requests',
-        showBackButton: false,
+        showBackButton: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_rounded, color: AppColors.primaryForest),
+            tooltip: 'Offer a Ride',
+            onPressed: () => context.go('/offer-ride'),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+        ],
       ),
       body: SafeArea(
         child: Column(

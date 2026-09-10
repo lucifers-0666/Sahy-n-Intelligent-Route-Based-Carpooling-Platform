@@ -259,6 +259,14 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
         elevation: 0,
         centerTitle: false,
         actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.list_alt_rounded,
+              color: AppColors.primaryForest,
+            ),
+            tooltip: 'My Offered Rides',
+            onPressed: () => context.push('/driver/rides'),
+          ),
           if (draft.selectedVehicle != null)
             Padding(
               padding: const EdgeInsets.only(right: 16),

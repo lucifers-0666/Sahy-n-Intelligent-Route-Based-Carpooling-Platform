@@ -200,12 +200,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   // App Header with User Avatar & Notification Action
                   HomeHeader(
                     displayName: displayName,
-                    onNotificationTap: () {},
+                    onNotificationTap: () => context.go('/my-bookings'),
+                    onProfileTap: () => context.go('/profile'),
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
                   // Primary Discovery Card: Find a Shared Ride
                   _buildSearchCard(context),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Quick Mobility Services (Dynamically connected sub-screens)
+                  _buildQuickServices(context),
                   const SizedBox(height: AppSpacing.xl),
 
                   // Popular Routes Section Header
@@ -247,6 +252,123 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildQuickServices(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SahyanSectionHeader(
+          title: 'Mobility Services',
+          subtitle: 'Quick access to vehicles, trips, and driver features',
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Row(
+          children: [
+            Expanded(
+              child: _buildServiceTile(
+                icon: Icons.add_circle_outline_rounded,
+                title: 'Offer a Ride',
+                subtitle: 'Share your journey',
+                badgeColor: AppColors.softForest,
+                iconColor: AppColors.primaryForest,
+                onTap: () => context.go('/offer-ride'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _buildServiceTile(
+                icon: Icons.alt_route_rounded,
+                title: 'Driver Trips',
+                subtitle: 'Requests & status',
+                badgeColor: AppColors.softBrass,
+                iconColor: AppColors.mutedBrass,
+                onTap: () => context.push('/driver/rides'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Row(
+          children: [
+            Expanded(
+              child: _buildServiceTile(
+                icon: Icons.directions_car_filled_rounded,
+                title: 'My Vehicles',
+                subtitle: 'Manage fleet',
+                badgeColor: AppColors.surfaceContainerHigh,
+                iconColor: AppColors.deepForest,
+                onTap: () => context.push('/vehicles'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _buildServiceTile(
+                icon: Icons.shield_outlined,
+                title: 'Safety Center',
+                subtitle: 'SOS & emergency',
+                badgeColor: AppColors.softForest,
+                iconColor: AppColors.primaryForest,
+                onTap: () => context.push('/emergency-contacts'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildServiceTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color badgeColor,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return SahyanCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: badgeColor,
+              borderRadius: BorderRadius.circular(AppRadii.sm),
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  subtitle,
+                  style: AppTypography.secondary.copyWith(
+                    fontSize: 11,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

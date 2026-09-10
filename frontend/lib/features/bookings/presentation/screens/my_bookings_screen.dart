@@ -37,6 +37,20 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
+        actions: [
+          TextButton.icon(
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryForest,
+            ),
+            icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+            label: const Text(
+              'Driver Trips',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+            onPressed: () => context.push('/driver/rides'),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+        ],
       ),
       body: SafeArea(
         child: Column(

@@ -11,42 +11,55 @@ import '../../../../core/widgets/sahyan_avatar.dart';
 class HomeHeader extends StatelessWidget {
   final String displayName;
   final VoidCallback? onNotificationTap;
+  final VoidCallback? onProfileTap;
 
   const HomeHeader({
     super.key,
     required this.displayName,
     this.onNotificationTap,
+    this.onProfileTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        SahyanAvatar(name: displayName, radius: 20),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        GestureDetector(
+          onTap: onProfileTap,
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                'Namaste,',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                displayName,
-                style: AppTypography.sectionHeader.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              SahyanAvatar(name: displayName, radius: 20),
+              const SizedBox(width: AppSpacing.md),
             ],
+          ),
+        ),
+        Expanded(
+          child: GestureDetector(
+            onTap: onProfileTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Namaste,',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  displayName,
+                  style: AppTypography.sectionHeader.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
         Container(

@@ -38,28 +38,48 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.person_off_outlined,
-                        size: 48,
-                        color: AppColors.textSecondary,
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: const BoxDecoration(
+                          color: AppColors.softForest,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.account_circle_outlined,
+                          size: 40,
+                          color: AppColors.primaryForest,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Unable to Load Profile',
-                        style: AppTypography.screenTitle.copyWith(fontSize: 18),
+                        'Welcome to Sahyān',
+                        style: AppTypography.screenTitle.copyWith(fontSize: 20),
+                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Please check your connection and reload your profile data.',
+                        'Sign in to access your profile, manage registered vehicles, track emergency contacts, and offer rides.',
                         style: AppTypography.secondary,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       PrimaryButton(
-                        text: 'Retry Loading',
+                        text: 'Sign In / Register',
+                        onPressed: () => context.push('/auth-entry'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextButton(
                         onPressed: () {
                           ref.read(authProvider.notifier).checkAuthStatus();
                         },
+                        child: Text(
+                          'Retry Loading',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
