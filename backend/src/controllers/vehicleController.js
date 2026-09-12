@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
+const Ride = require('../models/Ride');
 
 const ALLOWED_VEHICLE_TYPES = ['hatchback', 'sedan', 'suv', 'motorcycle', 'other'];
 
@@ -14,6 +15,11 @@ const getVehicles = async (req, res, next) => {
     const vehicles = await Vehicle.find({ owner: req.user._id }).sort({ createdAt: -1 });
     return res.status(200).json({
       success: true,
+      message: 'Vehicles retrieved successfully',
+      data: {
+        count: vehicles.length,
+        vehicles,
+      },
       count: vehicles.length,
       vehicles,
     });
@@ -56,6 +62,10 @@ const getVehicleById = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
+      message: 'Vehicle retrieved successfully.',
+      data: {
+        vehicle,
+      },
       vehicle,
     });
   } catch (error) {
@@ -162,6 +172,10 @@ const createVehicle = async (req, res, next) => {
     return res.status(201).json({
       success: true,
       message: 'Vehicle registered successfully.',
+      data: {
+        vehicle,
+        user,
+      },
       vehicle,
       user,
     });
@@ -319,6 +333,9 @@ const updateVehicle = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Vehicle updated successfully.',
+      data: {
+        vehicle,
+      },
       vehicle,
     });
   } catch (error) {
@@ -358,6 +375,18 @@ const deleteVehicle = async (req, res, next) => {
       });
     }
 
+    // Safety rule: Cannot delete a vehicle associated with active or scheduled rides
+    const activeRide = await Ride.findOne({
+      vehicle: id,
+      status: { $in: ['scheduled', 'boarding', 'active'] },
+    });
+    if (activeRide) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete vehicle associated with an active or scheduled ride.',
+      });
+    }
+
     await Vehicle.findByIdAndDelete(id);
 
     // Check if user has any remaining vehicles
@@ -373,6 +402,10 @@ const deleteVehicle = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Vehicle deleted successfully.',
+      data: {
+        remainingVehicles: remainingCount,
+        user,
+      },
       remainingVehicles: remainingCount,
       user,
     });

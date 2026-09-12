@@ -114,6 +114,9 @@ const register = async (req, res, next) => {
     return res.status(201).json({
       success: true,
       message: 'Registration successful. OTP sent for verification.',
+      data: {
+        user: user.toJSON(),
+      },
       user: user.toJSON(),
     });
   } catch (error) {
@@ -172,7 +175,31 @@ const login = async (req, res, next) => {
       message: 'Login successful',
       accessToken: token,
       token,
+      data: {
+        token,
+        accessToken: token,
+        user: user.toJSON(),
+      },
       user: user.toJSON(),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/auth/me or /api/v1/auth/me
+ */
+const getMe = async (req, res, next) => {
+  try {
+    const user = req.user.toJSON ? req.user.toJSON() : req.user;
+    return res.status(200).json({
+      success: true,
+      message: 'Authenticated user profile retrieved successfully',
+      data: {
+        user,
+      },
+      user,
     });
   } catch (error) {
     next(error);
@@ -383,6 +410,7 @@ const resetPassword = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  getMe,
   sendOtp,
   verifyOtp,
   forgotPassword,

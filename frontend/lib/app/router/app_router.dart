@@ -73,6 +73,7 @@ final appRouter = GoRouter(
       builder: (context, state) => const AuthDecisionScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
     GoRoute(
       path: '/register',
       builder: (context, state) => const RegisterScreen(),
@@ -301,7 +302,11 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/offer-ride',
-              builder: (context, state) => const OfferRideScreen(),
+              builder: (context, state) => const PublishRideScreen(),
+            ),
+            GoRoute(
+              path: '/publish-ride',
+              builder: (context, state) => const PublishRideScreen(),
             ),
           ],
         ),
@@ -310,7 +315,11 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/my-bookings',
-              builder: (context, state) => const MyBookingsScreen(),
+              builder: (context, state) => const BookingsHubScreen(),
+            ),
+            GoRoute(
+              path: '/bookings-hub',
+              builder: (context, state) => const BookingsHubScreen(),
             ),
           ],
         ),
@@ -319,7 +328,11 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/profile',
-              builder: (context, state) => const ProfileScreen(),
+              builder: (context, state) => const ProfileSafetyScreen(),
+            ),
+            GoRoute(
+              path: '/profile/safety',
+              builder: (context, state) => const ProfileSafetyScreen(),
             ),
           ],
         ),

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/core/widgets/sahyan_match_score_badge.dart';
 import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
 import 'package:sahyan/core/widgets/vehicles/vehicle_map_marker_service.dart';
-import 'package:sahyan/core/widgets/vehicles/vehicle_painters.dart';
 import 'package:sahyan/features/rides/domain/ride_search_result.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';

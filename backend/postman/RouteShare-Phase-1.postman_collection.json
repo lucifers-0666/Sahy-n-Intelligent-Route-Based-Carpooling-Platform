@@ -1,0 +1,420 @@
+{
+  "info": {
+    "_postman_id": "routeshare-phase1-collection-mvp",
+    "name": "RouteShare / Sahyan - Phase 1 Core MVP",
+    "description": "Complete MVP backend workflow for Sahyan / RouteShare Intelligent Route-Based Carpooling Platform.\n\nWorkflow:\n1. Health Check\n2. User Registration & Login (Driver & Passenger)\n3. Vehicle Registration & Management\n4. Ride Creation, Listing & Intelligent Search\n5. Booking Lifecycle (Request, View, Approve/Reject, Cancel)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "02. Auth - Register Driver",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.success && res.data && res.data.user) {",
+              "    pm.environment.set('driverId', res.data.user._id || res.data.user.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Aarav Patel\",\n  \"email\": \"aarav.driver@example.com\",\n  \"phone\": \"9876543210\",\n  \"password\": \"Password123@#\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "03. Auth - Login Driver",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.success) {",
+              "    const token = res.token || (res.data && res.data.token) || res.accessToken;",
+              "    pm.environment.set('driverToken', token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"aarav.driver@example.com\",\n  \"password\": \"Password123@#\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "04. Auth - Get Current User (/me)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auth/me",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "me"]
+        }
+      }
+    },
+    {
+      "name": "05. Auth - Register Passenger",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.success && res.data && res.data.user) {",
+              "    pm.environment.set('passengerId', res.data.user._id || res.data.user.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Meera Joshi\",\n  \"email\": \"meera.passenger@example.com\",\n  \"phone\": \"9876543219\",\n  \"password\": \"Password123@#\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "06. Auth - Login Passenger",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.success) {",
+              "    const token = res.token || (res.data && res.data.token) || res.accessToken;",
+              "    pm.environment.set('passengerToken', token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"identifier\": \"meera.passenger@example.com\",\n  \"password\": \"Password123@#\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "07. Vehicles - Register Vehicle",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.success && res.data && res.data.vehicle) {",
+              "    pm.environment.set('vehicleId', res.data.vehicle._id || res.data.vehicle.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"registrationNumber\": \"GJ01CD5678\",\n  \"vehicleType\": \"sedan\",\n  \"make\": \"Hyundai\",\n  \"model\": \"Verna\",\n  \"year\": 2023,\n  \"color\": \"Polar White\",\n  \"seatCapacity\": 4\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/vehicles",
+          "host": ["{{baseUrl}}"],
+          "path": ["vehicles"]
+        }
+      }
+    },
+    {
+      "name": "08. Vehicles - List My Vehicles",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/vehicles",
+          "host": ["{{baseUrl}}"],
+          "path": ["vehicles"]
+        }
+      }
+    },
+    {
+      "name": "09. Vehicles - Get Vehicle By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/vehicles/{{vehicleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["vehicles", "{{vehicleId}}"]
+        }
+      }
+    },
+    {
+      "name": "10. Vehicles - Update Vehicle",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"color\": \"Pearl White\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/vehicles/{{vehicleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["vehicles", "{{vehicleId}}"]
+        }
+      }
+    },
+    {
+      "name": "11. Rides - Create Ride",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.success && res.data && res.data.ride) {",
+              "    pm.environment.set('rideId', res.data.ride._id || res.data.ride.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"vehicleId\": \"{{vehicleId}}\",\n  \"origin\": {\n    \"name\": \"Ahmedabad Iscon Cross Road\",\n    \"latitude\": 23.0225,\n    \"longitude\": 72.5714\n  },\n  \"destination\": {\n    \"name\": \"Vadodara Central Bus Station\",\n    \"latitude\": 22.3072,\n    \"longitude\": 73.1812\n  },\n  \"route\": {\n    \"encodedPolyline\": \"_p~iF~ps|U_ulLnnqC_mqNvxq`@\",\n    \"distanceMeters\": 110000,\n    \"durationSeconds\": 7200\n  },\n  \"departureTime\": \"2026-10-01T08:00:00.000Z\",\n  \"estimatedArrivalTime\": \"2026-10-01T10:00:00.000Z\",\n  \"availableSeats\": 4,\n  \"contributionPerSeat\": 250,\n  \"pickupPolicy\": \"nearby\",\n  \"amenities\": [\"AC\", \"Music\"],\n  \"notes\": \"Comfortable carpooling ride\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/rides",
+          "host": ["{{baseUrl}}"],
+          "path": ["rides"]
+        }
+      }
+    },
+    {
+      "name": "12. Rides - Search Upcoming Rides",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/rides/search?originLat=23.0225&originLng=72.5714&destLat=22.3072&destLng=73.1812&seats=1",
+          "host": ["{{baseUrl}}"],
+          "path": ["rides", "search"],
+          "query": [
+            { "key": "originLat", "value": "23.0225" },
+            { "key": "originLng", "value": "72.5714" },
+            { "key": "destLat", "value": "22.3072" },
+            { "key": "destLng", "value": "73.1812" },
+            { "key": "seats", "value": "1" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "13. Rides - Get Driver Rides (/my-rides)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/rides/my-rides",
+          "host": ["{{baseUrl}}"],
+          "path": ["rides", "my-rides"]
+        }
+      }
+    },
+    {
+      "name": "14. Rides - Get Ride By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/rides/{{rideId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["rides", "{{rideId}}"]
+        }
+      }
+    },
+    {
+      "name": "15. Bookings - Request Booking",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const res = pm.response.json();",
+              "if (res.success && res.data) {",
+              "    pm.environment.set('bookingId', res.data._id || res.data.id);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rideId\": \"{{rideId}}\",\n  \"requestedSeats\": 2,\n  \"passengerNote\": \"Travelling with light backpack\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/bookings",
+          "host": ["{{baseUrl}}"],
+          "path": ["bookings"]
+        }
+      }
+    },
+    {
+      "name": "16. Bookings - Get My Bookings (/my-bookings)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bookings/my-bookings",
+          "host": ["{{baseUrl}}"],
+          "path": ["bookings", "my-bookings"]
+        }
+      }
+    },
+    {
+      "name": "17. Bookings - Driver View Incoming Requests",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bookings/driver/requests",
+          "host": ["{{baseUrl}}"],
+          "path": ["bookings", "driver", "requests"]
+        }
+      }
+    },
+    {
+      "name": "18. Bookings - Driver Confirm/Accept Booking",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{driverToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"confirmed\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/bookings/{{bookingId}}/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["bookings", "{{bookingId}}", "status"]
+        }
+      }
+    },
+    {
+      "name": "19. Bookings - Cancel Booking (Seat Restoration)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{passengerToken}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/bookings/{{bookingId}}/cancel",
+          "host": ["{{baseUrl}}"],
+          "path": ["bookings", "{{bookingId}}", "cancel"]
+        }
+      }
+    }
+  ]
+}

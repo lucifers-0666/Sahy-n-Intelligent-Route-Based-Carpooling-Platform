@@ -5,6 +5,8 @@ import 'app_radii.dart';
 import 'app_spacing.dart';
 import 'app_typography.dart';
 
+export '../../core/theme/app_theme.dart';
+
 /// Sahyān Application Theme configuration.
 /// Applies the standardized Plus Jakarta Sans typography and organic Forest palette.
 abstract class AppTheme {

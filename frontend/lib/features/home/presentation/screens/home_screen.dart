@@ -1,21 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/providers/user_mode_provider.dart';
-import '../../../../app/theme/app_colors.dart';
-import '../../../../app/theme/app_radii.dart';
-import '../../../../app/theme/app_spacing.dart';
-import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/sahyan_button.dart';
-import '../../../../core/widgets/sahyan_card.dart';
-import '../../../../core/widgets/sahyan_section_header.dart';
-import '../../../../core/widgets/sahyan_text_field.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/models/location_model.dart';
+import '../../../../shared/widgets/bento/bento_widgets.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
-import '../widgets/home_header.dart';
-import '../widgets/quick_hub_chips.dart';
-import '../widgets/route_corridor_card.dart';
-import 'package:sahyan/shared/models/location_model.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -26,37 +17,64 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final TextEditingController _originController = TextEditingController(
-    text: 'Ahmedabad',
+    text: 'SG Highway, Ahmedabad',
   );
   final TextEditingController _destinationController = TextEditingController(
-    text: 'Rajkot',
+    text: 'Rajkot, Kalawad Road',
   );
 
-  LocationModel? _originLocation = LocationModel.fromCoordinates(
-    name: 'Ahmedabad',
+  LocationModel _originLocation = LocationModel.fromCoordinates(
+    name: 'SG Highway, Ahmedabad',
     latitude: 23.0225,
     longitude: 72.5714,
   );
-  LocationModel? _destinationLocation = LocationModel.fromCoordinates(
-    name: 'Rajkot',
+  LocationModel _destinationLocation = LocationModel.fromCoordinates(
+    name: 'Rajkot, Kalawad Road',
     latitude: 22.3039,
     longitude: 70.8022,
   );
 
-  int _selectedSeats = 1;
+  int _selectedSeats = 2;
   DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.fromDateTime(
-    DateTime.now().add(const Duration(hours: 1)),
-  );
+  TimeOfDay _selectedTime = const TimeOfDay(hour: 17, minute: 30);
 
-  static const List<Map<String, dynamic>> _popularHubs = [
-    {'name': 'Bhuj', 'lat': 23.2420, 'lng': 69.6669},
-    {'name': 'Anjar', 'lat': 23.1132, 'lng': 70.0278},
-    {'name': 'Gandhidham', 'lat': 23.0753, 'lng': 70.1337},
-    {'name': 'Ahmedabad', 'lat': 23.0225, 'lng': 72.5714},
-    {'name': 'Rajkot', 'lat': 22.3039, 'lng': 70.8022},
-    {'name': 'Vadodara', 'lat': 22.3072, 'lng': 73.1812},
-    {'name': 'Surat', 'lat': 21.1702, 'lng': 72.8311},
+  static const List<Map<String, dynamic>> _quickCorridors = [
+    {
+      'from': 'Bhuj',
+      'to': 'Ahmedabad',
+      'price': 388,
+      'fromLat': 23.2420,
+      'fromLng': 69.6669,
+      'toLat': 23.0225,
+      'toLng': 72.5714,
+    },
+    {
+      'from': 'Rajkot',
+      'to': 'Surat',
+      'price': 520,
+      'fromLat': 22.3039,
+      'fromLng': 70.8022,
+      'toLat': 21.1702,
+      'toLng': 72.8311,
+    },
+    {
+      'from': 'Baroda',
+      'to': 'Ahmedabad',
+      'price': 180,
+      'fromLat': 22.3072,
+      'fromLng': 73.1812,
+      'toLat': 23.0225,
+      'toLng': 72.5714,
+    },
+    {
+      'from': 'Morbi',
+      'to': 'Rajkot',
+      'price': 120,
+      'fromLat': 22.8120,
+      'fromLng': 70.8370,
+      'toLat': 22.3039,
+      'toLng': 70.8022,
+    },
   ];
 
   @override
@@ -67,6 +85,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   void _swapLocations() {
+    HapticFeedback.mediumImpact();
     setState(() {
       final tempText = _originController.text;
       _originController.text = _destinationController.text;
@@ -78,588 +97,870 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  void _selectQuickCorridor(Map<String, dynamic> corridor) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _originController.text = corridor['from'] as String;
+      _destinationController.text = corridor['to'] as String;
+      _originLocation = LocationModel.fromCoordinates(
+        name: corridor['from'] as String,
+        latitude: corridor['fromLat'] as double,
+        longitude: corridor['fromLng'] as double,
+      );
+      _destinationLocation = LocationModel.fromCoordinates(
+        name: corridor['to'] as String,
+        latitude: corridor['toLat'] as double,
+        longitude: corridor['toLng'] as double,
+      );
+    });
+  }
+
+  Future<void> _pickDateTime() async {
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: SahyanColors.primaryDark,
+              onPrimary: Colors.white,
+              surface: SahyanColors.surface,
+              onSurface: SahyanColors.textMain,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null && mounted) {
+      final pickedTime = await showTimePicker(
+        context: context,
+        initialTime: _selectedTime,
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: SahyanColors.primaryDark,
+                onPrimary: Colors.white,
+                surface: SahyanColors.surface,
+                onSurface: SahyanColors.textMain,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null && mounted) {
+        setState(() {
+          _selectedDate = pickedDate;
+          _selectedTime = pickedTime;
+        });
+      }
+    }
+  }
+
   void _handleSearch() {
+    HapticFeedback.mediumImpact();
     final originText = _originController.text.trim();
     final destText = _destinationController.text.trim();
 
     if (originText.isEmpty || destText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter both origin and destination locations.'),
-          backgroundColor: AppColors.mutedRust,
+          content: Text('Please specify both origin and destination corridors.'),
+          backgroundColor: SahyanColors.urgentCoral,
         ),
       );
       return;
     }
 
-    LocationModel? originLoc = _originLocation;
-    if (originLoc == null || originLoc.latitude == 0.0) {
-      final originHub = _popularHubs.firstWhere(
-        (h) => originText.toLowerCase().contains(
-          (h['name'] as String).toLowerCase(),
-        ),
-        orElse: () => {'name': originText, 'lat': 0.0, 'lng': 0.0},
-      );
-      if ((originHub['lat'] as num) != 0.0) {
-        originLoc = LocationModel.fromCoordinates(
-          name: originText,
-          latitude: (originHub['lat'] as num).toDouble(),
-          longitude: (originHub['lng'] as num).toDouble(),
-        );
-      }
-    }
-
-    LocationModel? destLoc = _destinationLocation;
-    if (destLoc == null || destLoc.latitude == 0.0) {
-      final destHub = _popularHubs.firstWhere(
-        (h) => destText.toLowerCase().contains(
-          (h['name'] as String).toLowerCase(),
-        ),
-        orElse: () => {'name': destText, 'lat': 0.0, 'lng': 0.0},
-      );
-      if ((destHub['lat'] as num) != 0.0) {
-        destLoc = LocationModel.fromCoordinates(
-          name: destText,
-          latitude: (destHub['lat'] as num).toDouble(),
-          longitude: (destHub['lng'] as num).toDouble(),
-        );
-      }
-    }
+    final depDate = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
 
     ref.read(rideSearchQueryProvider.notifier).state = RideSearchQuery(
-      originLocation: originLoc,
-      destinationLocation: destLoc,
       origin: originText,
       destination: destText,
-      date: _selectedDate,
+      originLocation: _originLocation,
+      destinationLocation: _destinationLocation,
+      date: depDate,
       time: _selectedTime,
       seats: _selectedSeats,
     );
 
-    context.go('/search-results');
-  }
-
-  void _selectPopularRoute(String originName, String destName) {
-    final originHub = _popularHubs.firstWhere(
-      (h) => h['name'] == originName,
-      orElse: () => {'name': originName, 'lat': 23.0225, 'lng': 72.5714},
-    );
-    final destHub = _popularHubs.firstWhere(
-      (h) => h['name'] == destName,
-      orElse: () => {'name': destName, 'lat': 22.3039, 'lng': 70.8022},
-    );
-
-    setState(() {
-      _originController.text = originName;
-      _destinationController.text = destName;
-      _originLocation = LocationModel.fromCoordinates(
-        name: originHub['name'] as String,
-        latitude: (originHub['lat'] as num).toDouble(),
-        longitude: (originHub['lng'] as num).toDouble(),
-      );
-      _destinationLocation = LocationModel.fromCoordinates(
-        name: destHub['name'] as String,
-        latitude: (destHub['lat'] as num).toDouble(),
-        longitude: (destHub['lng'] as num).toDouble(),
-      );
-    });
-
-    _handleSearch();
+    context.push('/search-results');
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    final userMode = ref.watch(userModeProvider);
-    final isGuest = userMode.isGuest && !authState.isAuthenticated;
-    final displayName =
-        (!isGuest &&
-            authState.user != null &&
-            authState.user!.name.trim().isNotEmpty)
-        ? authState.user!.name.trim().split(' ').first
-        : 'Guest Traveler';
+    final user = ref.watch(authProvider).user;
+    final displayName = user?.name.split(' ').first ?? 'Arjun';
 
     return Scaffold(
-      backgroundColor: AppColors.warmBackground,
+      backgroundColor: SahyanColors.canvas,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 600),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.only(
-                left: AppSpacing.containerMargin,
-                right: AppSpacing.containerMargin,
-                top: AppSpacing.md,
-                bottom:
-                    110.0, // Space to avoid floating bottom navigation collision
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // App Header with User Avatar & Notification Action
-                  HomeHeader(
-                    displayName: displayName,
-                    onNotificationTap: () => context.push('/notifications'),
-                    onProfileTap: () => context.go('/profile'),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Primary Discovery Card: Find a Shared Ride
-                  _buildSearchCard(context),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Quick Mobility Services (Dynamically connected sub-screens)
-                  _buildQuickServices(context),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Popular Routes Section Header
-                  SahyanSectionHeader(
-                    title: 'Popular Routes in Gujarat',
-                    subtitle: 'Frequently travelled verified corridors',
-                    actionLabel: 'Explore All',
-                    onActionTap: _handleSearch,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-
-                  // Featured Route Corridor Cards
-                  RouteCorridorCard(
-                    origin: 'Ahmedabad',
-                    destination: 'Rajkot',
-                    price: 'from ₹350',
-                    subtitle: 'NH 47 Express Highway · High frequency',
-                    onTap: () => _selectPopularRoute('Ahmedabad', 'Rajkot'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  RouteCorridorCard(
-                    origin: 'Vadodara',
-                    destination: 'Surat',
-                    price: 'from ₹280',
-                    subtitle: 'Golden Quadrilateral corridor · Direct rides',
-                    onTap: () => _selectPopularRoute('Vadodara', 'Surat'),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  RouteCorridorCard(
-                    origin: 'Bhuj',
-                    destination: 'Gandhidham',
-                    price: 'from ₹150',
-                    subtitle:
-                        'Kutch Intercity transit · Regular morning departures',
-                    onTap: () => _selectPopularRoute('Bhuj', 'Gandhidham'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickServices(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SahyanSectionHeader(
-          title: 'Mobility Services',
-          subtitle: 'Quick access to vehicles, trips, and driver features',
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Row(
-          children: [
-            Expanded(
-              child: _buildServiceTile(
-                icon: Icons.add_circle_outline_rounded,
-                title: 'Offer a Ride',
-                subtitle: 'Share your journey',
-                badgeColor: AppColors.softForest,
-                iconColor: AppColors.primaryForest,
-                onTap: () => context.go('/offer-ride'),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _buildServiceTile(
-                icon: Icons.alt_route_rounded,
-                title: 'Driver Trips',
-                subtitle: 'Requests & status',
-                badgeColor: AppColors.softBrass,
-                iconColor: AppColors.mutedBrass,
-                onTap: () => context.push('/driver/rides'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        Row(
-          children: [
-            Expanded(
-              child: _buildServiceTile(
-                icon: Icons.directions_car_filled_rounded,
-                title: 'My Vehicles',
-                subtitle: 'Manage fleet',
-                badgeColor: AppColors.surfaceContainerHigh,
-                iconColor: AppColors.deepForest,
-                onTap: () => context.push('/vehicles'),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: _buildServiceTile(
-                icon: Icons.shield_outlined,
-                title: 'Safety Center',
-                subtitle: 'Protocols & SOS',
-                badgeColor: AppColors.softForest,
-                iconColor: AppColors.primaryForest,
-                onTap: () => context.push('/safety-center'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildServiceTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color badgeColor,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
-    return SahyanCard(
-      onTap: onTap,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: badgeColor,
-              borderRadius: BorderRadius.circular(AppRadii.sm),
-            ),
-            child: Icon(icon, color: iconColor, size: 18),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.caption.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  subtitle,
-                  style: AppTypography.secondary.copyWith(fontSize: 11),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchCard(BuildContext context) {
-    return SahyanCard(
-      padding: AppSpacing.paddingCardLarge,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Find a Shared Ride',
-                  style: AppTypography.sectionHeader.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 18,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.softForest,
-                  borderRadius: BorderRadius.circular(AppRadii.full),
-                ),
-                child: Text(
-                  'Route Match',
-                  style: AppTypography.caption.copyWith(
-                    color: AppColors.primaryForest,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.base),
-
-          // Route Fields with Visual Indicator & Swap Button
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
+        bottom: false,
+        child: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            // 1. Top Header Bar
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    SahyanTextField(
-                      hint: 'Enter departure city',
-                      controller: _originController,
-                      prefixIcon: const Icon(
-                        Icons.my_location_rounded,
-                        color: AppColors.primaryForest,
-                        size: 20,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  color: SahyanColors.primaryMint,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Flexible(
+                                child: Text(
+                                  'SAHYĀN 2026',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.0,
+                                    color: SahyanColors.primaryDark,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Hey $displayName 👋',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: SahyanColors.textMain,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      onChanged: (val) {
-                        _originLocation = LocationModel.fromCoordinates(
-                          name: val,
-                          latitude: 23.0225,
-                          longitude: 72.5714,
-                        );
-                      },
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    SahyanTextField(
-                      hint: 'Enter destination city',
-                      controller: _destinationController,
-                      prefixIcon: const Icon(
-                        Icons.location_on_rounded,
-                        color: AppColors.mutedBrass,
-                        size: 20,
-                      ),
-                      onChanged: (val) {
-                        _destinationLocation = LocationModel.fromCoordinates(
-                          name: val,
-                          latitude: 22.3039,
-                          longitude: 70.8022,
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              // Swap Button
-              Material(
-                color: AppColors.surfaceContainerLow,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: _swapLocations,
-                  child: const Padding(
-                    padding: EdgeInsets.all(10.0),
-                    child: Icon(
-                      Icons.swap_vert_rounded,
-                      color: AppColors.primaryForest,
-                      size: 22,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-
-          // Quick Hub Suggestions (Horizontally Scrollable without clipping)
-          QuickHubChips(
-            hubs: _popularHubs,
-            selectedHub: _originController.text,
-            onHubSelected: (hub) {
-              setState(() {
-                _originController.text = hub['name'] as String;
-                _originLocation = LocationModel.fromCoordinates(
-                  name: hub['name'] as String,
-                  latitude: (hub['lat'] as num).toDouble(),
-                  longitude: (hub['lng'] as num).toDouble(),
-                );
-              });
-            },
-          ),
-          const SizedBox(height: AppSpacing.base),
-
-          // Date, Time, and Seats Row
-          LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth < 340) {
-                return Column(
-                  children: [
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildParameterCapsule(
-                            icon: Icons.calendar_today_rounded,
-                            label: 'Date',
-                            value:
-                                '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                            onTap: () => _pickDate(context),
-                          ),
+                        // Notification Bell
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Material(
+                              color: SahyanColors.surface,
+                              shape: CircleBorder(
+                                side: const BorderSide(
+                                  color: SahyanColors.border,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: InkWell(
+                                onTap: () => context.push('/notifications'),
+                                customBorder: const CircleBorder(),
+                                child: const Padding(
+                                  padding: EdgeInsets.all(10),
+                                  child: Icon(
+                                    Icons.notifications_outlined,
+                                    size: 20,
+                                    color: SahyanColors.textMain,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              top: 2,
+                              right: 2,
+                              child: Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: SahyanColors.primaryMint,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: _buildParameterCapsule(
-                            icon: Icons.schedule_rounded,
-                            label: 'Time',
-                            value: _selectedTime.format(context),
-                            onTap: () => _pickTime(context),
+                        const SizedBox(width: 10),
+                        // Avatar Badge
+                        GestureDetector(
+                          onTap: () => context.push('/profile'),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: SahyanColors.primaryLight,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: SahyanColors.primaryMint,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  displayName.substring(0, 1).toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: SahyanColors.primaryDark,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: -2,
+                                right: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: const BoxDecoration(
+                                    color: SahyanColors.surface,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.verified_rounded,
+                                    size: 14,
+                                    color: SahyanColors.primaryMint,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildParameterCapsule(
-                      icon: Icons.airline_seat_recline_normal_rounded,
-                      label: 'Seats',
-                      value:
-                          '$_selectedSeats Seat${_selectedSeats > 1 ? 's' : ''}',
-                      onTap: _cycleSeats,
-                    ),
                   ],
-                );
-              }
+                ),
+              ),
+            ),
 
-              return Row(
-                children: [
-                  Expanded(
-                    child: _buildParameterCapsule(
-                      icon: Icons.calendar_today_rounded,
-                      label: 'Date',
-                      value:
-                          '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                      onTap: () => _pickDate(context),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: _buildParameterCapsule(
-                      icon: Icons.schedule_rounded,
-                      label: 'Time',
-                      value: _selectedTime.format(context),
-                      onTap: () => _pickTime(context),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: _buildParameterCapsule(
-                      icon: Icons.airline_seat_recline_normal_rounded,
-                      label: 'Seats',
-                      value:
-                          '$_selectedSeats Seat${_selectedSeats > 1 ? 's' : ''}',
-                      onTap: _cycleSeats,
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: AppSpacing.xl),
-
-          // Primary Search Button
-          SahyanButton(
-            text: 'Search Rides',
-            icon: Icons.search_rounded,
-            variant: SahyanButtonVariant.primary,
-            size: SahyanButtonSize.regular,
-            onPressed: _handleSearch,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildParameterCapsule({
-    required IconData icon,
-    required String label,
-    required String value,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: AppColors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          child: Row(
-            children: [
-              Icon(icon, size: 16, color: AppColors.primaryForest),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      label,
-                      style: AppTypography.caption.copyWith(fontSize: 10),
-                    ),
-                    Text(
-                      value,
-                      style: AppTypography.bodyMedium.copyWith(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                        color: AppColors.textPrimary,
+            // 2. Hero Search Bento Card
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              sliver: SliverToBoxAdapter(
+                child: BentoContainer(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Find a Shared Ride',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.2,
+                                color: SahyanColors.textMain,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: SahyanColors.primaryLight,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'Express',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: SahyanColors.primaryDark,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      const SizedBox(height: 14),
+                      // Origin & Destination with Vertical Line and Inline Swap
+                      CorridorLine(
+                        onFlip: _swapLocations,
+                        originWidget: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: SahyanColors.chipBackground,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: SahyanColors.border, width: 0.8),
+                          ),
+                          child: TextField(
+                            controller: _originController,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: SahyanColors.textMain,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                              hintText: 'Pickup Origin (e.g. SG Highway)',
+                              hintStyle: TextStyle(
+                                color: SahyanColors.textDisabled,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        destinationWidget: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: SahyanColors.chipBackground,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: SahyanColors.border, width: 0.8),
+                          ),
+                          child: TextField(
+                            controller: _destinationController,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: SahyanColors.textMain,
+                            ),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.zero,
+                              hintText: 'Destination (e.g. Kalawad Road)',
+                              hintStyle: TextStyle(
+                                color: SahyanColors.textDisabled,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Quick Corridor Chips Carousel
+                      const Text(
+                        'Popular Routes in Gujarat',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: SahyanColors.textMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: _quickCorridors.map((c) {
+                            final label = '${c['from']} ➔ ${c['to']} · ₹${c['price']}';
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: PillTag(
+                                label: label,
+                                variant: PillTagVariant.neutral,
+                                onTap: () => _selectQuickCorridor(c),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Departure Date/Time & Seat Stepper
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isNarrow = constraints.maxWidth < 280;
+                          if (isNarrow) {
+                            return Column(
+                              children: [
+                                Material(
+                                  color: SahyanColors.chipBackground,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: InkWell(
+                                    onTap: _pickDateTime,
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: SahyanColors.border,
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.calendar_today_rounded,
+                                            size: 16,
+                                            color: SahyanColors.primaryDark,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'Today, ${_selectedTime.format(context)}',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: SahyanColors.textMain,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                StepCounter(
+                                  value: _selectedSeats,
+                                  min: 1,
+                                  max: 6,
+                                  onChanged: (val) => setState(() => _selectedSeats = val),
+                                ),
+                              ],
+                            );
+                          }
+                          return Row(
+                            children: [
+                              Expanded(
+                                child: Material(
+                                  color: SahyanColors.chipBackground,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: InkWell(
+                                    onTap: _pickDateTime,
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: SahyanColors.border,
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.calendar_today_rounded,
+                                            size: 16,
+                                            color: SahyanColors.primaryDark,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              'Today, ${_selectedTime.format(context)}',
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: SahyanColors.textMain,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              StepCounter(
+                                value: _selectedSeats,
+                                min: 1,
+                                max: 6,
+                                onChanged: (val) => setState(() => _selectedSeats = val),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Primary CTA
+                      ElevatedButton(
+                        onPressed: _handleSearch,
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Find Matches'),
+                              SizedBox(width: 8),
+                              Icon(Icons.arrow_forward_rounded, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // 3. Section Title: Gujarat Smart Corridors
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+              sliver: SliverToBoxAdapter(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Gujarat Smart Corridors',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.4,
+                              color: SahyanColors.textMain,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Popular Routes in Gujarat',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: SahyanColors.textMuted,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PillTag(
+                      label: 'Live Mesh',
+                      icon: Icons.hub_rounded,
+                      variant: PillTagVariant.mint,
+                      fontSize: 11,
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // 4. Bento Grid: Live Mesh Card & Telematics
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  // Bento 1: Live Mesh Express Card
+                  BentoContainer(
+                    onTap: () {
+                      _originController.text = 'Ahmedabad SG Highway';
+                      _destinationController.text = 'Rajkot Trikon Baug';
+                      _handleSearch();
+                    },
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Expanded(
+                              child: Text(
+                                'Ahmedabad ➔ Rajkot Express',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: SahyanColors.textMain,
+                                  letterSpacing: -0.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: SahyanColors.primaryLight,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 3,
+                                    backgroundColor: SahyanColors.primaryMint,
+                                  ),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    '94 km/h avg',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: SahyanColors.primaryDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          '12 drivers ready on SG Highway corridor · Next departure in 8 mins',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: SahyanColors.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          alignment: WrapAlignment.spaceBetween,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                PillTag(
+                                  label: 'via NH47 Express',
+                                  variant: PillTagVariant.neutral,
+                                  fontSize: 11,
+                                ),
+                                const SizedBox(width: 6),
+                                PillTag(
+                                  label: 'EV Fastlane',
+                                  variant: PillTagVariant.mint,
+                                  icon: Icons.bolt_rounded,
+                                  fontSize: 11,
+                                ),
+                              ],
+                            ),
+                            const Text(
+                              '₹320',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                color: SahyanColors.primaryDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Bento 2 & 3: Two-Column Mini Bento Row
+                  // Bento 2 & 3: Metric Mini Bentos
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 280;
+                      final co2Card = BentoContainer(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Icon(
+                                  Icons.eco_rounded,
+                                  size: 22,
+                                  color: SahyanColors.primaryMint,
+                                ),
+                                PillTag(
+                                  label: '+24%',
+                                  variant: PillTagVariant.mint,
+                                  fontSize: 10,
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              '14.2 kg',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: SahyanColors.textMain,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'CO₂ Offset This Month',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: SahyanColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      final surgeCard = BentoContainer(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Icon(
+                                  Icons.trending_down_rounded,
+                                  size: 22,
+                                  color: SahyanColors.goldStar,
+                                ),
+                                PillTag(
+                                  label: 'Off-Peak',
+                                  variant: PillTagVariant.gold,
+                                  fontSize: 10,
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Save 18%',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: SahyanColors.textMain,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Smart Surge Drop Active',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: SahyanColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (isNarrow) {
+                        return Column(
+                          children: [
+                            co2Card,
+                            const SizedBox(height: 12),
+                            surgeCard,
+                          ],
+                        );
+                      }
+
+                      return Row(
+                        children: [
+                          Expanded(child: co2Card),
+                          const SizedBox(width: 12),
+                          Expanded(child: surgeCard),
+                        ],
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Bento 4: Live Highway Telematics Card
+                  BentoContainer(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: SahyanColors.primaryLight,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.traffic_rounded,
+                            color: SahyanColors.primaryDark,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Zero Congestion Detected',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: SahyanColors.textMain,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'NH47 Limbdi Toll cleared · Smooth transit flow',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: SahyanColors.textMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 14,
+                          color: SahyanColors.textDisabled,
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  Future<void> _pickDate(BuildContext context) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-    );
-    if (picked != null) {
-      setState(() => _selectedDate = picked);
-    }
-  }
-
-  Future<void> _pickTime(BuildContext context) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime,
-    );
-    if (picked != null) {
-      setState(() => _selectedTime = picked);
-    }
-  }
-
-  void _cycleSeats() {
-    setState(() {
-      _selectedSeats = (_selectedSeats % 4) + 1;
-    });
   }
 }

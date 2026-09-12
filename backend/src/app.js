@@ -19,21 +19,36 @@ app.use(express.urlencoded({ extended: true }));
 // Health Check Endpoints
 const healthHandler = (req, res) => {
   res.status(200).json({
+    success: true,
+    message: 'RouteShare API is running',
     status: 'OK',
     service: 'Sahyān Carpooling API Server',
     version: '1.0.0',
+    data: {
+      environment: process.env.NODE_ENV || 'development',
+    },
     timestamp: new Date().toISOString(),
   });
 };
 app.get('/api/health', healthHandler);
 app.get('/api/v1/health', healthHandler);
 
-// API v1 Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/vehicles', vehicleRoutes);
-app.use('/api/v1/rides', rideRoutes);
-app.use('/api/v1/bookings', bookingRoutes);
+// Mount API routes for both /api and /api/v1 prefixes
+['/api', '/api/v1'].forEach((prefix) => {
+  app.use(`${prefix}/auth`, authRoutes);
+  app.use(`${prefix}/users`, userRoutes);
+  app.use(`${prefix}/vehicles`, vehicleRoutes);
+  app.use(`${prefix}/rides`, rideRoutes);
+  app.use(`${prefix}/bookings`, bookingRoutes);
+});
+
+// Global 404 handler for undefined routes
+app.use((req, res, next) => {
+  res.status(404).json({
+    success: false,
+    message: `Endpoint not found: ${req.method} ${req.originalUrl}`,
+  });
+});
 
 // Centralized Error Handling Middleware
 app.use(errorHandler);

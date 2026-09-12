@@ -383,9 +383,9 @@ exports.getBookingById = async (req, res, next) => {
 };
 
 /**
- * @desc    Cancel a pending booking request
+ * @desc    Cancel a booking request (pending or confirmed/accepted)
  * @route   PATCH /api/v1/bookings/:id/cancel
- * @access  Private (Passenger)
+ * @access  Private (Passenger who booked or Driver of the ride)
  */
 exports.cancelBooking = async (req, res, next) => {
   try {
@@ -400,12 +400,61 @@ exports.cancelBooking = async (req, res, next) => {
 
     const currentUserId = req.user.id.toString();
 
-    // 1. Atomic status transition: only allow if booking is currently pending and owned by current user
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found',
+      });
+    }
+
+    const passengerId = booking.passenger ? booking.passenger.toString() : '';
+    const driverId = booking.ride && booking.ride.driver ? booking.ride.driver.toString() : '';
+
+    if (currentUserId !== passengerId && currentUserId !== driverId) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to cancel this booking',
+      });
+    }
+
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking request is already cancelled',
+      });
+    }
+
+    if (booking.status === 'rejected') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel a rejected booking request',
+      });
+    }
+
+    if (booking.status === 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel a completed booking',
+      });
+    }
+
+    if (booking.status !== 'pending' && booking.status !== 'accepted') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot cancel booking with status '${booking.status}'`,
+      });
+    }
+
+    const previousStatus = booking.status;
+    const requestedSeats = booking.requestedSeats;
+    const rideId = booking.ride._id || booking.ride;
+
+    // 1. Atomic status transition
     const updatedBooking = await Booking.findOneAndUpdate(
       {
         _id: id,
-        passenger: currentUserId,
-        status: 'pending',
+        status: previousStatus,
       },
       {
         $set: { status: 'cancelled' },
@@ -414,47 +463,31 @@ exports.cancelBooking = async (req, res, next) => {
     );
 
     if (!updatedBooking) {
-      // Investigate why findOneAndUpdate did not match
-      const existing = await Booking.findById(id);
-      if (!existing) {
-        return res.status(404).json({
-          success: false,
-          message: 'Booking not found',
-        });
-      }
-
-      const passengerId = existing.passenger.toString();
-      if (currentUserId !== passengerId) {
-        return res.status(403).json({
-          success: false,
-          message: 'You are not authorized to cancel this booking',
-        });
-      }
-
-      if (existing.status === 'cancelled') {
-        return res.status(400).json({
-          success: false,
-          message: 'Booking request is already cancelled',
-        });
-      }
-
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
-        message: 'Only pending booking requests can be cancelled in this phase',
+        message: 'Booking state conflict. Please refresh and try again.',
       });
     }
 
-    // 2. Release reserved seats back to ride atomically
-    await Ride.findByIdAndUpdate(updatedBooking.ride, {
-      $inc: { availableSeats: updatedBooking.requestedSeats },
-    });
+    // 2. Release reserved seats back to ride atomically and safely
+    const rideDoc = await Ride.findById(rideId);
+    if (rideDoc) {
+      const newAvailable = Math.min(rideDoc.totalSeats, rideDoc.availableSeats + requestedSeats);
+      const updateOps = {
+        $set: { availableSeats: newAvailable },
+      };
+      if (previousStatus === 'accepted') {
+        updateOps.$set.bookedSeats = Math.max(0, rideDoc.bookedSeats - requestedSeats);
+      }
+      await Ride.findByIdAndUpdate(rideId, updateOps);
+    }
 
     // 3. Populate response
     const populatedBooking = await Booking.findById(id)
       .populate({
         path: 'ride',
         select:
-          'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats pickupPolicy amenities notes',
+          'origin destination departureTime estimatedArrivalTime contributionPerSeat status availableSeats totalSeats bookedSeats pickupPolicy amenities notes',
         populate: [
           { path: 'driver', select: 'name phone email rating isVerified avatar' },
           { path: 'vehicle', select: 'make model year color registrationNumber vehicleType' },
@@ -462,11 +495,42 @@ exports.cancelBooking = async (req, res, next) => {
       })
       .populate('passenger', 'name phone email rating isVerified avatar');
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: 'Booking request cancelled successfully',
       data: populatedBooking,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update booking status (accept/confirm or reject)
+ * @route   PATCH /api/v1/bookings/:id/status
+ * @access  Private (Driver owning the ride)
+ */
+exports.updateBookingStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    if (!status || typeof status !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: "Status is required in request body (e.g. 'accepted', 'confirmed', or 'rejected')",
+      });
+    }
+
+    const normalizedStatus = status.toLowerCase().trim();
+    if (normalizedStatus === 'accepted' || normalizedStatus === 'confirmed') {
+      return exports.acceptBooking(req, res, next);
+    } else if (normalizedStatus === 'rejected') {
+      return exports.rejectBooking(req, res, next);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status. Allowed values are 'accepted', 'confirmed', or 'rejected'",
+      });
+    }
   } catch (error) {
     next(error);
   }

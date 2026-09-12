@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+export 'publish_ride_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_typography.dart';

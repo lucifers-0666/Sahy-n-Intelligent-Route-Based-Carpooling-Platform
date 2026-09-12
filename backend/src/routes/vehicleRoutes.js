@@ -19,6 +19,7 @@ router.route('/')
 router.route('/:id')
   .get(getVehicleById)
   .put(updateVehicle)
+  .patch(updateVehicle)
   .delete(deleteVehicle);
 
 module.exports = router;

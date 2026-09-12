@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+export 'bookings_hub_screen.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/widgets/design_system.dart';
 import '../../domain/booking_model.dart';

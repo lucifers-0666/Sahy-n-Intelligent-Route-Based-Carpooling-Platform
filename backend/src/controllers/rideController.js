@@ -263,7 +263,79 @@ const createRide = async (req, res, next) => {
     return res.status(201).json({
       success: true,
       message: 'Ride offered successfully.',
+      data: {
+        ride,
+      },
       ride,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get all public / upcoming rides with filters and pagination
+ * @route   GET /api/rides or /api/v1/rides
+ * @access  Public / Optional Auth
+ */
+const getRides = async (req, res, next) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 20));
+    const skip = (page - 1) * limit;
+
+    const filter = {};
+    if (req.query.status) {
+      filter.status = req.query.status;
+    } else {
+      filter.status = 'scheduled';
+      filter.availableSeats = { $gt: 0 };
+      filter.departureTime = { $gte: new Date(Date.now() - 15 * 60 * 1000) };
+    }
+
+    if (req.query.minSeats) {
+      const seats = parseInt(req.query.minSeats, 10);
+      if (!isNaN(seats) && seats > 0) {
+        filter.availableSeats = { $gte: seats };
+      }
+    }
+
+    if (req.query.departureDate) {
+      const startOfDay = new Date(req.query.departureDate);
+      if (!isNaN(startOfDay.getTime())) {
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(startOfDay);
+        endOfDay.setHours(23, 59, 59, 999);
+        filter.departureTime = { $gte: startOfDay, $lte: endOfDay };
+      }
+    }
+
+    const totalResults = await Ride.countDocuments(filter);
+    const totalPages = Math.ceil(totalResults / limit) || 1;
+
+    const rides = await Ride.find(filter)
+      .populate('vehicle')
+      .populate('driver', 'name email phone profileImage city rating isVerified isPhoneVerified isIdentityVerified')
+      .sort({ departureTime: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Rides retrieved successfully',
+      data: {
+        rides,
+        page,
+        limit,
+        totalResults,
+        totalPages,
+      },
+      count: rides.length,
+      rides,
+      page,
+      limit,
+      totalResults,
+      totalPages,
     });
   } catch (error) {
     next(error);
@@ -290,6 +362,11 @@ const getMyRides = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
+      message: 'Driver rides retrieved successfully',
+      data: {
+        count: rides.length,
+        rides,
+      },
       count: rides.length,
       rides,
     });
@@ -327,6 +404,10 @@ const getRideById = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
+      message: 'Ride retrieved successfully',
+      data: {
+        ride,
+      },
       ride,
     });
   } catch (error) {
@@ -1360,10 +1441,28 @@ const searchRides = async (req, res, next) => {
       requestedSeats: parsedSeats,
     });
 
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || (req.query.page ? 10 : 50)));
+    const totalResults = results.length;
+    const totalPages = Math.ceil(totalResults / limit) || 1;
+    const paginatedResults = results.slice((page - 1) * limit, page * limit);
+
     return res.status(200).json({
       success: true,
-      count: results.length,
-      results,
+      message: 'Rides found successfully',
+      data: {
+        results: paginatedResults,
+        page,
+        limit,
+        totalResults,
+        totalPages,
+      },
+      count: paginatedResults.length,
+      results: paginatedResults,
+      page,
+      limit,
+      totalResults,
+      totalPages,
     });
   } catch (error) {
     next(error);
@@ -1372,6 +1471,7 @@ const searchRides = async (req, res, next) => {
 
 module.exports = {
   createRide,
+  getRides,
   getMyRides,
   getRideById,
   updateRide,
