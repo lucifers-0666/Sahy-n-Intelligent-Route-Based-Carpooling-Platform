@@ -13,11 +13,36 @@ class BookingsHubScreen extends ConsumerStatefulWidget {
 
 class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
   int _selectedTabIndex = 0;
+  late final PageController _pageController;
+
   final List<SegmentedPillBarItem> _tabs = const [
     SegmentedPillBarItem(label: 'Active', badgeCount: 1),
     SegmentedPillBarItem(label: 'Pending', badgeCount: 1),
     SegmentedPillBarItem(label: 'History'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedTabIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onTabSelected(int index) {
+    setState(() {
+      _selectedTabIndex = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,11 +76,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 child: SegmentedPillBar(
                   items: _tabs,
                   selectedIndex: _selectedTabIndex,
-                  onSelect: (index) {
-                    setState(() {
-                      _selectedTabIndex = index;
-                    });
-                  },
+                  onSelect: _onTabSelected,
                 ),
               ),
               Container(color: SahyanColors.border, height: 0.8),
@@ -64,34 +85,60 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
         ),
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: PageView(
+          controller: _pageController,
+          physics: const BouncingScrollPhysics(),
+          onPageChanged: (index) {
+            setState(() {
+              _selectedTabIndex = index;
+            });
+          },
           children: [
-            if (_selectedTabIndex == 0) ...[
-              // Live Telematics Status Badge
-              _buildLiveTelematicsBadge(),
-              const SizedBox(height: 14),
+            // Page 0: Active Journeys
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                children: [
+                  _buildLiveTelematicsBadge(),
+                  const SizedBox(height: 14),
+                  _buildDigitalBoardingPass(),
+                  const SizedBox(height: 14),
+                  _buildActionDock(),
+                  const SizedBox(height: 14),
+                  _buildEcoImpactCard(),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
 
-              // Digital Boarding Pass Ticket
-              _buildDigitalBoardingPass(),
-              const SizedBox(height: 14),
+            // Page 1: Pending Requests
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                children: [
+                  _buildUpcomingRequestsBento(),
+                  const SizedBox(height: 14),
+                  _buildEcoImpactCard(),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
 
-              // Action Dock (Call, Chat, Share, SOS)
-              _buildActionDock(),
-              const SizedBox(height: 14),
-
-              // Eco Impact Mini-Card
-              _buildEcoImpactCard(),
-            ] else if (_selectedTabIndex == 1) ...[
-              // Upcoming Requests Bento
-              _buildUpcomingRequestsBento(),
-              const SizedBox(height: 14),
-              _buildEcoImpactCard(),
-            ] else ...[
-              // History View
-              _buildHistorySection(),
-            ],
-            const SizedBox(height: 24),
+            // Page 2: History
+            SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(
+                children: [
+                  _buildHistorySection(),
+                  const SizedBox(height: 14),
+                  _buildEcoImpactCard(),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -191,7 +238,10 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               const Text(
                                 'Rohit Patel',
@@ -201,7 +251,11 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                   color: SahyanColors.textMain,
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              const Icon(
+                                Icons.verified_rounded,
+                                size: 14,
+                                color: SahyanColors.primaryMint,
+                              ),
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 6,
@@ -212,6 +266,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
                                       Icons.star_rounded,
@@ -233,13 +288,43 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                             ],
                           ),
                           const SizedBox(height: 3),
-                          const Text(
-                            'Honda City · GJ 01 AB 1234',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: SahyanColors.textMuted,
-                            ),
+                          Wrap(
+                            spacing: 4,
+                            runSpacing: 2,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              const Text(
+                                'Honda City ·',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: SahyanColors.textMuted,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: SahyanColors.canvas,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: SahyanColors.border,
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'GJ 01 AB 1234',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'monospace',
+                                    color: SahyanColors.textMain,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -322,12 +407,17 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                         color: SahyanColors.textMain,
                                       ),
                                     ),
-                                    Text(
-                                      'AMD · Iscon Cross',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: SahyanColors.textMuted,
+                                    SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        'AMD · Iscon Cross',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: SahyanColors.textMuted,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -345,12 +435,17 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                         color: SahyanColors.textMain,
                                       ),
                                     ),
-                                    Text(
-                                      'RAJ · Kalawad Rd',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: SahyanColors.textMuted,
+                                    SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        'RAJ · Kalawad Rd',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: SahyanColors.textMuted,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -367,11 +462,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
             ),
           ),
 
-          // Perforated Dashed Divider
-          CustomPaint(
-            size: const Size(double.infinity, 1),
-            painter: _DashedLinePainter(),
-          ),
+          // Perforated Dashed Divider with Ticket Notch Cutouts
+          _buildTicketNotchDivider(),
 
           // Lower Section: Contactless Security PIN & Live Map CTA
           Padding(
@@ -381,27 +473,34 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Contactless Boarding PIN',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: SahyanColors.textMuted,
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Contactless Boarding PIN',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: SahyanColors.textMuted,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Show to driver at boarding',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: SahyanColors.textDisabled,
+                          SizedBox(height: 2),
+                          Text(
+                            'Show to driver at boarding',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: SahyanColors.textDisabled,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -447,50 +546,101 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
+  Widget _buildTicketNotchDivider() {
+    return SizedBox(
+      height: 20,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: CustomPaint(
+              size: const Size(double.infinity, 1),
+              painter: _DashedLinePainter(),
+            ),
+          ),
+          // Left Semi-Circle Ticket Notch
+          Positioned(
+            left: -10,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: SahyanColors.canvas,
+                shape: BoxShape.circle,
+                border: Border.all(color: SahyanColors.border, width: 0.8),
+              ),
+            ),
+          ),
+          // Right Semi-Circle Ticket Notch
+          Positioned(
+            right: -10,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: SahyanColors.canvas,
+                shape: BoxShape.circle,
+                border: Border.all(color: SahyanColors.border, width: 0.8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionDock() {
     return BentoContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildActionButton(
-            icon: Icons.phone_outlined,
-            label: 'Call',
-            color: SahyanColors.primaryDark,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Calling driver Rohit Patel...'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
+          Expanded(
+            child: _buildActionButton(
+              icon: Icons.phone_outlined,
+              label: 'Call',
+              color: SahyanColors.primaryDark,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Calling driver Rohit Patel...'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
           ),
-          _buildActionButton(
-            icon: Icons.chat_bubble_outline_rounded,
-            label: 'Chat',
-            color: SahyanColors.primaryDark,
-            onTap: () => context.push('/messages'),
+          Expanded(
+            child: _buildActionButton(
+              icon: Icons.chat_bubble_outline_rounded,
+              label: 'Chat',
+              color: SahyanColors.primaryDark,
+              onTap: () => context.push('/messages'),
+            ),
           ),
-          _buildActionButton(
-            icon: Icons.share_outlined,
-            label: 'Share',
-            color: SahyanColors.primaryDark,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Live journey tracking link copied'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
+          Expanded(
+            child: _buildActionButton(
+              icon: Icons.share_outlined,
+              label: 'Share',
+              color: SahyanColors.primaryDark,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Live journey tracking link copied'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
           ),
-          _buildActionButton(
-            icon: Icons.shield_outlined,
-            label: 'SOS',
-            color: SahyanColors.urgentCoral,
-            isUrgent: true,
-            onTap: () => context.push('/trip-safety'),
+          Expanded(
+            child: _buildActionButton(
+              icon: Icons.shield_outlined,
+              label: 'SOS',
+              color: SahyanColors.urgentCoral,
+              isUrgent: true,
+              onTap: () => context.push('/trip-safety'),
+            ),
           ),
         ],
       ),
@@ -508,12 +658,13 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: isUrgent
                     ? SahyanColors.urgentCoral.withValues(alpha: 0.1)
@@ -536,6 +687,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 fontWeight: FontWeight.w700,
                 color: color,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -552,14 +705,19 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Approval Pending',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: SahyanColors.textMain,
+              const Expanded(
+                child: Text(
+                  'Approval Pending',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.textMain,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -616,7 +774,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                             ),
                           ),
                           Text(
-                            'Ahmedabad ➔ Surat · Tomorrow 07:00 AM',
+                            'Ahmedabad → Surat · Tomorrow 07:00 AM',
                             style: TextStyle(
                               fontSize: 11,
                               color: SahyanColors.textMuted,
@@ -637,14 +795,19 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      '2 Seats Requested · ₹520 total',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: SahyanColors.textMain,
+                    const Expanded(
+                      child: Text(
+                        '2 Seats Requested · ₹520 total',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: SahyanColors.textMain,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     OutlinedButton(
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -749,7 +912,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: SahyanColors.canvas,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: SahyanColors.border, width: 0.8),
             ),
             child: const Column(
@@ -758,14 +921,19 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Rajkot ➔ Ahmedabad',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: SahyanColors.textMain,
+                    Expanded(
+                      child: Text(
+                        'Rajkot → Ahmedabad',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: SahyanColors.textMain,
+                        ),
                       ),
                     ),
+                    SizedBox(width: 8),
                     Text(
                       '₹350',
                       style: TextStyle(

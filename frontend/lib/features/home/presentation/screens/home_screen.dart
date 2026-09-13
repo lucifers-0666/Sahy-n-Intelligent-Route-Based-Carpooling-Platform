@@ -7,6 +7,7 @@ import '../../../../shared/models/location_model.dart';
 import '../../../../shared/widgets/bento/bento_widgets.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
+import '../widgets/hero_search_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -249,16 +250,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ],
                           ),
                           const SizedBox(height: 2),
-                          Text(
-                            'Hey $displayName 👋',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                              color: SahyanColors.textMain,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  'Hey $displayName 👋',
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5,
+                                    color: SahyanColors.textMain,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: SahyanColors.primaryLight,
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: SahyanColors.primaryMint.withValues(alpha: 0.3),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: SahyanColors.primaryMint,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Text(
+                                      'Ahmedabad Hub',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        color: SahyanColors.primaryDark,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -362,276 +406,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
               sliver: SliverToBoxAdapter(
-                child: BentoContainer(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Find a Shared Ride',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.2,
-                                color: SahyanColors.textMain,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: SahyanColors.primaryLight,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'Express',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: SahyanColors.primaryDark,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      // Origin & Destination with Vertical Line and Inline Swap
-                      CorridorLine(
-                        onFlip: _swapLocations,
-                        originWidget: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: SahyanColors.chipBackground,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: SahyanColors.border, width: 0.8),
-                          ),
-                          child: TextField(
-                            controller: _originController,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: SahyanColors.textMain,
-                            ),
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                              hintText: 'Pickup Origin (e.g. SG Highway)',
-                              hintStyle: TextStyle(
-                                color: SahyanColors.textDisabled,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                        destinationWidget: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: SahyanColors.chipBackground,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: SahyanColors.border, width: 0.8),
-                          ),
-                          child: TextField(
-                            controller: _destinationController,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: SahyanColors.textMain,
-                            ),
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.zero,
-                              hintText: 'Destination (e.g. Kalawad Road)',
-                              hintStyle: TextStyle(
-                                color: SahyanColors.textDisabled,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Quick Corridor Chips Carousel
-                      const Text(
-                        'Popular Routes in Gujarat',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: SahyanColors.textMuted,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        child: Row(
-                          children: _quickCorridors.map((c) {
-                            final label = '${c['from']} ➔ ${c['to']} · ₹${c['price']}';
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 8),
-                              child: PillTag(
-                                label: label,
-                                variant: PillTagVariant.neutral,
-                                onTap: () => _selectQuickCorridor(c),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Departure Date/Time & Seat Stepper
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isNarrow = constraints.maxWidth < 280;
-                          if (isNarrow) {
-                            return Column(
-                              children: [
-                                Material(
-                                  color: SahyanColors.chipBackground,
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: InkWell(
-                                    onTap: _pickDateTime,
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: SahyanColors.border,
-                                          width: 0.8,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.calendar_today_rounded,
-                                            size: 16,
-                                            color: SahyanColors.primaryDark,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              'Today, ${_selectedTime.format(context)}',
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w700,
-                                                color: SahyanColors.textMain,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-                                StepCounter(
-                                  value: _selectedSeats,
-                                  min: 1,
-                                  max: 6,
-                                  onChanged: (val) => setState(() => _selectedSeats = val),
-                                ),
-                              ],
-                            );
-                          }
-                          return Row(
-                            children: [
-                              Expanded(
-                                child: Material(
-                                  color: SahyanColors.chipBackground,
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: InkWell(
-                                    onTap: _pickDateTime,
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: SahyanColors.border,
-                                          width: 0.8,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.calendar_today_rounded,
-                                            size: 16,
-                                            color: SahyanColors.primaryDark,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              'Today, ${_selectedTime.format(context)}',
-                                              style: const TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w700,
-                                                color: SahyanColors.textMain,
-                                              ),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              StepCounter(
-                                value: _selectedSeats,
-                                min: 1,
-                                max: 6,
-                                onChanged: (val) => setState(() => _selectedSeats = val),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Primary CTA
-                      ElevatedButton(
-                        onPressed: _handleSearch,
-                        child: const FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Find Matches'),
-                              SizedBox(width: 8),
-                              Icon(Icons.arrow_forward_rounded, size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                child: HeroSearchCard(
+                  originController: _originController,
+                  destinationController: _destinationController,
+                  onSwap: _swapLocations,
+                  onSelectCorridor: _selectQuickCorridor,
+                  selectedDate: _selectedDate,
+                  selectedTime: _selectedTime,
+                  onPickDateTime: _pickDateTime,
+                  selectedSeats: _selectedSeats,
+                  onSeatsChanged: (val) => setState(() => _selectedSeats = val),
+                  onSearch: _handleSearch,
+                  popularCorridors: _quickCorridors,
                 ),
               ),
             ),
+
 
             // 3. Section Title: Gujarat Smart Corridors
             SliverPadding(

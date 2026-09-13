@@ -141,7 +141,7 @@ void main() {
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 250));
 
-          expect(find.text('Send OTP'), findsOneWidget);
+          expect(find.text('Get Verification Code'), findsOneWidget);
           expect(find.text('+91'), findsOneWidget);
 
           // Switch back to Password tab

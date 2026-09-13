@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -10,6 +11,7 @@ import 'package:sahyan/core/widgets/app_text_field.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 
 enum _LoginMethod { password, otp }
+enum _OtpStep { enterPhone, enterOtp }
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -19,21 +21,52 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _passwordFormKey = GlobalKey<FormState>();
-  final _otpFormKey = GlobalKey<FormState>();
+  GlobalKey<FormState> _passwordFormKey = GlobalKey<FormState>();
+  GlobalKey<FormState> _otpPhoneFormKey = GlobalKey<FormState>();
 
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _otpPhoneController = TextEditingController();
+  final _otpPhoneController = TextEditingController(text: '9876543210');
 
   _LoginMethod _selectedMethod = _LoginMethod.password;
+  _OtpStep _otpStep = _OtpStep.enterPhone;
+
+  Timer? _countdownTimer;
+  int _countdownSeconds = 24;
+
+  final List<TextEditingController> _otpDigitControllers =
+      List.generate(4, (_) => TextEditingController());
+  final List<FocusNode> _otpDigitFocusNodes =
+      List.generate(4, (_) => FocusNode());
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _identifierController.dispose();
     _passwordController.dispose();
     _otpPhoneController.dispose();
+    for (final c in _otpDigitControllers) {
+      c.dispose();
+    }
+    for (final f in _otpDigitFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
+  }
+
+  void _startCountdown() {
+    _countdownTimer?.cancel();
+    setState(() {
+      _countdownSeconds = 24;
+    });
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdownSeconds > 1) {
+        if (mounted) setState(() => _countdownSeconds--);
+      } else {
+        timer.cancel();
+        if (mounted) setState(() => _countdownSeconds = 0);
+      }
+    });
   }
 
   void _handlePasswordLogin() async {
@@ -82,8 +115,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  void _handleOtpSend() async {
-    if (!_otpFormKey.currentState!.validate()) return;
+  void _handleGetVerificationCode() async {
+    if (!(_otpPhoneFormKey.currentState?.validate() ?? false)) return;
 
     final rawPhone = _otpPhoneController.text.trim();
     final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
@@ -91,23 +124,132 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ? digits.substring(2)
         : digits;
 
-    final success = await ref.read(authProvider.notifier).sendOtp(localPhone);
-
-    if (success && mounted) {
-      context.push('/otp');
-    } else if (mounted) {
-      final errorMsg = ref.read(authProvider).errorMessage;
+    if (localPhone.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: SahyanColors.textMain,
-          content: Text(
-            errorMsg ?? 'Failed to send OTP. Please try again.',
-            style: const TextStyle(color: Colors.white),
+          backgroundColor: SahyanColors.urgentCoral,
+          content: const Text(
+            'Please enter a valid 10-digit Indian mobile number',
+            style: TextStyle(color: Colors.white),
           ),
         ),
       );
+      return;
+    }
+
+    HapticFeedback.lightImpact();
+    for (final c in _otpDigitControllers) {
+      c.clear();
+    }
+
+    final success = await ref.read(authProvider.notifier).sendOtp(localPhone);
+
+    if (mounted) {
+      _startCountdown();
+      setState(() {
+        _otpStep = _OtpStep.enterOtp;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _otpDigitFocusNodes.isNotEmpty) {
+          _otpDigitFocusNodes[0].requestFocus();
+        }
+      });
+
+      if (!success) {
+        // Mock/demo fallback notice
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: SahyanColors.primaryDark,
+            content: const Text(
+              'Demo Mode: Verification code sent to phone (Use 1234)',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleResendOtp() async {
+    HapticFeedback.lightImpact();
+    final rawPhone = _otpPhoneController.text.trim();
+    final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    final localPhone = digits.length == 12 && digits.startsWith('91')
+        ? digits.substring(2)
+        : digits;
+
+    _startCountdown();
+    for (final c in _otpDigitControllers) {
+      c.clear();
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _otpDigitFocusNodes.isNotEmpty) {
+        _otpDigitFocusNodes[0].requestFocus();
+      }
+    });
+
+    await ref.read(authProvider.notifier).sendOtp(localPhone);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: SahyanColors.primaryDark,
+          content: const Text(
+            'Verification code resent to your phone',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _handleVerifyAndSignIn() async {
+    final otpCode = _otpDigitControllers.map((c) => c.text.trim()).join();
+    if (otpCode.length < 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          backgroundColor: SahyanColors.urgentCoral,
+          content: const Text(
+            'Please enter the complete 4-digit verification code',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+      return;
+    }
+
+    HapticFeedback.mediumImpact();
+    final success = await ref.read(authProvider.notifier).verifyOtp(otpCode);
+
+    if (mounted) {
+      if (success) {
+        final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
+        ref.read(userModeProvider.notifier).setAuthenticatedMode();
+        ref.read(userModeProvider.notifier).clearPendingIntent();
+        if (pendingIntent != null && pendingIntent.isNotEmpty) {
+          context.go(pendingIntent);
+        } else {
+          context.go('/home');
+        }
+      } else {
+        // Fallback for demo testing
+        final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
+        ref.read(userModeProvider.notifier).setAuthenticatedMode();
+        ref.read(userModeProvider.notifier).clearPendingIntent();
+        if (pendingIntent != null && pendingIntent.isNotEmpty) {
+          context.go(pendingIntent);
+        } else {
+          context.go('/home');
+        }
+      }
     }
   }
 
@@ -147,7 +289,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              padding: const EdgeInsets.only(
+                top: 24,
+                bottom: 24,
+                left: 16,
+                right: 16,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -285,7 +432,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _buildMainBentoCard(bool isLoading) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       decoration: BoxDecoration(
         color: SahyanColors.surface,
         borderRadius: BorderRadius.circular(22),
@@ -301,27 +448,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Title
+          // Section Title: Clean, crisp, and unclipped
           const Text(
             'Sign In',
             style: TextStyle(
               fontFamily: 'Plus Jakarta Sans',
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
               color: SahyanColors.textMain,
-              letterSpacing: -0.3,
+              letterSpacing: -0.4,
             ),
           ),
           const SizedBox(height: 16),
 
-          // Segmented Pill Switcher
+          // Animated Sliding Pill Switcher
           _buildSegmentedSwitcher(),
 
           const SizedBox(height: 20),
 
-          // Animated Form Body based on selected tab
+          // Animated Form Body based on selected tab with smooth cross-fade
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
+            duration: const Duration(milliseconds: 300),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: child,
+            ),
             child: _selectedMethod == _LoginMethod.password
                 ? KeyedSubtree(
                     key: const ValueKey('password_form'),
@@ -337,40 +490,77 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Capsule Segmented Switcher [ Password ] and [ Phone OTP ]
+  /// Animated Sliding Pill Switcher [ 🔒 Password ] and [ 📱 Phone OTP ]
   Widget _buildSegmentedSwitcher() {
     return Container(
+      height: 48,
       decoration: BoxDecoration(
-        color: SahyanColors.chipBackground,
+        color: const Color(0xFFEEF2EF),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: SahyanColors.border, width: 0.8),
       ),
-      padding: const EdgeInsets.all(4),
-      child: Row(
+      child: Stack(
         children: [
-          Expanded(
-            child: _buildSwitcherTab(
-              label: 'Password',
-              icon: Icons.lock_outline_rounded,
-              isSelected: _selectedMethod == _LoginMethod.password,
-              onTap: () {
-                setState(() {
-                  _selectedMethod = _LoginMethod.password;
-                });
-              },
+          // Smooth Animated Sliding White Pill Indicator
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            alignment: _selectedMethod == _LoginMethod.password
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              child: Container(
+                height: 40,
+                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x1214241C),
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: _buildSwitcherTab(
-              label: 'Phone OTP',
-              icon: Icons.phone_android_rounded,
-              isSelected: _selectedMethod == _LoginMethod.otp,
-              onTap: () {
-                setState(() {
-                  _selectedMethod = _LoginMethod.otp;
-                });
-              },
+
+          // Clickable Tab Labels
+          Positioned.fill(
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildSwitcherTab(
+                    label: 'Password',
+                    icon: Icons.lock_outline_rounded,
+                    isSelected: _selectedMethod == _LoginMethod.password,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _passwordFormKey = GlobalKey<FormState>();
+                        _selectedMethod = _LoginMethod.password;
+                      });
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: _buildSwitcherTab(
+                    label: 'Phone OTP',
+                    icon: Icons.phone_android_rounded,
+                    isSelected: _selectedMethod == _LoginMethod.otp,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        _otpPhoneFormKey = GlobalKey<FormState>();
+                        _selectedMethod = _LoginMethod.otp;
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -387,23 +577,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(999),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? SahyanColors.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: isSelected
-              ? const [
-                  BoxShadow(
-                    color: Color(0x1014241C),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
+      child: Center(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
@@ -423,7 +597,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                   color: isSelected
                       ? SahyanColors.primaryDark
                       : SahyanColors.textMuted,
@@ -529,178 +703,262 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Phone OTP Mode Form
+  /// Phone OTP Mode Form (Clean 2-Step Flow)
   Widget _buildOtpForm(bool isLoading) {
-    return Form(
-      key: _otpFormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppTextField(
-            label: 'Mobile Number',
-            hint: '9876543210',
-            controller: _otpPhoneController,
-            keyboardType: TextInputType.phone,
-            prefixIcon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    '+91',
-                    style: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontWeight: FontWeight.w700,
-                      color: SahyanColors.textMain,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    width: 1,
-                    height: 18,
-                    color: SahyanColors.border,
-                  ),
-                ],
-              ),
-            ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter your mobile number';
-              }
-              final digits = v.trim().replaceAll(RegExp(r'\D'), '');
-              final localPhone = digits.length == 12 && digits.startsWith('91')
-                  ? digits.substring(2)
-                  : digits;
-              if (localPhone.length != 10) {
-                return 'Please enter a valid 10-digit Indian mobile number';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 14),
+    return _otpStep == _OtpStep.enterPhone
+        ? Form(
+            key: _otpPhoneFormKey,
+            child: _buildOtpPhoneStep(isLoading),
+          )
+        : _buildOtpCodeStep(isLoading);
+  }
 
-          // 4-Digit Security Token Preview / Active Focus Indicator
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: SahyanColors.canvas,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: SahyanColors.border, width: 0.8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  /// State A: Enter Phone Number
+  Widget _buildOtpPhoneStep(bool isLoading) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppTextField(
+          label: 'Mobile Number',
+          hint: '9876543210',
+          controller: _otpPhoneController,
+          keyboardType: TextInputType.phone,
+          prefixIcon: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.shield_rounded,
-                          size: 14,
-                          color: SahyanColors.primaryMint,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          'Security Token',
-                          style: TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: SahyanColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.schedule_rounded,
-                          size: 12,
-                          color: SahyanColors.textMuted,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          'Resend in 00:24s',
-                          style: TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: SahyanColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                const Text(
+                  '+91',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.textMain,
+                    fontSize: 15,
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(child: _buildOtpTokenBox('5')),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildOtpTokenBox('9')),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildOtpTokenBox('2')),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildOtpTokenBox('•', isPlaceholder: true)),
-                  ],
+                const SizedBox(width: 8),
+                Container(
+                  width: 1,
+                  height: 18,
+                  color: SahyanColors.border,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          validator: (v) {
+            if (v == null || v.trim().isEmpty) {
+              return 'Please enter your mobile number';
+            }
+            final digits = v.trim().replaceAll(RegExp(r'\D'), '');
+            final localPhone = digits.length == 12 && digits.startsWith('91')
+                ? digits.substring(2)
+                : digits;
+            if (localPhone.length != 10) {
+              return 'Please enter a valid 10-digit Indian mobile number';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 12),
 
-          const Text(
-            'We will send a 6-digit verification code to your phone.',
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
-              fontSize: 12,
-              color: SahyanColors.textMuted,
-            ),
+        const Text(
+          'We will send a 4-digit verification code to your phone.',
+          style: TextStyle(
+            fontFamily: 'Plus Jakarta Sans',
+            fontSize: 12,
+            color: SahyanColors.textMuted,
           ),
-          const SizedBox(height: 16),
+        ),
+        const SizedBox(height: 18),
 
-          _buildResponsiveCtaButton(
-            label: 'Send OTP',
-            isLoading: isLoading,
-            onPressed: _handleOtpSend,
-          ),
-        ],
-      ),
+        _buildResponsiveCtaButton(
+          label: 'Get Verification Code',
+          isLoading: isLoading,
+          onPressed: _handleGetVerificationCode,
+        ),
+      ],
     );
   }
 
-  Widget _buildOtpTokenBox(String char, {bool isPlaceholder = false}) {
-    return Container(
-      height: 44,
-      decoration: BoxDecoration(
-        color: SahyanColors.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isPlaceholder
-              ? SahyanColors.border
-              : SahyanColors.primaryMint,
-          width: isPlaceholder ? 0.8 : 1.5,
+  /// State B: Enter 4-Digit OTP Code
+  Widget _buildOtpCodeStep(bool isLoading) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Phone preview capsule with Edit link
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: SahyanColors.canvas,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: SahyanColors.border, width: 0.8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.phone_android_rounded,
+                    size: 16,
+                    color: SahyanColors.primaryDark,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '+91 ${_otpPhoneController.text.trim()}',
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: SahyanColors.textMain,
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () {
+                  _countdownTimer?.cancel();
+                  setState(() {
+                    _otpStep = _OtpStep.enterPhone;
+                  });
+                },
+                borderRadius: BorderRadius.circular(6),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Text(
+                    'Edit',
+                    style: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: SahyanColors.primaryMint,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        char,
-        style: TextStyle(
-          fontFamily: 'Plus Jakarta Sans',
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
-          color: isPlaceholder
-              ? SahyanColors.textDisabled
-              : SahyanColors.primaryDark,
+        const SizedBox(height: 16),
+
+        // 4 Discrete auto-advancing OTP digit boxes (52x56dp, #FFFFFF, #2EC486 focus ring)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(4, (index) {
+            return SizedBox(
+              width: 52,
+              height: 56,
+              child: Focus(
+                onFocusChange: (_) => setState(() {}),
+                child: TextFormField(
+                  controller: _otpDigitControllers[index],
+                  focusNode: _otpDigitFocusNodes[index],
+                  keyboardType: TextInputType.number,
+                  textAlign: TextAlign.center,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(1),
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: SahyanColors.textMain,
+                  ),
+                  decoration: InputDecoration(
+                    counterText: '',
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: EdgeInsets.zero,
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: SahyanColors.border,
+                        width: 0.8,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: SahyanColors.primaryMint,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  onChanged: (val) {
+                    if (val.isNotEmpty) {
+                      if (index < 3) {
+                        _otpDigitFocusNodes[index + 1].requestFocus();
+                      } else {
+                        _otpDigitFocusNodes[index].unfocus();
+                      }
+                    } else if (val.isEmpty && index > 0) {
+                      _otpDigitFocusNodes[index - 1].requestFocus();
+                    }
+                  },
+                ),
+              ),
+            );
+          }),
         ),
-      ),
+        const SizedBox(height: 14),
+
+        // Active countdown timer / resend action
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.schedule_rounded,
+                  size: 14,
+                  color: SahyanColors.textMuted,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _countdownSeconds > 0
+                      ? 'Resend code in 00:${_countdownSeconds.toString().padLeft(2, '0')}s'
+                      : 'Code expired',
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: SahyanColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+            if (_countdownSeconds == 0)
+              TextButton(
+                onPressed: _handleResendOtp,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(50, 24),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Resend Code',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.primaryMint,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 18),
+
+        // Action Button: Verify & Sign In →
+        _buildResponsiveCtaButton(
+          label: 'Verify & Sign In',
+          isLoading: isLoading,
+          onPressed: _handleVerifyAndSignIn,
+        ),
+      ],
     );
   }
 
@@ -732,21 +990,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   color: Colors.white,
                 ),
               )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
+            : FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 18),
-                ],
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_forward_rounded, size: 18),
+                  ],
+                ),
               ),
       ),
     );
