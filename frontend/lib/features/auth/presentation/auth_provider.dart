@@ -52,6 +52,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required this.storageService,
     required this.apiClient,
   }) : super(const AuthState()) {
+    apiClient.onUnauthorized = () {
+      logout();
+    };
     checkAuthStatus();
   }
 

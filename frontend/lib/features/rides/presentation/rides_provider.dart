@@ -359,7 +359,6 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
     final vehicle = state.selectedVehicle;
     final origin = state.origin;
     final destination = state.destination;
-    final route = state.route;
 
     if (vehicle == null) {
       throw Exception('Please select a vehicle.');
@@ -370,8 +369,14 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
     if (destination == null) {
       throw Exception('Please specify a destination location.');
     }
-    if (route == null) {
-      throw Exception('Route calculation is required.');
+    RouteInfo? activeRoute = state.route;
+    if (activeRoute == null) {
+      final repo = ref.read(rideApiRepositoryProvider);
+      activeRoute = await repo.calculateRoute(
+        origin: origin,
+        destination: destination,
+      );
+      state = state.copyWith(route: activeRoute);
     }
 
     final depDateTime = DateTime(
@@ -390,7 +395,7 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
         vehicleId: vehicle.id,
         origin: origin,
         destination: destination,
-        route: route,
+        route: activeRoute,
         departureTime: depDateTime,
         availableSeats: state.availableSeats,
         contributionPerSeat: state.contributionPerSeat,

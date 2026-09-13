@@ -37,12 +37,16 @@ class VehicleRepositoryImpl implements VehicleRepository {
   @override
   Future<List<VehicleModel>> getVehicles() async {
     final response = await apiClient.get('/vehicles');
-    if (response is Map<String, dynamic> && response.containsKey('vehicles')) {
-      final list = response['vehicles'] as List<dynamic>;
-      return list
-          .whereType<Map<String, dynamic>>()
-          .map((json) => VehicleModel.fromJson(json))
-          .toList();
+    if (response is Map<String, dynamic>) {
+      final dynamic rawList = response['vehicles'] ??
+          (response['data'] is Map ? response['data']['vehicles'] : null) ??
+          (response['data'] is List ? response['data'] : null);
+      if (rawList is List<dynamic>) {
+        return rawList
+            .whereType<Map<String, dynamic>>()
+            .map((json) => VehicleModel.fromJson(json))
+            .toList();
+      }
     }
     return [];
   }

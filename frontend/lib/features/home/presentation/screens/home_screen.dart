@@ -265,44 +265,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 3,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: SahyanColors.primaryLight,
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: SahyanColors.primaryMint.withValues(alpha: 0.3),
-                                    width: 0.8,
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: SahyanColors.primaryLight,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: SahyanColors.primaryMint.withValues(alpha: 0.3),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(
+                                    color: SahyanColors.primaryMint,
+                                    shape: BoxShape.circle,
                                   ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: const BoxDecoration(
-                                        color: SahyanColors.primaryMint,
-                                        shape: BoxShape.circle,
-                                      ),
+                                const SizedBox(width: 4),
+                                const Flexible(
+                                  child: Text(
+                                    'Ahmedabad Hub',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: SahyanColors.primaryDark,
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Text(
-                                      'Ahmedabad Hub',
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: SahyanColors.primaryDark,
-                                      ),
-                                    ),
-                                  ],
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),

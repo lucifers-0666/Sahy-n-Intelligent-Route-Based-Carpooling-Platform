@@ -19,9 +19,10 @@ class ApiClient {
   String baseUrl;
   final http.Client _client;
   String? _authToken;
+  void Function()? onUnauthorized;
   static String? _resolvedBaseUrl;
 
-  ApiClient({String? baseUrl, http.Client? client})
+  ApiClient({String? baseUrl, http.Client? client, this.onUnauthorized})
     : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl,
       _client = client ?? http.Client();
 
@@ -167,6 +168,10 @@ class ApiClient {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonResponseBody;
+    }
+
+    if (response.statusCode == 401) {
+      onUnauthorized?.call();
     }
 
     final message =

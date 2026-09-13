@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
+import 'package:sahyan/features/bookings/domain/booking_model.dart';
+import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
 
 class BookingsHubScreen extends ConsumerStatefulWidget {
@@ -15,11 +17,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
   int _selectedTabIndex = 0;
   late final PageController _pageController;
 
-  final List<SegmentedPillBarItem> _tabs = const [
-    SegmentedPillBarItem(label: 'Active', badgeCount: 1),
-    SegmentedPillBarItem(label: 'Pending', badgeCount: 1),
-    SegmentedPillBarItem(label: 'History'),
-  ];
+
 
   @override
   void initState() {
@@ -46,6 +44,26 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bookingsAsync = ref.watch(bookingsNotifierProvider);
+    final allBookings = bookingsAsync.value ?? [];
+    final activeBookings = allBookings.where((b) => b.isAccepted).toList();
+    final pendingBookings = allBookings.where((b) => b.isPending).toList();
+    final historyBookings = allBookings
+        .where((b) => b.isCompleted || b.isCancelled || b.isRejected)
+        .toList();
+
+    final dynamicTabs = [
+      SegmentedPillBarItem(
+        label: 'Active',
+        badgeCount: activeBookings.isNotEmpty ? activeBookings.length : 1,
+      ),
+      SegmentedPillBarItem(
+        label: 'Pending',
+        badgeCount: pendingBookings.isNotEmpty ? pendingBookings.length : 1,
+      ),
+      const SegmentedPillBarItem(label: 'History'),
+    ];
+
     return Scaffold(
       backgroundColor: SahyanColors.canvas,
       appBar: AppBar(
@@ -74,7 +92,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: SegmentedPillBar(
-                  items: _tabs,
+                  items: dynamicTabs,
                   selectedIndex: _selectedTabIndex,
                   onSelect: _onTabSelected,
                 ),
@@ -95,48 +113,86 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
           },
           children: [
             // Page 0: Active Journeys
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Column(
-                children: [
-                  _buildLiveTelematicsBadge(),
-                  const SizedBox(height: 14),
-                  _buildDigitalBoardingPass(),
-                  const SizedBox(height: 14),
-                  _buildActionDock(),
-                  const SizedBox(height: 14),
-                  _buildEcoImpactCard(),
-                  const SizedBox(height: 24),
-                ],
+            RefreshIndicator(
+              color: SahyanColors.primaryDark,
+              onRefresh: () async {
+                await ref.read(bookingsNotifierProvider.notifier).fetchMyBookings();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Column(
+                  children: [
+                    _buildLiveTelematicsBadge(),
+                    const SizedBox(height: 14),
+                    _buildDigitalBoardingPass(
+                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildActionDock(
+                      driverName: activeBookings.isNotEmpty
+                          ? (activeBookings.first.ride?.driverName ?? 'Rohit Patel')
+                          : 'Rohit Patel',
+                    ),
+                    const SizedBox(height: 14),
+                    _buildEcoImpactCard(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
 
             // Page 1: Pending Requests
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Column(
-                children: [
-                  _buildUpcomingRequestsBento(),
-                  const SizedBox(height: 14),
-                  _buildEcoImpactCard(),
-                  const SizedBox(height: 24),
-                ],
+            RefreshIndicator(
+              color: SahyanColors.primaryDark,
+              onRefresh: () async {
+                await ref.read(bookingsNotifierProvider.notifier).fetchMyBookings();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Column(
+                  children: [
+                    if (pendingBookings.isNotEmpty) ...[
+                      ...pendingBookings.map((b) => _buildLivePendingCard(b)),
+                    ] else ...[
+                      _buildUpcomingRequestsBento(),
+                    ],
+                    const SizedBox(height: 14),
+                    _buildEcoImpactCard(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
 
             // Page 2: History
-            SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              child: Column(
-                children: [
-                  _buildHistorySection(),
-                  const SizedBox(height: 14),
-                  _buildEcoImpactCard(),
-                  const SizedBox(height: 24),
-                ],
+            RefreshIndicator(
+              color: SahyanColors.primaryDark,
+              onRefresh: () async {
+                await ref.read(bookingsNotifierProvider.notifier).fetchMyBookings();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Column(
+                  children: [
+                    if (historyBookings.isNotEmpty) ...[
+                      ...historyBookings.map((b) => _buildLiveHistoryCard(b)),
+                    ] else ...[
+                      _buildHistorySection(),
+                    ],
+                    const SizedBox(height: 14),
+                    _buildEcoImpactCard(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           ],
@@ -208,7 +264,30 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildDigitalBoardingPass() {
+  Widget _buildDigitalBoardingPass({BookingModel? booking}) {
+    final driverName = booking?.ride?.driverName ?? 'Rohit Patel';
+    final initials = driverName
+        .split(' ')
+        .where((s) => s.isNotEmpty)
+        .map((s) => s[0])
+        .take(2)
+        .join();
+    final driverRating = booking?.ride != null
+        ? booking!.ride!.driverRating.toStringAsFixed(2)
+        : '4.92';
+    final vehicleModel = booking?.ride != null
+        ? '${booking!.ride!.vehicle.make} ${booking.ride!.vehicle.model}'
+        : 'Honda City';
+    final vehiclePlate =
+        booking?.ride?.vehicle.registrationNumber ?? 'GJ 01 AB 1234';
+    final pinCode = booking?.securityPin ?? '4821';
+    final pickupName = booking != null && booking.pickup.address.isNotEmpty
+        ? booking.pickup.address
+        : 'AMD · Iscon Cross';
+    final dropName = booking != null && booking.drop.address.isNotEmpty
+        ? booking.drop.address
+        : 'RAJ · Kalawad Rd';
+
     return BentoContainer(
       padding: EdgeInsets.zero,
       child: Column(
@@ -224,9 +303,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                     CircleAvatar(
                       radius: 22,
                       backgroundColor: SahyanColors.primaryLight,
-                      child: const Text(
-                        'RP',
-                        style: TextStyle(
+                      child: Text(
+                        initials.isNotEmpty ? initials : 'RP',
+                        style: const TextStyle(
                           color: SahyanColors.primaryDark,
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
@@ -243,9 +322,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                             runSpacing: 2,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              const Text(
-                                'Rohit Patel',
-                                style: TextStyle(
+                              Text(
+                                driverName,
+                                style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                   color: SahyanColors.textMain,
@@ -265,18 +344,18 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                   color: SahyanColors.primaryLight,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
+                                    const Icon(
                                       Icons.star_rounded,
                                       size: 13,
                                       color: SahyanColors.goldStar,
                                     ),
-                                    SizedBox(width: 3),
+                                    const SizedBox(width: 3),
                                     Text(
-                                      '4.92',
-                                      style: TextStyle(
+                                      driverRating,
+                                      style: const TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
                                         color: SahyanColors.primaryDark,
@@ -293,9 +372,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                             runSpacing: 2,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              const Text(
-                                'Honda City ·',
-                                style: TextStyle(
+                              Text(
+                                '$vehicleModel ·',
+                                style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: SahyanColors.textMuted,
@@ -314,9 +393,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                     width: 0.8,
                                   ),
                                 ),
-                                child: const Text(
-                                  'GJ 01 AB 1234',
-                                  style: TextStyle(
+                                child: Text(
+                                  vehiclePlate,
+                                  style: const TextStyle(
                                     fontSize: 10.5,
                                     fontWeight: FontWeight.w700,
                                     fontFamily: 'monospace',
@@ -391,7 +470,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                             ],
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -399,7 +478,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
+                                    const Text(
                                       '06:30 PM',
                                       style: TextStyle(
                                         fontSize: 13,
@@ -407,13 +486,13 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                         color: SahyanColors.textMain,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                     Flexible(
                                       child: Text(
-                                        'AMD · Iscon Cross',
+                                        pickupName,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: SahyanColors.textMuted,
@@ -422,12 +501,12 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 14),
+                                const SizedBox(height: 14),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
+                                    const Text(
                                       '09:45 PM',
                                       style: TextStyle(
                                         fontSize: 13,
@@ -435,13 +514,13 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                         color: SahyanColors.textMain,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
+                                    const SizedBox(width: 8),
                                     Flexible(
                                       child: Text(
-                                        'RAJ · Kalawad Rd',
+                                        dropName,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: SahyanColors.textMuted,
@@ -510,9 +589,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                         color: SahyanColors.primaryDark,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        '4821',
-                        style: TextStyle(
+                      child: Text(
+                        pinCode,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           fontFamily: 'monospace',
@@ -590,7 +669,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildActionDock() {
+  Widget _buildActionDock({String driverName = 'Rohit Patel'}) {
     return BentoContainer(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       child: Row(
@@ -602,9 +681,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               color: SahyanColors.primaryDark,
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Calling driver Rohit Patel...'),
-                    duration: Duration(seconds: 2),
+                  SnackBar(
+                    content: Text('Calling driver $driverName...'),
+                    duration: const Duration(seconds: 2),
                   ),
                 );
               },
@@ -692,6 +771,292 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLivePendingCard(BookingModel booking) {
+    final driverName = booking.ride?.driverName ?? 'Driver';
+    final initials = driverName.trim().isNotEmpty
+        ? driverName.trim().split(' ').where((e) => e.isNotEmpty).map((e) => e[0]).take(2).join().toUpperCase()
+        : 'DR';
+    final origin = booking.pickup.address.isNotEmpty
+        ? booking.pickup.address
+        : (booking.ride?.origin.address ?? 'Origin');
+    final destination = booking.drop.address.isNotEmpty
+        ? booking.drop.address
+        : (booking.ride?.destination.address ?? 'Destination');
+    final fare = booking.totalContribution.toInt();
+    final seats = booking.requestedSeats;
+    final statusText = booking.status.name.toUpperCase();
+
+    return BentoContainer(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text(
+                  'Approval Pending',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.textMain,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: SahyanColors.goldStar.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  statusText,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.goldStar,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: SahyanColors.canvas,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: SahyanColors.border, width: 0.8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: SahyanColors.primaryLight,
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: SahyanColors.primaryDark,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            driverName,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: SahyanColors.textMain,
+                            ),
+                          ),
+                          Text(
+                            '$origin → $destination',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: SahyanColors.textMuted,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(
+                  color: SahyanColors.border,
+                  height: 1,
+                  thickness: 0.8,
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$seats Seat${seats > 1 ? 's' : ''} Requested · ₹$fare total',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: SahyanColors.textMain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('Cancel Request?'),
+                            content: const Text('Are you sure you want to cancel this booking request?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('Keep'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Cancel Request', style: TextStyle(color: SahyanColors.urgentCoral)),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirmed == true && mounted) {
+                          await ref.read(bookingsNotifierProvider.notifier).cancelBooking(booking.id);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Booking request cancelled')),
+                            );
+                          }
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: SahyanColors.urgentCoral,
+                        side: const BorderSide(
+                          color: SahyanColors.urgentCoral,
+                          width: 0.8,
+                        ),
+                        minimumSize: const Size(80, 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiveHistoryCard(BookingModel booking) {
+    final origin = booking.pickup.address.isNotEmpty
+        ? booking.pickup.address
+        : (booking.ride?.origin.address ?? 'Origin');
+    final destination = booking.drop.address.isNotEmpty
+        ? booking.drop.address
+        : (booking.ride?.destination.address ?? 'Destination');
+    final fare = booking.totalContribution.toInt();
+    final driverName = booking.ride?.driverName ?? 'Verified Driver';
+    final isCompleted = booking.status == BookingStatus.completed;
+    final statusColor = isCompleted
+        ? SahyanColors.primaryMint
+        : SahyanColors.urgentCoral;
+    final statusText = booking.status.name.toUpperCase();
+    final seats = booking.requestedSeats;
+
+    return BentoContainer(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  '$origin → $destination',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.textMain,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  statusText,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: SahyanColors.canvas,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: SahyanColors.border, width: 0.8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹$fare total · $seats Seat${seats > 1 ? 's' : ''}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: SahyanColors.textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Driver: $driverName',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: SahyanColors.textMuted,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

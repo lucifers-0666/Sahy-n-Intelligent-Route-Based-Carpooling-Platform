@@ -18,6 +18,7 @@ class BookingModel extends Equatable {
   final String passengerNote;
   final LocationModel pickup;
   final LocationModel drop;
+  final String? pin;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -34,9 +35,18 @@ class BookingModel extends Equatable {
     this.passengerNote = '',
     required this.pickup,
     required this.drop,
+    this.pin,
     required this.createdAt,
     this.updatedAt,
   });
+
+  String get securityPin {
+    if (pin != null && pin!.isNotEmpty) return pin!;
+    if (id.isNotEmpty) {
+      return (id.hashCode.abs() % 9000 + 1000).toString();
+    }
+    return '4821';
+  }
 
   bool get isPending => status == BookingStatus.pending;
   bool get isCancelled => status == BookingStatus.cancelled;
@@ -155,6 +165,8 @@ class BookingModel extends Equatable {
 
     final int seats =
         (json['requestedSeats'] as num?)?.toInt() ??
+        (json['seatsRequested'] as num?)?.toInt() ??
+        (json['seats'] as num?)?.toInt() ??
         (json['seatCount'] as num?)?.toInt() ??
         1;
 
@@ -165,6 +177,7 @@ class BookingModel extends Equatable {
     final double total =
         (json['totalContribution'] as num?)?.toDouble() ??
         (json['totalAmount'] as num?)?.toDouble() ??
+        (json['fare'] as num?)?.toDouble() ??
         (seats * perSeat);
 
     return BookingModel(
@@ -180,6 +193,7 @@ class BookingModel extends Equatable {
       passengerNote: json['passengerNote']?.toString() ?? '',
       pickup: resolvedPickup,
       drop: resolvedDrop,
+      pin: (json['pin'] ?? json['securityPin'] ?? json['pickupPin'])?.toString(),
       createdAt:
           DateTime.tryParse(
             json['createdAt']?.toString() ??
@@ -205,6 +219,7 @@ class BookingModel extends Equatable {
       'passengerNote': passengerNote,
       'pickup': pickup.toJson(),
       'drop': drop.toJson(),
+      if (pin != null) 'pin': pin,
       'createdAt': createdAt.toIso8601String(),
       if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
     };
@@ -224,6 +239,7 @@ class BookingModel extends Equatable {
     passengerNote,
     pickup,
     drop,
+    pin,
     createdAt,
     updatedAt,
   ];

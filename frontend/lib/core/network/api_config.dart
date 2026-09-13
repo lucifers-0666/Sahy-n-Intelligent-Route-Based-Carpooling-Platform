@@ -24,8 +24,25 @@ class ApiConfig {
   /// Health check path
   static const String healthEndpoint = '/api/health';
 
+  /// Optional runtime override (e.g., custom developer IP)
+  static String? customBaseUrl;
+
+  static void setCustomBaseUrl(String? url) {
+    if (url == null || url.isEmpty) {
+      customBaseUrl = null;
+    } else {
+      customBaseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+    }
+  }
+
+  /// Active base URL
+  static String get baseUrl => defaultBaseUrl;
+
   /// Active base URL
   static String get defaultBaseUrl {
+    if (customBaseUrl != null && customBaseUrl!.isNotEmpty) {
+      return customBaseUrl!;
+    }
     if (_envBaseUrl.isNotEmpty) {
       return _envBaseUrl;
     }

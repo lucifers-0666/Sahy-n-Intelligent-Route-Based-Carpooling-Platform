@@ -271,7 +271,9 @@ class RideModel extends Equatable {
       totalSeats: (json['totalSeats'] as num?)?.toInt() ?? vehicle.seatCapacity,
       bookedSeats: (json['bookedSeats'] as num?)?.toInt() ?? 0,
       contributionPerSeat:
-          (json['contributionPerSeat'] as num?)?.toDouble() ?? 0.0,
+          (json['contributionPerSeat'] as num?)?.toDouble() ??
+          (json['pricePerSeat'] as num?)?.toDouble() ??
+          0.0,
       matchPercentage: (json['matchPercentage'] as num?)?.toInt() ?? 100,
       routeDistanceKm:
           (json['routeDistanceKm'] as num?)?.toDouble() ??

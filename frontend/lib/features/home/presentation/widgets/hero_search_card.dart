@@ -317,7 +317,8 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
           // Departure Date/Time & Seat Stepper Row
           LayoutBuilder(
             builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 280;
+              final textScale = MediaQuery.textScalerOf(context).scale(1.0);
+              final isNarrow = constraints.maxWidth < 340 || textScale > 1.2;
               final departureWidget = Material(
                 color: SahyanColors.chipBackground,
                 borderRadius: BorderRadius.circular(16),
@@ -463,14 +464,19 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
               ),
               child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    'Find Matches',
-                    style: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
+                  Flexible(
+                    child: Text(
+                      'Find Matches',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
                     ),
                   ),
                   SizedBox(width: 8),

@@ -172,27 +172,37 @@ class SearchResultsScreen extends ConsumerWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(
-              left: AppSpacing.containerMargin,
-              right: AppSpacing.containerMargin,
-              top: AppSpacing.md,
-              bottom: 110.0, // Floating bottom nav clearance
-            ),
-            itemCount: results.length,
-            itemBuilder: (context, index) {
-              final result = results[index];
-              return RideCard(
-                ride: result.ride,
-                searchResult: result,
-                onTap: () {
-                  ref.read(selectedRideProvider.notifier).state = result.ride;
-                  ref.read(selectedSearchResultProvider.notifier).state =
-                      result;
-                  context.push('/ride-details');
-                },
-              );
+          return RefreshIndicator(
+            color: AppColors.primaryForest,
+            onRefresh: () async {
+              ref.invalidate(searchRidesProvider);
+              await ref.read(searchRidesProvider.future);
             },
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: const EdgeInsets.only(
+                left: AppSpacing.containerMargin,
+                right: AppSpacing.containerMargin,
+                top: AppSpacing.md,
+                bottom: 110.0, // Floating bottom nav clearance
+              ),
+              itemCount: results.length,
+              itemBuilder: (context, index) {
+                final result = results[index];
+                return RideCard(
+                  ride: result.ride,
+                  searchResult: result,
+                  onTap: () {
+                    ref.read(selectedRideProvider.notifier).state = result.ride;
+                    ref.read(selectedSearchResultProvider.notifier).state =
+                        result;
+                    context.push('/ride-details');
+                  },
+                );
+              },
+            ),
           );
         },
         loading: () => const SahyanLoadingState(
