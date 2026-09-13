@@ -69,7 +69,7 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
   void _handleNext() {
     if (_currentIndex < _pages.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 400),
         curve: Curves.easeOutCubic,
       );
     } else {
