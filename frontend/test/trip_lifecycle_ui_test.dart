@@ -196,6 +196,7 @@ class MockLifecycleRideRepo implements RideRepository {
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
+    List<LocationModel> waypoints = const [],
   }) async => throw UnimplementedError();
 
   @override

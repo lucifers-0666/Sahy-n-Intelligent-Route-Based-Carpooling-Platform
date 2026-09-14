@@ -139,6 +139,7 @@ class MockRideRepository implements RideRepository {
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
+    List<LocationModel> waypoints = const [],
   }) async {
     return const RouteInfo(
       encodedPolyline: 'w~dfD_bswM_route_encoded_bhuj_amd',

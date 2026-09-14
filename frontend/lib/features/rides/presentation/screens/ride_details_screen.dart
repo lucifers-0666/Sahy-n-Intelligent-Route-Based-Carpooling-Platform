@@ -6,6 +6,8 @@ import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_radii.dart';
 import 'package:sahyan/app/theme/app_spacing.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';
 import 'package:sahyan/core/widgets/sahyan_app_bar.dart';
@@ -15,11 +17,12 @@ import 'package:sahyan/core/widgets/sahyan_match_score_badge.dart';
 import 'package:sahyan/core/widgets/sahyan_status_badge.dart';
 import 'package:sahyan/core/widgets/verification_badge.dart';
 import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
+import 'package:sahyan/features/rides/domain/services/route_geometry_service.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_sheet.dart';
-import 'package:sahyan/features/rides/presentation/widgets/route_map_preview.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
+import 'package:sahyan/shared/widgets/sayan_route_map.dart';
 import '../rides_provider.dart';
 
 class RideDetailsScreen extends ConsumerWidget {
@@ -87,12 +90,117 @@ class RideDetailsScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.md),
             ],
 
-            // Route Map Preview Canvas
-            RouteMapPreview(
-              origin: ride.origin,
-              destination: ride.destination,
-              route: ride.route,
-              height: 200,
+            // Interactive Route Corridor Map & Detour Telemetry
+            Builder(
+              builder: (context) {
+                final polylinePoints =
+                    (ride.route != null &&
+                            ride.route!.encodedPolyline.isNotEmpty)
+                        ? RouteService.decodePolyline(
+                            ride.route!.encodedPolyline,
+                          )
+                            .map((pt) => LatLng(pt.latitude, pt.longitude))
+                            .toList()
+                        : <LatLng>[];
+
+                final bounds =
+                    polylinePoints.isNotEmpty
+                        ? RouteGeometryService.calculateBounds(polylinePoints)
+                        : null;
+
+                final corridor = RouteGeometryService.getHighwayCorridor(
+                  ride.origin,
+                  ride.destination,
+                );
+                final distanceKm =
+                    ride.route != null
+                        ? (ride.route!.distanceMeters / 1000).toStringAsFixed(0)
+                        : '219';
+                final durationSec = ride.route?.durationSeconds ?? 11700;
+                final hours = durationSec ~/ 3600;
+                final minutes = (durationSec % 3600) ~/ 60;
+                final durationText =
+                    hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+                final detourKm = searchResult?.match != null
+                    ? (searchResult!.match!.metrics.pickupDistanceKm +
+                        searchResult.match!.metrics.destinationDistanceKm)
+                    : null;
+
+                return Column(
+                  children: [
+                    // Dynamic Telemetry & Detour Pill
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepForest,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.alt_route_rounded,
+                                color: Color(0xFF2EC486),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '$corridor · $distanceKm km · $durationText',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(
+                                0xFF2EC486,
+                              ).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              detourKm != null
+                                  ? '${detourKm.toStringAsFixed(1)} km detour'
+                                  : 'Direct corridor',
+                              style: const TextStyle(
+                                color: Color(0xFF2EC486),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: SizedBox(
+                        height: 200,
+                        width: double.infinity,
+                        child: SayanRouteMap(
+                          origin: ride.origin,
+                          destination: ride.destination,
+                          polylinePoints: polylinePoints,
+                          bounds: bounds,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
 
             const SizedBox(height: AppSpacing.md),

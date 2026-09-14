@@ -197,6 +197,7 @@ class OfferRideState {
   final VehicleModel? selectedVehicle;
   final LocationModel? origin;
   final LocationModel? destination;
+  final List<LocationModel> stopovers;
   final RouteInfo? route;
   final bool isCalculatingRoute;
   final DateTime departureDate;
@@ -213,6 +214,7 @@ class OfferRideState {
     this.selectedVehicle,
     this.origin,
     this.destination,
+    this.stopovers = const [],
     this.route,
     this.isCalculatingRoute = false,
     DateTime? departureDate,
@@ -234,6 +236,7 @@ class OfferRideState {
     VehicleModel? selectedVehicle,
     LocationModel? origin,
     LocationModel? destination,
+    List<LocationModel>? stopovers,
     RouteInfo? route,
     bool? isCalculatingRoute,
     DateTime? departureDate,
@@ -251,6 +254,7 @@ class OfferRideState {
       selectedVehicle: selectedVehicle ?? this.selectedVehicle,
       origin: origin ?? this.origin,
       destination: destination ?? this.destination,
+      stopovers: stopovers ?? this.stopovers,
       route: route ?? this.route,
       isCalculatingRoute: isCalculatingRoute ?? this.isCalculatingRoute,
       departureDate: departureDate ?? this.departureDate,
@@ -298,6 +302,26 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
     }
   }
 
+  void addStopover(LocationModel stopover) {
+    final current = List<LocationModel>.from(state.stopovers);
+    current.add(stopover);
+    state = state.copyWith(stopovers: current, clearError: true);
+    if (state.origin != null && state.destination != null) {
+      calculateRoute();
+    }
+  }
+
+  void removeStopover(int index) {
+    if (index >= 0 && index < state.stopovers.length) {
+      final current = List<LocationModel>.from(state.stopovers);
+      current.removeAt(index);
+      state = state.copyWith(stopovers: current, clearError: true);
+      if (state.origin != null && state.destination != null) {
+        calculateRoute();
+      }
+    }
+  }
+
   Future<void> calculateRoute() async {
     final origin = state.origin;
     final destination = state.destination;
@@ -311,6 +335,7 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
       final route = await repo.calculateRoute(
         origin: origin,
         destination: destination,
+        waypoints: state.stopovers,
       );
       state = state.copyWith(route: route, isCalculatingRoute: false);
     } catch (e) {
@@ -375,6 +400,7 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
       activeRoute = await repo.calculateRoute(
         origin: origin,
         destination: destination,
+        waypoints: state.stopovers,
       );
       state = state.copyWith(route: activeRoute);
     }

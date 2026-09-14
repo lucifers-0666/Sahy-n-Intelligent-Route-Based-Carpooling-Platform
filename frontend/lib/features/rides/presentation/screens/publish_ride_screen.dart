@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
 import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
+import 'package:sahyan/features/rides/domain/services/route_geometry_service.dart';
+import 'package:sahyan/features/rides/presentation/widgets/location_search_bottom_sheet.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
+import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
+import 'package:sahyan/shared/widgets/sayan_route_map.dart';
 
 class PublishRideScreen extends ConsumerStatefulWidget {
   const PublishRideScreen({super.key});
@@ -19,12 +23,74 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
   final TextEditingController _destinationController =
       TextEditingController(text: 'Kalawad Road, Rajkot');
 
+  LocationModel _originLocation = LocationModel.fromCoordinates(
+    name: 'SG Highway, Ahmedabad',
+    latitude: 23.0225,
+    longitude: 72.5714,
+  );
+  LocationModel _destinationLocation = LocationModel.fromCoordinates(
+    name: 'Kalawad Road, Rajkot',
+    latitude: 22.3039,
+    longitude: 70.8022,
+  );
+  RouteCalculationResult? _routeGeometry;
+  bool _isLoadingRoute = false;
+
   int _seats = 2;
   bool _middleSeatEmpty = true;
   double _farePerSeat = 350.0;
   bool _isPublishing = false;
 
   final List<String> _stopovers = const ['Limbdi Toll Plaza', 'Chotila Jn'];
+
+  @override
+  void initState() {
+    super.initState();
+    _recalculateRoute();
+  }
+
+  Future<void> _recalculateRoute() async {
+    setState(() => _isLoadingRoute = true);
+    final waypoints = _stopovers
+        .map(
+          (s) => LocationModel.fromCoordinates(
+            name: s,
+            latitude: 22.5645,
+            longitude: 71.8080,
+          ),
+        )
+        .toList();
+    final result = await RouteGeometryService.calculateRoute(
+      origin: _originLocation,
+      destination: _destinationLocation,
+      waypoints: waypoints,
+    );
+    if (!mounted) return;
+    setState(() {
+      _routeGeometry = result;
+      _isLoadingRoute = false;
+    });
+  }
+
+  Future<void> _pickLocation({required bool isOrigin}) async {
+    final title = isOrigin ? 'Select Origin Node' : 'Select Destination Node';
+    final selected = await LocationSearchBottomSheet.show(
+      context: context,
+      title: title,
+    );
+    if (selected != null) {
+      setState(() {
+        if (isOrigin) {
+          _originLocation = selected;
+          _originController.text = selected.name;
+        } else {
+          _destinationLocation = selected;
+          _destinationController.text = selected.name;
+        }
+      });
+      _recalculateRoute();
+    }
+  }
 
   @override
   void dispose() {
@@ -156,6 +222,12 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
   }
 
   Widget _buildStepHeader() {
+    final corridor = _routeGeometry?.highwayCorridor ?? 'via NH47';
+    final distanceKm = _routeGeometry?.distanceKm.toStringAsFixed(0) ?? '219';
+    final durationText = _routeGeometry != null
+        ? '${_routeGeometry!.durationMinutes ~/ 60}h ${_routeGeometry!.durationMinutes % 60}m'
+        : '3h 40m';
+
     return BentoContainer(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -203,12 +275,12 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          const Wrap(
+          Wrap(
             spacing: 6,
             runSpacing: 6,
             children: [
               PillTag(
-                label: 'via NH47 · 219 km · 3h 40m · Max 5 km Detour',
+                label: '$corridor · $distanceKm km · $durationText · Max 5 km Detour',
                 icon: Icons.alt_route,
                 variant: PillTagVariant.mint,
               ),
@@ -225,89 +297,73 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Simulated Minimap Area
-          Container(
-            height: 130,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: SahyanColors.primaryLight.withValues(alpha: 0.5),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(22),
-                topRight: Radius.circular(22),
-              ),
+          // Live Sayan Route Map Area
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(22),
+              topRight: Radius.circular(22),
             ),
-            child: Stack(
-              children: [
-                // Stylized map grid lines
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _MinimapGridPainter(),
-                  ),
-                ),
-                // Route polyline representation
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _MinimapRoutePainter(),
-                  ),
-                ),
-                // Top tag: Live Telematics
-                Positioned(
-                  top: 10,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: SahyanColors.surface,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: SahyanColors.border, width: 0.8),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.radar,
-                          size: 13,
-                          color: SahyanColors.primaryMint,
-                        ),
-                        SizedBox(width: 4),
-                        Text(
-                          'Live Route Mesh Active',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: SahyanColors.textMain,
+            child: SizedBox(
+              height: 160,
+              width: double.infinity,
+              child: Stack(
+                children: [
+                  SayanRouteMap(
+                    origin: _originLocation,
+                    destination: _destinationLocation,
+                    polylinePoints: _routeGeometry?.polylinePoints ?? const [],
+                    bounds: _routeGeometry?.bounds,
+                    stopovers: _stopovers
+                        .map(
+                          (s) => LocationModel.fromCoordinates(
+                            name: s,
+                            latitude: 22.5645,
+                            longitude: 71.8080,
                           ),
-                        ),
-                      ],
-                    ),
+                        )
+                        .toList(),
                   ),
-                ),
-                Positioned(
-                  bottom: 8,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: SahyanColors.surface.withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      'Interactive Route View',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: SahyanColors.textMuted,
+                  Positioned(
+                    top: 10,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: SahyanColors.surface.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: SahyanColors.border,
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.radar,
+                            size: 13,
+                            color: SahyanColors.primaryMint,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _isLoadingRoute
+                                ? 'Calculating Route...'
+                                : 'Route Corridor Active',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: SahyanColors.textMain,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           // Stopovers row
@@ -447,6 +503,15 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
                           color: SahyanColors.textMuted,
                           fontSize: 12,
                         ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.search_rounded,
+                            color: SahyanColors.primaryDark,
+                            size: 18,
+                          ),
+                          tooltip: 'Search Places Autocomplete',
+                          onPressed: () => _pickLocation(isOrigin: true),
+                        ),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -483,6 +548,15 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
                         labelStyle: const TextStyle(
                           color: SahyanColors.textMuted,
                           fontSize: 12,
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(
+                            Icons.search_rounded,
+                            color: SahyanColors.primaryDark,
+                            size: 18,
+                          ),
+                          tooltip: 'Search Places Autocomplete',
+                          onPressed: () => _pickLocation(isOrigin: false),
                         ),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
@@ -980,62 +1054,4 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
       ),
     );
   }
-}
-
-class _MinimapGridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = SahyanColors.border.withValues(alpha: 0.6)
-      ..strokeWidth = 0.5;
-
-    for (double x = 0; x < size.width; x += 24) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += 24) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _MinimapRoutePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path();
-    path.moveTo(size.width * 0.15, size.height * 0.8);
-    path.quadraticBezierTo(
-      size.width * 0.45,
-      size.height * 0.2,
-      size.width * 0.85,
-      size.height * 0.35,
-    );
-
-    final linePaint = Paint()
-      ..color = SahyanColors.bluePolyline
-      ..strokeWidth = 3.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawPath(path, linePaint);
-
-    final dotPaint = Paint()..color = SahyanColors.primaryDark;
-    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.8), 5, dotPaint);
-
-    final destPaint = Paint()..color = SahyanColors.primaryMint;
-    canvas.drawCircle(
-      Offset(size.width * 0.85, size.height * 0.35),
-      5,
-      destPaint,
-    );
-
-    // Stopover dots
-    final stopPaint = Paint()..color = SahyanColors.goldStar;
-    canvas.drawCircle(Offset(size.width * 0.45, size.height * 0.4), 4, stopPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

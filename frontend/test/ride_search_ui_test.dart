@@ -9,7 +9,7 @@ import 'package:sahyan/features/rides/domain/ride_search_result.dart';
 import 'package:sahyan/features/rides/presentation/rides_provider.dart';
 import 'package:sahyan/features/rides/presentation/screens/ride_details_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/search_results_screen.dart';
-import 'package:sahyan/features/rides/presentation/widgets/route_map_preview.dart';
+import 'package:sahyan/shared/widgets/sayan_route_map.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
@@ -77,6 +77,7 @@ class MockSearchRideRepository implements RideRepository {
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
+    List<LocationModel> waypoints = const [],
   }) async => throw UnimplementedError();
 }
 
@@ -228,8 +229,8 @@ void main() {
   });
 
   group('Phase 6: Ride Details Screen Tests', () {
-    testWidgets('Renders RouteMapPreview, driver, vehicle, and policy', (
-      tester,
+    testWidgets('Renders SayanRouteMap, driver, vehicle, and policy', (
+      WidgetTester tester,
     ) async {
       final container = ProviderContainer(
         overrides: [
@@ -250,8 +251,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Must display RouteMapPreview
-      expect(find.byType(RouteMapPreview), findsOneWidget);
+      // Must display SayanRouteMap
+      expect(find.byType(SayanRouteMap), findsOneWidget);
 
       // Must display driver name
       expect(find.text('Harsh Dave'), findsOneWidget);

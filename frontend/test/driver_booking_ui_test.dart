@@ -165,6 +165,7 @@ class FakeRideRepo implements RideRepository {
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
+    List<LocationModel> waypoints = const [],
   }) async {
     return const RouteInfo(
       encodedPolyline: 'dummy_poly',

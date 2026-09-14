@@ -3,17 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 export 'publish_ride_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
+import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
+import 'package:sahyan/features/rides/domain/services/route_geometry_service.dart';
 import 'package:sahyan/features/rides/presentation/rides_provider.dart';
-import 'package:sahyan/features/rides/presentation/widgets/route_map_preview.dart';
+import 'package:sahyan/features/rides/presentation/widgets/location_search_bottom_sheet.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
+import 'package:sahyan/shared/widgets/sayan_route_map.dart';
 
 class OfferRideScreen extends ConsumerStatefulWidget {
   const OfferRideScreen({super.key});
@@ -90,6 +94,43 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
             longitude: hub['lng'] as double,
           ),
         );
+  }
+
+  Future<void> _openLocationSearch({required bool isOrigin}) async {
+    final title =
+        isOrigin ? 'Select Origin (Pickup)' : 'Select Destination (Dropoff)';
+    final selected = await LocationSearchBottomSheet.show(
+      context: context,
+      title: title,
+    );
+    if (selected != null) {
+      if (isOrigin) {
+        _originController.text = selected.name;
+        ref.read(offerRideProvider.notifier).setOrigin(selected);
+      } else {
+        _destinationController.text = selected.name;
+        ref.read(offerRideProvider.notifier).setDestination(selected);
+      }
+    }
+  }
+
+  Future<void> _addStopoverLocation() async {
+    final draft = ref.read(offerRideProvider);
+    if (draft.stopovers.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum 3 highway stopovers allowed per route.'),
+        ),
+      );
+      return;
+    }
+    final selected = await LocationSearchBottomSheet.show(
+      context: context,
+      title: 'Add Highway Stopover / Toll Plaza',
+    );
+    if (selected != null) {
+      ref.read(offerRideProvider.notifier).addStopover(selected);
+    }
   }
 
   Future<void> _pickDepartureDate() async {
@@ -515,6 +556,14 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     color: Color(0xFF2E6B4B),
                     size: 18,
                   ),
+                  suffixIcon: IconButton(
+                    icon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.primaryForest,
+                    ),
+                    tooltip: 'Search Places Autocomplete',
+                    onPressed: () => _openLocationSearch(isOrigin: true),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -541,20 +590,41 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: _popularHubs.take(4).map((hub) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ActionChip(
-                        label: Text(
-                          hub['name'] as String,
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                        backgroundColor: AppColors.warmBackground,
-                        padding: EdgeInsets.zero,
-                        onPressed: () => _selectHubAsOrigin(hub),
+                  children: [
+                    ActionChip(
+                      avatar: const Icon(
+                        Icons.my_location,
+                        size: 14,
+                        color: AppColors.primaryForest,
                       ),
-                    );
-                  }).toList(),
+                      label: const Text(
+                        'Use GPS',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryForest,
+                        ),
+                      ),
+                      backgroundColor: AppColors.softForest,
+                      padding: EdgeInsets.zero,
+                      onPressed: () => _openLocationSearch(isOrigin: true),
+                    ),
+                    const SizedBox(width: 6),
+                    ..._popularHubs.take(4).map((hub) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ActionChip(
+                          label: Text(
+                            hub['name'] as String,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          backgroundColor: AppColors.warmBackground,
+                          padding: EdgeInsets.zero,
+                          onPressed: () => _selectHubAsOrigin(hub),
+                        ),
+                      );
+                    }),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
@@ -567,6 +637,14 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     Icons.location_on,
                     color: AppColors.deepForest,
                     size: 18,
+                  ),
+                  suffixIcon: IconButton(
+                    icon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.primaryForest,
+                    ),
+                    tooltip: 'Search Places Autocomplete',
+                    onPressed: () => _openLocationSearch(isOrigin: false),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -594,20 +672,101 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: _popularHubs.reversed.take(4).map((hub) {
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ActionChip(
-                        label: Text(
-                          hub['name'] as String,
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                        backgroundColor: AppColors.warmBackground,
-                        padding: EdgeInsets.zero,
-                        onPressed: () => _selectHubAsDestination(hub),
+                  children: [
+                    ActionChip(
+                      avatar: const Icon(
+                        Icons.search,
+                        size: 14,
+                        color: AppColors.primaryForest,
                       ),
+                      label: const Text(
+                        'Browse Hubs',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryForest,
+                        ),
+                      ),
+                      backgroundColor: AppColors.softForest,
+                      padding: EdgeInsets.zero,
+                      onPressed: () => _openLocationSearch(isOrigin: false),
+                    ),
+                    const SizedBox(width: 6),
+                    ..._popularHubs.reversed.take(4).map((hub) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ActionChip(
+                          label: Text(
+                            hub['name'] as String,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          backgroundColor: AppColors.warmBackground,
+                          padding: EdgeInsets.zero,
+                          onPressed: () => _selectHubAsDestination(hub),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+
+              // Highway stopovers list & add button
+              if (draft.stopovers.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Text(
+                  'Highway Stopovers / En-route Waypoints',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.deepForest,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: List.generate(draft.stopovers.length, (idx) {
+                    final stop = draft.stopovers[idx];
+                    return Chip(
+                      label: Text(
+                        'Stop ${idx + 1}: ${stop.name}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryForest,
+                        ),
+                      ),
+                      backgroundColor: AppColors.softForest,
+                      deleteIcon: const Icon(Icons.close, size: 14),
+                      onDeleted: () => ref
+                          .read(offerRideProvider.notifier)
+                          .removeStopover(idx),
                     );
-                  }).toList(),
+                  }),
+                ),
+              ],
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: _addStopoverLocation,
+                icon: const Icon(Icons.add_location_alt_outlined, size: 16),
+                label: Text(
+                  draft.stopovers.isEmpty
+                      ? 'Add Highway Stopover / Toll (Optional)'
+                      : 'Add Another Stopover (${draft.stopovers.length}/3)',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryForest,
+                  side: const BorderSide(
+                    color: AppColors.primaryForest,
+                    width: 0.8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -616,14 +775,144 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
         const SizedBox(height: 14),
 
         if (draft.origin != null && draft.destination != null) ...[
-          RouteMapPreview(
-            origin: draft.origin!,
-            destination: draft.destination!,
-            route: draft.route,
-            isCalculating: draft.isCalculatingRoute,
+          _buildRouteTelemetryPill(draft),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              height: 220,
+              width: double.infinity,
+              child: SayanRouteMap(
+                origin: draft.origin!,
+                destination: draft.destination!,
+                polylinePoints:
+                    draft.route != null &&
+                        draft.route!.encodedPolyline.isNotEmpty
+                    ? RouteService.decodePolyline(draft.route!.encodedPolyline)
+                          .map((pt) => LatLng(pt.latitude, pt.longitude))
+                          .toList()
+                    : const [],
+                stopovers: draft.stopovers,
+                bounds:
+                    draft.route != null &&
+                        draft.route!.encodedPolyline.isNotEmpty
+                    ? RouteGeometryService.calculateBounds(
+                        RouteService.decodePolyline(
+                          draft.route!.encodedPolyline,
+                        )
+                            .map((pt) => LatLng(pt.latitude, pt.longitude))
+                            .toList(),
+                      )
+                    : null,
+              ),
+            ),
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildRouteTelemetryPill(OfferRideState draft) {
+    if (draft.isCalculatingRoute) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.softForest,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primaryForest,
+              ),
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Computing highway route corridor & telemetry...',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryForest,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final corridor =
+        (draft.origin != null && draft.destination != null)
+            ? RouteGeometryService.getHighwayCorridor(
+                draft.origin!,
+                draft.destination!,
+              )
+            : 'via NH47';
+    final distanceKm =
+        draft.route != null
+            ? (draft.route!.distanceMeters / 1000).toStringAsFixed(0)
+            : '219';
+    final durationSec = draft.route?.durationSeconds ?? 11700;
+    final hours = durationSec ~/ 3600;
+    final minutes = (durationSec % 3600) ~/ 60;
+    final durationText = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.deepForest,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.alt_route_rounded,
+                color: Color(0xFF2EC486),
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$corridor · $distanceKm km · $durationText',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12.5,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2EC486).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'OPTIMAL',
+              style: TextStyle(
+                color: Color(0xFF2EC486),
+                fontWeight: FontWeight.w800,
+                fontSize: 10,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

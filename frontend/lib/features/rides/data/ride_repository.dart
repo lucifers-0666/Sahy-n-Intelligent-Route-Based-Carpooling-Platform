@@ -1,6 +1,6 @@
 import 'package:sahyan/core/network/api_client.dart';
-import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/features/rides/domain/ride_search_result.dart';
+import 'package:sahyan/features/rides/domain/services/route_geometry_service.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 
@@ -34,6 +34,7 @@ abstract class RideRepository {
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
+    List<LocationModel> waypoints = const [],
   });
 
   Future<List<RideSearchResult>> searchRides({
@@ -173,11 +174,17 @@ class RideRepositoryImpl implements RideRepository {
   Future<RouteInfo> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
+    List<LocationModel> waypoints = const [],
   }) async {
     try {
       final response = await apiClient.post(
         '/rides/calculate-route',
-        body: {'origin': origin.toJson(), 'destination': destination.toJson()},
+        body: {
+          'origin': origin.toJson(),
+          'destination': destination.toJson(),
+          if (waypoints.isNotEmpty)
+            'waypoints': waypoints.map((w) => w.toJson()).toList(),
+        },
       );
 
       if (response is Map<String, dynamic> && response['success'] == true) {
@@ -193,34 +200,12 @@ class RideRepositoryImpl implements RideRepository {
       // Compute direct baseline route for local development & preview.
     }
 
-    // Baseline local route calculation (Haversine distance + estimated 60 km/h driving speed)
-    final distanceMeters = RouteService.calculateDistanceMeters(
-      origin.latitude,
-      origin.longitude,
-      destination.latitude,
-      destination.longitude,
+    final result = await RouteGeometryService.calculateRoute(
+      origin: origin,
+      destination: destination,
+      waypoints: waypoints,
     );
-
-    // Add 20% road curvature factor over straight-line Haversine
-    final adjustedDistanceMeters = distanceMeters * 1.20;
-    // Average driving speed: 60 km/h (16.67 m/s)
-    final durationSeconds = (adjustedDistanceMeters / 16.67).round();
-
-    // Create polyline connecting origin and destination
-    final encodedPolyline = RouteService.encodePolyline([
-      LatLngPoint(origin.latitude, origin.longitude),
-      LatLngPoint(
-        (origin.latitude + destination.latitude) / 2 + 0.01,
-        (origin.longitude + destination.longitude) / 2 + 0.01,
-      ),
-      LatLngPoint(destination.latitude, destination.longitude),
-    ]);
-
-    return RouteInfo(
-      encodedPolyline: encodedPolyline,
-      distanceMeters: adjustedDistanceMeters,
-      durationSeconds: durationSeconds,
-    );
+    return result.route;
   }
 
   @override
