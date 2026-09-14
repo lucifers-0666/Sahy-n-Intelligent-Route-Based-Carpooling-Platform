@@ -7,64 +7,13 @@ import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/sahyan_app_bar.dart';
 import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../core/widgets/sahyan_card.dart';
+import '../widgets/sos_action_bottom_sheet.dart';
 
 class SafetyCenterScreen extends StatelessWidget {
   const SafetyCenterScreen({super.key});
 
   void _handleSos(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-        ),
-        title: Row(
-          children: [
-            const Icon(Icons.emergency_rounded, color: AppColors.mutedRust),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'Emergency SOS',
-              style: AppTypography.sectionHeader.copyWith(
-                color: AppColors.mutedRust,
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'This will trigger an immediate emergency alert. Your live corridor coordinates will be dispatched to local highway police command and your registered emergency contacts.',
-          style: AppTypography.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.mutedRust,
-              foregroundColor: AppColors.white,
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'SOS Alert Dispatched to Emergency Services & Contacts.',
-                  ),
-                  backgroundColor: AppColors.mutedRust,
-                  duration: Duration(seconds: 4),
-                ),
-              );
-            },
-            child: const Text('Dispatch SOS Now'),
-          ),
-        ],
-      ),
-    );
+    SosActionBottomSheet.show(context);
   }
 
   void _showReportDialog(BuildContext context) {

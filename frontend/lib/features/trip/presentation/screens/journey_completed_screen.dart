@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/design_system.dart';
 import '../../../bookings/domain/booking_model.dart';
+import '../widgets/rate_trip_sheet.dart';
 
 class JourneyCompletedScreen extends StatelessWidget {
   final BookingModel? booking;
@@ -225,7 +226,11 @@ class JourneyCompletedScreen extends StatelessWidget {
                 icon: Icons.star_outline_rounded,
                 variant: SahyanButtonVariant.outline,
                 isFullWidth: true,
-                onPressed: () => context.push('/reviews'),
+                onPressed: () => RateTripSheet.show(
+                  context,
+                  booking: booking,
+                  driverName: driverName,
+                ),
               ),
               const SizedBox(height: AppSpacing.sm),
               SahyanButton(

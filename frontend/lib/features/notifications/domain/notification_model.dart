@@ -40,4 +40,34 @@ class NotificationItem {
       routeParams: routeParams ?? this.routeParams,
     );
   }
+
+  factory NotificationItem.fromJson(Map<String, dynamic> json) {
+    return NotificationItem(
+      id: json['id'] as String? ?? json['_id'] as String? ?? '',
+      title: json['title'] as String? ?? 'Notification',
+      message: json['message'] as String? ?? '',
+      category: json['category'] as String? ?? 'system',
+      timestamp: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      isRead: json['isRead'] as bool? ?? false,
+      routeTarget: json['routeTarget'] as String?,
+      routeParams: json['routeParams'] is Map<String, dynamic>
+          ? json['routeParams'] as Map<String, dynamic>
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'message': message,
+      'category': category,
+      'timestamp': timestamp.toIso8601String(),
+      'isRead': isRead,
+      'routeTarget': routeTarget,
+      'routeParams': routeParams,
+    };
+  }
 }

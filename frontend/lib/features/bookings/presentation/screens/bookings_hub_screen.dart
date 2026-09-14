@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
+import 'package:sahyan/features/trip/presentation/widgets/sos_action_bottom_sheet.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
 
 class BookingsHubScreen extends ConsumerStatefulWidget {
@@ -135,6 +136,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                       driverName: activeBookings.isNotEmpty
                           ? (activeBookings.first.ride?.driverName ?? 'Rohit Patel')
                           : 'Rohit Patel',
+                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
                     ),
                     const SizedBox(height: 14),
                     _buildEcoImpactCard(),
@@ -604,7 +606,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 ),
                 const SizedBox(height: 14),
                 ElevatedButton.icon(
-                  onPressed: () => context.push('/live-tracking'),
+                  onPressed: () =>
+                      context.push('/live-tracking', extra: booking),
                   icon: const Icon(Icons.map_outlined, size: 18),
                   label: const Text('Track Live on Map'),
                   style: ElevatedButton.styleFrom(
@@ -669,7 +672,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildActionDock({String driverName = 'Rohit Patel'}) {
+  Widget _buildActionDock({String driverName = 'Rohit Patel', BookingModel? booking}) {
+    final bookingId = booking?.id ?? 'conv-1';
     return BentoContainer(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       child: Row(
@@ -694,7 +698,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               icon: Icons.chat_bubble_outline_rounded,
               label: 'Chat',
               color: SahyanColors.primaryDark,
-              onTap: () => context.push('/messages'),
+              onTap: () => context.push('/messages/$bookingId'),
             ),
           ),
           Expanded(
@@ -718,7 +722,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               label: 'SOS',
               color: SahyanColors.urgentCoral,
               isUrgent: true,
-              onTap: () => context.push('/trip-safety'),
+              onTap: () => SosActionBottomSheet.show(context, booking: booking),
             ),
           ),
         ],

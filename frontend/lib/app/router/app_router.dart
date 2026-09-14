@@ -190,7 +190,10 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/live-tracking',
-      builder: (context, state) => const LiveRideTrackingScreen(),
+      builder: (context, state) {
+        final booking = state.extra as BookingModel?;
+        return LiveRideTrackingScreen(booking: booking);
+      },
     ),
     GoRoute(
       path: '/settings',
@@ -267,6 +270,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/help-support',
       builder: (context, state) => const HelpSupportScreen(),
+    ),
+    GoRoute(
+      path: '/journey-completed',
+      builder: (context, state) {
+        final booking = state.extra as BookingModel?;
+        return JourneyCompletedScreen(booking: booking);
+      },
     ),
     GoRoute(
       path: '/system-states',

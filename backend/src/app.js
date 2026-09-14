@@ -8,6 +8,9 @@ const userRoutes = require('./routes/userRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const rideRoutes = require('./routes/rideRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const messageRoutes = require('./routes/messageRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -40,6 +43,9 @@ app.get('/api/v1/health', healthHandler);
   app.use(`${prefix}/vehicles`, vehicleRoutes);
   app.use(`${prefix}/rides`, rideRoutes);
   app.use(`${prefix}/bookings`, bookingRoutes);
+  app.use(`${prefix}/messages`, messageRoutes);
+  app.use(`${prefix}/reviews`, reviewRoutes);
+  app.use(`${prefix}/notifications`, notificationRoutes);
 });
 
 // Global 404 handler for undefined routes

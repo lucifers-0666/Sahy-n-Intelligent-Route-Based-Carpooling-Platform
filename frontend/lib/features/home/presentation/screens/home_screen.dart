@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/models/location_model.dart';
 import '../../../../shared/widgets/bento/bento_widgets.dart';
 import '../../../auth/presentation/auth_provider.dart';
+import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
 import '../widgets/hero_search_card.dart';
 
@@ -202,6 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final unreadNotifs = ref.watch(notificationsProvider).unreadCount;
     final displayName = user?.name.split(' ').first ?? 'Arjun';
 
     return Scaffold(
@@ -338,18 +340,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ),
                               ),
                             ),
-                            Positioned(
-                              top: 2,
-                              right: 2,
-                              child: Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: SahyanColors.primaryMint,
-                                  shape: BoxShape.circle,
+                            if (unreadNotifs > 0)
+                              Positioned(
+                                top: -2,
+                                right: -2,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: SahyanColors.primaryMint,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: Colors.white, width: 1.5),
+                                  ),
+                                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                  child: Text(
+                                    '$unreadNotifs',
+                                    style: const TextStyle(
+                                      color: SahyanColors.primaryDark,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
                               ),
-                            ),
                           ],
                         ),
                         const SizedBox(width: 10),

@@ -135,16 +135,42 @@ class NotificationsScreen extends ConsumerWidget {
                           const SizedBox(height: AppSpacing.sm),
                       itemBuilder: (context, index) {
                         final item = items[index];
-                        return _buildNotificationCard(
-                          context,
-                          item,
-                          onTap: () {
-                            notifier.markAsRead(item.id);
-                            context.push(
-                              '/notifications/${item.id}',
-                              extra: item,
+                        return Dismissible(
+                          key: Key('notif-${item.id}'),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            decoration: BoxDecoration(
+                              color: SahyanColors.urgentCoral.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(AppRadii.md),
+                            ),
+                            child: const Icon(
+                              Icons.delete_outline_rounded,
+                              color: SahyanColors.urgentCoral,
+                              size: 22,
+                            ),
+                          ),
+                          onDismissed: (_) {
+                            notifier.dismissNotification(item.id);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Notification dismissed: ${item.title}'),
+                                duration: const Duration(seconds: 2),
+                              ),
                             );
                           },
+                          child: _buildNotificationCard(
+                            context,
+                            item,
+                            onTap: () {
+                              notifier.markAsRead(item.id);
+                              context.push(
+                                '/notifications/${item.id}',
+                                extra: item,
+                              );
+                            },
+                          ),
                         );
                       },
                     ),
