@@ -73,6 +73,18 @@ const bookingSchema = new mongoose.Schema(
       default: 'pending',
       index: true,
     },
+    paymentStatus: {
+      type: String,
+      enum: {
+        values: ['pending', 'paid', 'escrow_released', 'refunded'],
+        message: 'Payment status must be pending, paid, escrow_released, or refunded',
+      },
+      default: 'pending',
+    },
+    paymentTransactionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PaymentTransaction',
+    },
     passengerNote: {
       type: String,
       trim: true,

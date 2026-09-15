@@ -12,6 +12,7 @@ const messageRoutes = require('./routes/messageRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.get('/api/v1/health', healthHandler);
   app.use(`${prefix}/messages`, messageRoutes);
   app.use(`${prefix}/reviews`, reviewRoutes);
   app.use(`${prefix}/notifications`, notificationRoutes);
+  app.use(`${prefix}/payments`, paymentRoutes);
   app.use(`${prefix}/admin`, adminRoutes);
 });
 
