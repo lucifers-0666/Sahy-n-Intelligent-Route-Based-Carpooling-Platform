@@ -446,6 +446,16 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           const Divider(color: AppColors.border, height: 1),
                           _buildNavTile(
+                            icon: Icons.admin_panel_settings_outlined,
+                            title: 'Admin & Moderation Console',
+                            subtitle:
+                                'Fleet verification, ride moderation, and analytics',
+                            onTap: () {
+                              context.push('/admin');
+                            },
+                          ),
+                          const Divider(color: AppColors.border, height: 1),
+                          _buildNavTile(
                             icon: Icons.help_outline_rounded,
                             title: 'Help & Support',
                             subtitle:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
@@ -9,6 +10,8 @@ import '../../../../core/widgets/sahyan_app_bar.dart';
 import '../../../../core/widgets/sahyan_avatar.dart';
 import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../core/widgets/sahyan_card.dart';
+import '../../../../core/network/socket_client.dart';
+import '../../../../core/services/driver_location_service.dart';
 import '../../../../shared/models/ride_model.dart';
 import '../../../rides/presentation/rides_provider.dart';
 
@@ -33,11 +36,41 @@ class _DriverActiveRideScreenState
   void initState() {
     super.initState();
     _ride = widget.initialRide;
+    _startGpsStream();
+  }
+
+  /// Start GPS streaming if on a native platform with a valid ride ID.
+  Future<void> _startGpsStream() async {
+    final rideId = _ride?.id;
+    if (rideId == null || kIsWeb) return;
+
+    try {
+      final socketClient = SocketClient.instance;
+      socketClient.connect();
+      // 'driver-id' would normally come from auth provider; using placeholder
+      socketClient.joinRideRoom(rideId, 'driver-self', 'driver');
+
+      final started = await DriverLocationService.instance.startStreaming(rideId);
+      debugPrint('[DriverActiveRide] GPS streaming: $started');
+    } catch (e) {
+      debugPrint('[DriverActiveRide] GPS start error: $e');
+    }
+  }
+
+  /// Stop GPS streaming and leave the socket room.
+  Future<void> _stopGpsStream() async {
+    final rideId = _ride?.id;
+    await DriverLocationService.instance.stopStreaming();
+    if (rideId != null && !kIsWeb) {
+      SocketClient.instance.leaveRideRoom(rideId);
+    }
+    debugPrint('[DriverActiveRide] GPS streaming stopped.');
   }
 
   @override
   void dispose() {
     _pinController.dispose();
+    _stopGpsStream();
     super.dispose();
   }
 
@@ -101,6 +134,10 @@ class _DriverActiveRideScreenState
     if (confirm != true) return;
 
     setState(() => _isCompleting = true);
+
+    // Stop GPS stream and leave room before completing trip
+    await _stopGpsStream();
+
     if (_ride != null) {
       await ref
           .read(myRidesProvider.notifier)

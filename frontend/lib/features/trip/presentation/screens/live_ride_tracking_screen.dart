@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sahyan/core/widgets/design_system.dart';
+import 'package:sahyan/core/network/socket_client.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/rides/domain/services/route_geometry_service.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
@@ -20,6 +23,12 @@ class LiveRideTrackingScreen extends StatefulWidget {
   final VehicleType vehicleType;
   final BookingModel? booking;
 
+  /// The active ride ID used to subscribe to the Socket.IO room.
+  final String? rideId;
+
+  /// The current user ID (passenger) for joining the socket room.
+  final String? userId;
+
   const LiveRideTrackingScreen({
     super.key,
     this.originName,
@@ -29,6 +38,8 @@ class LiveRideTrackingScreen extends StatefulWidget {
     this.vehicleInfo,
     this.vehicleType = VehicleType.sedan,
     this.booking,
+    this.rideId,
+    this.userId,
   });
 
   @override
@@ -37,10 +48,11 @@ class LiveRideTrackingScreen extends StatefulWidget {
 
 class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _animController;
+  // ── Location init ────────────────────────────────────────────────────────
   late LocationModel _origin;
   late LocationModel _destination;
 
+  // ── Route geometry ───────────────────────────────────────────────────────
   List<LatLng> _polylinePoints = [];
   LatLngBounds? _bounds;
   String _highwayCorridor = 'via NH47';
@@ -48,16 +60,34 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
   int _totalDurationMins = 195;
   bool _isLoadingRoute = true;
 
+  // ── Real-time driver state ───────────────────────────────────────────────
   LatLng? _driverPosition;
   double _driverHeading = 0.0;
+  double _liveSpeedKmh = 0.0;
+  double _remainingKm = 219.0;
+  int _remainingMins = 195;
+  DateTime? _lastPacketAt;
+  StreamSubscription<DriverLocationPayload>? _locationSub;
+
+  // ── Simulation fallback (web / no socket) ────────────────────────────────
+  AnimationController? _simController;
+  bool _useSimulation = false;
+
+  // ── Connection health ────────────────────────────────────────────────
+  StreamSubscription<SocketConnectionState>? _connectionSub;
+
+  // ── UI state ─────────────────────────────────────────────────────────────
+  bool _followVehicle = true;
 
   @override
   void initState() {
     super.initState();
     _initLocations();
-    _initAnimation();
     _loadRouteGeometry();
+    _initTelematics();
   }
+
+  // ── Location setup ───────────────────────────────────────────────────────
 
   void _initLocations() {
     final b = widget.booking;
@@ -94,25 +124,13 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
     }
   }
 
-  void _initAnimation() {
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 24),
-    );
-
-    _animController.addListener(() {
-      _updateDriverPositionAlongPolyline(_animController.value);
-    });
-
-    _animController.repeat();
-  }
+  // ── Route geometry ───────────────────────────────────────────────────────
 
   Future<void> _loadRouteGeometry() async {
     final result = await RouteGeometryService.calculateRoute(
       origin: _origin,
       destination: _destination,
     );
-
     if (!mounted) return;
     setState(() {
       _polylinePoints = result.polylinePoints;
@@ -120,16 +138,107 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
       _highwayCorridor = result.highwayCorridor;
       _totalDistanceKm = result.distanceKm;
       _totalDurationMins = result.durationMinutes;
+      _remainingKm = result.distanceKm;
+      _remainingMins = result.durationMinutes;
       _isLoadingRoute = false;
     });
 
-    _updateDriverPositionAlongPolyline(_animController.value);
+    // If simulation was already started, seed initial position on route
+    if (_useSimulation && _simController != null) {
+      _updateSimPosition(_simController!.value);
+    }
   }
 
-  void _updateDriverPositionAlongPolyline(double progress) {
-    if (_polylinePoints.length < 2) return;
+  // ── Telematics: socket or simulation fallback ────────────────────────────
 
-    // Simulate progress starting around 35% through route and advancing
+  void _initTelematics() {
+    final rideId = widget.rideId ?? widget.booking?.id;
+
+    // On web there's no native GPS — always use simulation
+    if (kIsWeb || rideId == null) {
+      _startSimulation();
+      return;
+    }
+
+    // Try to connect and subscribe
+    try {
+      final socketClient = SocketClient.instance;
+      socketClient.connect();
+
+      _connectionSub = socketClient.connectionState.listen((state) {
+        // Connection state changes are reflected via _lastPacketAt and health dot
+        if (kDebugMode) {
+          debugPrint('[LiveTracking] Socket: $state');
+        }
+      });
+
+      socketClient.joinRideRoom(rideId, widget.userId ?? 'passenger-anon', 'passenger');
+
+      _locationSub = socketClient.onDriverLocation(rideId).listen(
+        _onDriverLocationPayload,
+        onError: (_) => _startSimulationIfNoData(),
+      );
+
+      // Start simulation after 4 seconds if no socket data arrives
+      Future.delayed(const Duration(seconds: 4), () {
+        if (mounted && _driverPosition == null) {
+          _startSimulationIfNoData();
+        }
+      });
+    } catch (e) {
+      debugPrint('[LiveRideTracking] Socket init failed: $e');
+      _startSimulation();
+    }
+  }
+
+  void _onDriverLocationPayload(DriverLocationPayload payload) {
+    if (!mounted) return;
+
+    // Deactivate simulation if socket starts delivering data
+    if (_useSimulation) {
+      _simController?.stop();
+      _useSimulation = false;
+    }
+
+    final newPos = LatLng(payload.latitude, payload.longitude);
+    final remaining = _haversineDistanceKm(
+      newPos.latitude, newPos.longitude,
+      _destination.latitude, _destination.longitude,
+    );
+    final speed = payload.speed > 0 ? payload.speed : 40.0;
+    final etaMins = ((remaining / speed) * 60).round().clamp(1, _totalDurationMins);
+
+    setState(() {
+      _driverPosition = newPos;
+      _driverHeading = payload.heading;
+      _liveSpeedKmh = payload.speed;
+      _remainingKm = remaining;
+      _remainingMins = etaMins;
+      _lastPacketAt = DateTime.now();
+    });
+  }
+
+  void _startSimulationIfNoData() {
+    if (!mounted || _driverPosition != null) return;
+    _startSimulation();
+  }
+
+  void _startSimulation() {
+    if (_useSimulation) return;
+    _useSimulation = true;
+
+    _simController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 24),
+    );
+    _simController!.addListener(() {
+      _updateSimPosition(_simController!.value);
+    });
+    _simController!.repeat();
+  }
+
+  void _updateSimPosition(double progress) {
+    if (_polylinePoints.length < 2) return;
     final effectiveProgress = (0.35 + progress * 0.60) % 1.0;
     final totalPoints = _polylinePoints.length;
     final floatIndex = effectiveProgress * (totalPoints - 1);
@@ -142,21 +251,65 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
     final lat = p1.latitude + (p2.latitude - p1.latitude) * frac;
     final lng = p1.longitude + (p2.longitude - p1.longitude) * frac;
 
-    // Calculate heading in degrees
     final dLat = p2.latitude - p1.latitude;
     final dLng = p2.longitude - p1.longitude;
     final headingRad = math.atan2(dLng, dLat);
     final headingDeg = (headingRad * 180.0 / math.pi + 360.0) % 360.0;
 
+    final simPos = LatLng(lat, lng);
+    final remaining = _haversineDistanceKm(
+      lat, lng, _destination.latitude, _destination.longitude,
+    );
+    final etaMins = ((_totalDurationMins * (1.0 - effectiveProgress))
+            .clamp(4.0, _totalDurationMins.toDouble()))
+        .toInt();
+
     setState(() {
-      _driverPosition = LatLng(lat, lng);
+      _driverPosition = simPos;
       _driverHeading = headingDeg;
+      _liveSpeedKmh = 42.0 + (math.sin(progress * math.pi * 4) * 8);
+      _remainingKm = remaining;
+      _remainingMins = etaMins;
     });
+  }
+
+  // ── ETA / Haversine ──────────────────────────────────────────────────────
+
+  double _haversineDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+    const r = 6371.0; // Earth radius km
+    final dLat = _toRad(lat2 - lat1);
+    final dLon = _toRad(lon2 - lon1);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRad(lat1)) *
+            math.cos(_toRad(lat2)) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+    return (r * c).clamp(0.1, _totalDistanceKm);
+  }
+
+  double _toRad(double deg) => deg * math.pi / 180.0;
+
+  // ── Connection health ─────────────────────────────────────────────────────
+
+  /// Returns true if we have a live GPS stream and last packet was < 10s ago.
+  bool get _isLiveGps {
+    if (_useSimulation) return false;
+    if (_lastPacketAt == null) return false;
+    return DateTime.now().difference(_lastPacketAt!).inSeconds < 10;
   }
 
   @override
   void dispose() {
-    _animController.dispose();
+    _locationSub?.cancel();
+    _connectionSub?.cancel();
+    _simController?.dispose();
+
+    final rideId = widget.rideId ?? widget.booking?.id;
+    if (rideId != null && !kIsWeb) {
+      SocketClient.instance.leaveRideRoom(rideId);
+    }
+
     super.dispose();
   }
 
@@ -172,14 +325,6 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
     final rating = widget.driverRating ??
         widget.booking?.ride?.driverRating ??
         4.92;
-
-    // Calculate live remaining ETA
-    final progress = _animController.value;
-    final remainingKm = (_totalDistanceKm * (1.0 - (0.35 + progress * 0.60) % 1.0))
-        .clamp(1.2, _totalDistanceKm);
-    final remainingMins = ((_totalDurationMins * (1.0 - (0.35 + progress * 0.60) % 1.0))
-        .clamp(4.0, _totalDurationMins.toDouble()))
-        .toInt();
 
     return Scaffold(
       backgroundColor: SahyanColors.canvas,
@@ -213,6 +358,9 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                 driverHeading: _driverHeading,
                 showControls: true,
                 interactive: true,
+                vehicleTypeCode: widget.vehicleType.code,
+                followVehicle: _followVehicle,
+                onFollowToggle: (val) => setState(() => _followVehicle = val),
               ),
             ),
 
@@ -228,7 +376,7 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                 ),
               ),
 
-            // Top Floating Glass Card: Driver & Live ETA Countdown
+            // Top Floating Glass Card: Driver & Live ETA
             Positioned(
               top: 12,
               left: 14,
@@ -237,21 +385,15 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                 driver: driver,
                 rating: rating,
                 vehicle: vehicle,
-                remainingKm: remainingKm,
-                remainingMins: remainingMins,
               ),
             ),
 
-            // Bottom Sliding Contact Action Dock & Trip Telemetry
+            // Bottom Contact Action Dock
             Positioned(
               bottom: 0,
               left: 0,
               right: 0,
-              child: _buildBottomContactActionDock(
-                driver: driver,
-                remainingKm: remainingKm,
-                remainingMins: remainingMins,
-              ),
+              child: _buildBottomContactActionDock(driver: driver),
             ),
           ],
         ),
@@ -259,12 +401,12 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
     );
   }
 
+  // ── Top card ─────────────────────────────────────────────────────────────
+
   Widget _buildFloatingGlassTopCard({
     required String driver,
     required double rating,
     required String vehicle,
-    required double remainingKm,
-    required int remainingMins,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -306,17 +448,10 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(
-                          Icons.verified_rounded,
-                          size: 13,
-                          color: SahyanColors.primaryMint,
-                        ),
+                        const Icon(Icons.verified_rounded, size: 13, color: SahyanColors.primaryMint),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 5,
-                            vertical: 1.5,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                           decoration: BoxDecoration(
                             color: SahyanColors.primaryLight,
                             borderRadius: BorderRadius.circular(4),
@@ -324,11 +459,7 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                Icons.star_rounded,
-                                size: 12,
-                                color: SahyanColors.goldStar,
-                              ),
+                              const Icon(Icons.star_rounded, size: 12, color: SahyanColors.goldStar),
                               const SizedBox(width: 2),
                               Text(
                                 rating.toStringAsFixed(2),
@@ -357,14 +488,12 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                   ],
                 ),
               ),
-              VehicleIcon.illustration(
-                type: widget.vehicleType,
-                width: 38,
-                height: 22,
-              ),
+              VehicleIcon.illustration(type: widget.vehicleType, width: 38, height: 22),
             ],
           ),
           const SizedBox(height: 10),
+
+          // ── Live ETA + speed banner ──────────────────────────────────────
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
@@ -372,49 +501,41 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: SahyanColors.primaryMint,
-                        shape: BoxShape.circle,
-                      ),
+                // Connection health dot
+                _buildConnectionHealthDot(),
+                const SizedBox(width: 8),
+
+                Expanded(
+                  child: Text(
+                    '${_remainingKm.toStringAsFixed(1)} km away \u2022 $_remainingMins mins',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${remainingKm.toStringAsFixed(1)} km away \u2022 $remainingMins mins',
+                  ),
+                ),
+
+                // Live speed pill
+                if (_liveSpeedKmh > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: SahyanColors.primaryMint.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '${_liveSpeedKmh.toStringAsFixed(0)} km/h',
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.2,
+                        color: SahyanColors.primaryMint,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 2,
                   ),
-                  decoration: BoxDecoration(
-                    color: SahyanColors.primaryMint.withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    'ON TRACK',
-                    style: TextStyle(
-                      color: SahyanColors.primaryMint,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -423,11 +544,50 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
     );
   }
 
-  Widget _buildBottomContactActionDock({
-    required String driver,
-    required double remainingKm,
-    required int remainingMins,
-  }) {
+  /// Pulsing dot indicating GPS stream health.
+  Widget _buildConnectionHealthDot() {
+    final isLive = _isLiveGps;
+    final isReconnecting = !_useSimulation &&
+        !isLive &&
+        _lastPacketAt != null;
+
+    final color = isLive
+        ? const Color(0xFF10B981)
+        : isReconnecting
+            ? const Color(0xFFF59E0B)
+            : SahyanColors.primaryMint.withValues(alpha: 0.5);
+
+    final label = isLive
+        ? '● Live GPS'
+        : isReconnecting
+            ? '○ Reconnecting…'
+            : '○ Simulated';
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ── Bottom dock ──────────────────────────────────────────────────────────
+
+  Widget _buildBottomContactActionDock({required String driver}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
@@ -458,11 +618,7 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                       shape: BoxShape.circle,
                     ),
                   ),
-                  Container(
-                    width: 1.5,
-                    height: 18,
-                    color: SahyanColors.border,
-                  ),
+                  Container(width: 1.5, height: 18, color: SahyanColors.border),
                   Container(
                     width: 8,
                     height: 8,
@@ -506,10 +662,9 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
           ),
           const SizedBox(height: 14),
 
-          // 4 Action Buttons Dock: Call, Chat, Share, Emergency SOS
+          // 4 Action Buttons: Call, Chat, Share, SOS
           Row(
             children: [
-              // Call Driver
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
@@ -524,20 +679,13 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                   label: const Text('Call'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: SahyanColors.primaryDark,
-                    side: const BorderSide(
-                      color: SahyanColors.border,
-                      width: 0.8,
-                    ),
+                    side: const BorderSide(color: SahyanColors.border, width: 0.8),
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-
-              // Chat
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () => context.push('/messages/${widget.booking?.id ?? "conv-1"}'),
@@ -545,34 +693,23 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                   label: const Text('Chat'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: SahyanColors.primaryDark,
-                    side: const BorderSide(
-                      color: SahyanColors.border,
-                      width: 0.8,
-                    ),
+                    side: const BorderSide(color: SahyanColors.border, width: 0.8),
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-
-              // Share Live Trip
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
                     final bookingId = widget.booking?.id ?? 'active-trip';
-                    Clipboard.setData(
-                      ClipboardData(
-                        text: 'https://sahyan.app/live-tracking/track-live?bookingId=$bookingId',
-                      ),
-                    );
+                    Clipboard.setData(ClipboardData(
+                      text: 'https://sahyan.app/live-tracking/track-live?bookingId=$bookingId',
+                    ));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text(
-                          'Live tracking link copied to clipboard.',
-                        ),
+                        content: Text('Live tracking link copied to clipboard.'),
                         backgroundColor: SahyanColors.primaryDark,
                         duration: Duration(seconds: 2),
                       ),
@@ -582,41 +719,25 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                   label: const Text('Share'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: SahyanColors.primaryDark,
-                    side: const BorderSide(
-                      color: SahyanColors.border,
-                      width: 0.8,
-                    ),
+                    side: const BorderSide(color: SahyanColors.border, width: 0.8),
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-
-              // Emergency SOS
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => SosActionBottomSheet.show(context, booking: widget.booking),
-                  icon: const Icon(
-                    Icons.emergency_outlined,
-                    size: 16,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(Icons.emergency_outlined, size: 16, color: Colors.white),
                   label: const Text(
                     'SOS',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: SahyanColors.primaryDark,
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                 ),

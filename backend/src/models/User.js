@@ -61,6 +61,10 @@ const userSchema = new mongoose.Schema(
         default: 'not_started',
       },
       licenseNumber: { type: String, default: '' },
+      licenseDocUrl: { type: String, default: '' },
+      rcDocUrl: { type: String, default: '' },
+      idDocUrl: { type: String, default: '' },
+      rejectionReason: { type: String, default: '' },
       verifiedAt: Date,
     },
     rating: {

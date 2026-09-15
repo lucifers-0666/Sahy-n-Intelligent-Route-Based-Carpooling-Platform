@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/features/rides/domain/services/route_geometry_service.dart';
 import 'package:sahyan/features/rides/presentation/widgets/location_search_bottom_sheet.dart';
 import 'package:sahyan/features/trip/presentation/screens/live_ride_tracking_screen.dart';
@@ -21,44 +20,50 @@ void main() {
       longitude: 70.7720,
     );
 
-    test('calculates offline fallback curved polyline route accurately', () async {
-      final result = await RouteGeometryService.calculateRoute(
-        origin: originAmd,
-        destination: destRaj,
-      );
+    test(
+      'calculates offline fallback curved polyline route accurately',
+      () async {
+        final result = await RouteGeometryService.calculateRoute(
+          origin: originAmd,
+          destination: destRaj,
+        );
 
-      expect(result.polylineCoordinates.isNotEmpty, isTrue);
-      expect(result.polylineCoordinates.length, greaterThan(10));
-      expect(result.distanceKm, greaterThan(200.0));
-      expect(result.durationMinutes, greaterThan(150));
-      expect(result.highwayCorridor, 'NH47');
-      expect(result.route.encodedPolyline.isNotEmpty, isTrue);
-    });
+        expect(result.polylineCoordinates.isNotEmpty, isTrue);
+        expect(result.polylineCoordinates.length, greaterThan(10));
+        expect(result.distanceKm, greaterThan(200.0));
+        expect(result.durationMinutes, greaterThan(150));
+        expect(result.highwayCorridor, 'NH47');
+        expect(result.route.encodedPolyline.isNotEmpty, isTrue);
+      },
+    );
 
-    test('incorporates highway stopovers into calculated route geometry', () async {
-      final stopovers = [
-        LocationModel.fromCoordinates(
-          name: 'Limbdi Toll Plaza',
-          latitude: 22.5645,
-          longitude: 71.8080,
-        ),
-        LocationModel.fromCoordinates(
-          name: 'Chotila Highway Circle',
-          latitude: 22.4225,
-          longitude: 71.1925,
-        ),
-      ];
+    test(
+      'incorporates highway stopovers into calculated route geometry',
+      () async {
+        final stopovers = [
+          LocationModel.fromCoordinates(
+            name: 'Limbdi Toll Plaza',
+            latitude: 22.5645,
+            longitude: 71.8080,
+          ),
+          LocationModel.fromCoordinates(
+            name: 'Chotila Highway Circle',
+            latitude: 22.4225,
+            longitude: 71.1925,
+          ),
+        ];
 
-      final result = await RouteGeometryService.calculateRoute(
-        origin: originAmd,
-        destination: destRaj,
-        stopovers: stopovers,
-      );
+        final result = await RouteGeometryService.calculateRoute(
+          origin: originAmd,
+          destination: destRaj,
+          stopovers: stopovers,
+        );
 
-      expect(result.keyWaypoints.contains('Limbdi Toll Plaza'), isTrue);
-      expect(result.keyWaypoints.contains('Chotila Highway Circle'), isTrue);
-      expect(result.polylineCoordinates.length, greaterThan(20));
-    });
+        expect(result.keyWaypoints.contains('Limbdi Toll Plaza'), isTrue);
+        expect(result.keyWaypoints.contains('Chotila Highway Circle'), isTrue);
+        expect(result.polylineCoordinates.length, greaterThan(20));
+      },
+    );
 
     test('detects designated Gujarat highway corridors correctly', () {
       const amd = LocationModel(
@@ -98,7 +103,10 @@ void main() {
       );
 
       expect(RouteGeometryService.getHighwayCorridor(amd, raj), 'NH47');
-      expect(RouteGeometryService.getHighwayCorridor(amd, baroda), 'NE1 Express');
+      expect(
+        RouteGeometryService.getHighwayCorridor(amd, baroda),
+        'NE1 Express',
+      );
       expect(RouteGeometryService.getHighwayCorridor(amd, bhuj), 'NH27');
       expect(RouteGeometryService.getHighwayCorridor(amd, gnr), 'GIFT Highway');
     });
@@ -167,40 +175,41 @@ void main() {
       expect(selectedLocation!.city, 'Rajkot');
     });
 
-    testWidgets('filters Gujarat corridor hubs when user types in search query', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(fontFamily: 'Inter'),
-          home: Scaffold(
-            body: Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () => LocationSearchBottomSheet.show(
-                    context: context,
-                    title: 'Search Destination',
-                  ),
-                  child: const Text('Search'),
-                );
-              },
+    testWidgets(
+      'filters Gujarat corridor hubs when user types in search query',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(fontFamily: 'Inter'),
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  return ElevatedButton(
+                    onPressed: () => LocationSearchBottomSheet.show(
+                      context: context,
+                      title: 'Search Destination',
+                    ),
+                    child: const Text('Search'),
+                  );
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.tap(find.text('Search'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Search'));
+        await tester.pumpAndSettle();
 
-      // Type "Surat" in search field
-      await tester.enterText(find.byType(TextField), 'Surat');
-      await tester.pumpAndSettle();
+        // Type "Surat" in search field
+        await tester.enterText(find.byType(TextField), 'Surat');
+        await tester.pumpAndSettle();
 
-      // Majura Gate in Surat should match
-      expect(find.text('Majura Gate'), findsOneWidget);
-      // Bhuj should be filtered out
-      expect(find.text('Jubilee Ground'), findsNothing);
-    });
+        // Majura Gate in Surat should match
+        expect(find.text('Majura Gate'), findsOneWidget);
+        // Bhuj should be filtered out
+        expect(find.text('Jubilee Ground'), findsNothing);
+      },
+    );
   });
 
   group('Phase 3: SayanRouteMap Widget Tests', () {
