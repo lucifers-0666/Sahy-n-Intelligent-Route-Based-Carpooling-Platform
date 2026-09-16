@@ -290,13 +290,30 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
 
   double _toRad(double deg) => deg * math.pi / 180.0;
 
-  // ── Connection health ─────────────────────────────────────────────────────
+  // ── Connection & Stale GPS health ─────────────────────────────────────────
 
-  /// Returns true if we have a live GPS stream and last packet was < 10s ago.
+  /// Calculates telemetry age in seconds
+  int get _locationAgeSeconds {
+    if (_lastPacketAt == null) return 999999;
+    return DateTime.now().difference(_lastPacketAt!).inSeconds;
+  }
+
+  /// Live GPS fix: received within 10 seconds
   bool get _isLiveGps {
     if (_useSimulation) return false;
-    if (_lastPacketAt == null) return false;
-    return DateTime.now().difference(_lastPacketAt!).inSeconds < 10;
+    return _locationAgeSeconds < 10;
+  }
+
+  /// Degraded GPS fix: received between 10 and 30 seconds ago
+  bool get _isDegradedGps {
+    if (_useSimulation) return false;
+    return _locationAgeSeconds >= 10 && _locationAgeSeconds <= 30;
+  }
+
+  /// Stale GPS fix: no update received for > 30 seconds
+  bool get _isStaleGps {
+    if (_useSimulation) return false;
+    return _lastPacketAt != null && _locationAgeSeconds > 30;
   }
 
   @override
@@ -544,24 +561,27 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
     );
   }
 
-  /// Pulsing dot indicating GPS stream health.
+  /// Status badge indicating GPS stream health and freshness.
   Widget _buildConnectionHealthDot() {
-    final isLive = _isLiveGps;
-    final isReconnecting = !_useSimulation &&
-        !isLive &&
-        _lastPacketAt != null;
+    Color color;
+    String label;
 
-    final color = isLive
-        ? const Color(0xFF10B981)
-        : isReconnecting
-            ? const Color(0xFFF59E0B)
-            : SahyanColors.primaryMint.withValues(alpha: 0.5);
-
-    final label = isLive
-        ? '● Live GPS'
-        : isReconnecting
-            ? '○ Reconnecting…'
-            : '○ Simulated';
+    if (_useSimulation) {
+      color = SahyanColors.primaryMint.withValues(alpha: 0.7);
+      label = 'Simulated Preview';
+    } else if (_isLiveGps) {
+      color = const Color(0xFF10B981); // Emerald Green
+      label = 'Live GPS';
+    } else if (_isDegradedGps) {
+      color = const Color(0xFFF59E0B); // Amber Warning
+      label = 'Degraded (${_locationAgeSeconds}s ago)';
+    } else if (_isStaleGps) {
+      color = const Color(0xFFEF4444); // Red Stale
+      label = 'Stale GPS (${_locationAgeSeconds}s ago)';
+    } else {
+      color = SahyanColors.textMuted;
+      label = 'Connecting...';
+    }
 
     return Row(
       mainAxisSize: MainAxisSize.min,

@@ -139,6 +139,9 @@ bookingSchema.set('toJSON', {
         ret.ride = ret.ride.toString();
       }
     }
+    if (ret.paymentTransactionId && typeof ret.paymentTransactionId.toString === 'function') {
+      ret.paymentTransactionId = ret.paymentTransactionId.toString();
+    }
     return ret;
   },
 });

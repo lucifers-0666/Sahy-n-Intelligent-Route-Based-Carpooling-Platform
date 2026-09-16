@@ -7,6 +7,7 @@ import '../../app/theme/app_colors.dart';
 import '../../core/widgets/sahyan_bottom_navigation.dart';
 import '../../features/auth/presentation/auth_provider.dart';
 import 'auth_gate_dialog.dart';
+import 'offline_banner.dart';
 
 class AppShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
@@ -69,7 +70,12 @@ class AppShell extends ConsumerWidget {
       ),
       child: Scaffold(
         backgroundColor: AppColors.warmBackground,
-        body: navigationShell,
+        body: Column(
+          children: [
+            const SahyanOfflineBanner(isOffline: false),
+            Expanded(child: navigationShell),
+          ],
+        ),
         bottomNavigationBar: FloatingBottomNavBar(
           currentIndex: navigationShell.currentIndex,
           onTap: (index) => _handleNavigation(context, ref, index),

@@ -3,6 +3,7 @@ const Ride = require('../models/Ride');
 const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
 const Booking = require('../models/Booking');
+const PaymentTransaction = require('../models/PaymentTransaction');
 const googleMapsService = require('../services/googleMapsService');
 const routeMatchService = require('../services/routeMatchService');
 const { decodePolyline, generateFallbackRoute } = require('../utils/polylineUtils');
@@ -909,6 +910,20 @@ const completeTrip = async (req, res, next) => {
         { $set: { status: 'rejected' } }
       );
     }
+
+    // Settle any escrow held transactions for completed ride
+    try {
+      const completedBookings = await Booking.find({ ride: id });
+      const completedBookingIds = completedBookings.map(b => b._id);
+      await PaymentTransaction.updateMany(
+        { bookingId: { $in: completedBookingIds }, status: 'escrow_held' },
+        { $set: { status: 'settled_to_driver' } }
+      );
+      await Booking.updateMany(
+        { _id: { $in: completedBookingIds }, paymentStatus: 'paid' },
+        { $set: { paymentStatus: 'escrow_released' } }
+      );
+    } catch (_) {}
 
     await updatedRide.populate([
       { path: 'vehicle' },

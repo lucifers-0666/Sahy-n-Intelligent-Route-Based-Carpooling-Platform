@@ -54,9 +54,10 @@ paymentTransactionSchema.index({ driverId: 1, status: 1 });
 paymentTransactionSchema.set('toJSON', {
   transform: (doc, ret) => {
     delete ret.__v;
-    if (ret._id) {
-      ret.id = ret._id.toString();
-    }
+    if (ret._id) ret.id = ret._id.toString();
+    if (ret.bookingId && typeof ret.bookingId.toString === 'function') ret.bookingId = ret.bookingId.toString();
+    if (ret.passengerId && typeof ret.passengerId.toString === 'function') ret.passengerId = ret.passengerId.toString();
+    if (ret.driverId && typeof ret.driverId.toString === 'function') ret.driverId = ret.driverId.toString();
     return ret;
   },
 });

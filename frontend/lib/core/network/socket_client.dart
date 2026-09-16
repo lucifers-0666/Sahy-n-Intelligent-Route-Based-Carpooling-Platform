@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../network/api_config.dart';
+import '../storage/secure_storage_service.dart';
 
-/// Payload emitted by the driver and received by passengers.
+/// Compact telematics payload emitted by driver and received by passengers
 class DriverLocationPayload {
   final String rideId;
   final double latitude;
   final double longitude;
+  final double accuracy;
   final double heading;
   final double speed;
   final DateTime timestamp;
@@ -16,6 +18,7 @@ class DriverLocationPayload {
     required this.rideId,
     required this.latitude,
     required this.longitude,
+    this.accuracy = 10.0,
     required this.heading,
     required this.speed,
     required this.timestamp,
@@ -24,8 +27,9 @@ class DriverLocationPayload {
   factory DriverLocationPayload.fromMap(Map<dynamic, dynamic> map) {
     return DriverLocationPayload(
       rideId: map['rideId']?.toString() ?? '',
-      latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
+      latitude: (map['latitude'] as num?)?.toDouble() ?? (map['lat'] as num?)?.toDouble() ?? 0.0,
+      longitude: (map['longitude'] as num?)?.toDouble() ?? (map['lng'] as num?)?.toDouble() ?? 0.0,
+      accuracy: (map['accuracy'] as num?)?.toDouble() ?? 10.0,
       heading: (map['heading'] as num?)?.toDouble() ?? 0.0,
       speed: (map['speed'] as num?)?.toDouble() ?? 0.0,
       timestamp: map['timestamp'] != null
@@ -38,76 +42,76 @@ class DriverLocationPayload {
         'rideId': rideId,
         'latitude': latitude,
         'longitude': longitude,
+        'accuracy': accuracy,
         'heading': heading,
         'speed': speed,
         'timestamp': timestamp.toIso8601String(),
       };
 }
 
-/// Singleton Socket.IO client for Sahyān real-time telematics.
-///
-/// Usage:
-/// ```dart
-/// final client = SocketClient.instance;
-/// client.connect();
-/// client.joinRideRoom(rideId, userId, 'passenger');
-/// client.onDriverLocation(rideId).listen((payload) { ... });
-/// ```
+enum SocketConnectionState { connected, disconnected, reconnecting }
+
+/// Singleton Socket.IO client for Sahyān real-time telematics
 class SocketClient {
   SocketClient._internal();
   static final SocketClient instance = SocketClient._internal();
 
   io.Socket? _socket;
+  final SecureStorageService _storage = SecureStorageService();
 
-  /// Socket.IO server URL — strips /api/v1 suffix from the REST base URL.
+  /// Socket.IO server URL — strips /api/v1 suffix from the REST base URL
   static String get _socketUrl {
     final base = ApiConfig.defaultBaseUrl;
     return base.replaceFirst(RegExp(r'/api/v1$'), '');
   }
 
-  /// Whether the socket is currently connected.
   bool get isConnected => _socket?.connected ?? false;
 
   // ── Stream controllers ────────────────────────────────────────────────────
-  final Map<String, StreamController<DriverLocationPayload>> _locationControllers =
-      {};
+  final Map<String, StreamController<DriverLocationPayload>> _locationControllers = {};
   final Map<String, StreamController<String>> _statusControllers = {};
+  final _connectionStateController = StreamController<SocketConnectionState>.broadcast();
 
-  // ── Connection state ──────────────────────────────────────────────────────
-  final _connectionStateController =
-      StreamController<SocketConnectionState>.broadcast();
+  Stream<SocketConnectionState> get connectionState => _connectionStateController.stream;
 
-  Stream<SocketConnectionState> get connectionState =>
-      _connectionStateController.stream;
+  // ── Bounded Offline Queue ─────────────────────────────────────────────────
+  static const int _maxOfflineQueueSize = 10;
+  final List<DriverLocationPayload> _offlineQueue = [];
 
   // ── Connect ───────────────────────────────────────────────────────────────
 
-  /// Initialise and connect the socket. Safe to call multiple times.
-  void connect() {
+  /// Initialize and connect the socket with JWT auth handshake
+  Future<void> connect({String? authToken}) async {
     if (_socket != null && _socket!.connected) return;
 
     _socket?.dispose();
     _socket = null;
 
+    final token = authToken ?? await _storage.getToken();
+
     if (kDebugMode) {
       debugPrint('[SocketClient] Connecting to $_socketUrl');
     }
 
-    _socket = io.io(
-      _socketUrl,
-      io.OptionBuilder()
-          .setTransports(['websocket', 'polling'])
-          .enableAutoConnect()
-          .enableReconnection()
-          .setReconnectionAttempts(double.infinity)
-          .setReconnectionDelay(1000)
-          .setReconnectionDelayMax(5000)
-          .build(),
-    );
+    final optionBuilder = io.OptionBuilder()
+        .setTransports(['websocket', 'polling'])
+        .enableAutoConnect()
+        .enableReconnection()
+        .setReconnectionAttempts(double.infinity)
+        .setReconnectionDelay(1000)
+        .setReconnectionDelayMax(5000);
+
+    if (token != null && token.isNotEmpty) {
+      optionBuilder.setAuth({'token': token});
+      optionBuilder.setExtraHeaders({'Authorization': 'Bearer $token'});
+    }
+
+    _socket = io.io(_socketUrl, optionBuilder.build());
 
     _socket!.onConnect((_) {
       debugPrint('[SocketClient] Connected (id: ${_socket!.id})');
       _connectionStateController.add(SocketConnectionState.connected);
+      _flushOfflineQueue();
     });
 
     _socket!.onDisconnect((_) {
@@ -116,7 +120,7 @@ class SocketClient {
     });
 
     _socket!.onReconnect((_) {
-      debugPrint('[SocketClient] Reconnecting…');
+      debugPrint('[SocketClient] Reconnecting');
       _connectionStateController.add(SocketConnectionState.reconnecting);
     });
 
@@ -124,11 +128,11 @@ class SocketClient {
       debugPrint('[SocketClient] Error: $err');
     });
 
-    // Global passenger_location_stream listener — routes to the correct controller
     _socket!.on('passenger_location_stream', (data) {
       try {
         final payload = DriverLocationPayload.fromMap(
-            data is Map ? data : <dynamic, dynamic>{});
+          data is Map ? data : <dynamic, dynamic>{},
+        );
         final ctrl = _locationControllers[payload.rideId];
         if (ctrl != null && !ctrl.isClosed) {
           ctrl.add(payload);
@@ -138,7 +142,6 @@ class SocketClient {
       }
     });
 
-    // Trip status changed
     _socket!.on('trip_status_changed', (data) {
       try {
         final rideId = data['rideId']?.toString() ?? '';
@@ -157,10 +160,9 @@ class SocketClient {
 
   // ── Room management ───────────────────────────────────────────────────────
 
-  /// Join a ride room as `role` ('driver' | 'passenger').
   void joinRideRoom(String rideId, String userId, String role) {
     _ensureConnected();
-    _socket!.emit('join_ride_room', {
+    _socket?.emit('join_ride_room', {
       'rideId': rideId,
       'userId': userId,
       'role': role,
@@ -168,43 +170,59 @@ class SocketClient {
     debugPrint('[SocketClient] Joined room ride:$rideId as $role');
   }
 
-  /// Leave a ride room (called on trip completion or screen dispose).
   void leaveRideRoom(String rideId) {
     _socket?.emit('leave_ride_room', {'rideId': rideId});
     debugPrint('[SocketClient] Left room ride:$rideId');
   }
 
-  // ── Driver emit ───────────────────────────────────────────────────────────
+  // ── Driver Telematics ─────────────────────────────────────────────────────
 
-  /// Emit a GPS location update as the driver.
   void emitDriverLocation(DriverLocationPayload payload) {
-    _ensureConnected();
-    _socket!.emit('driver_location_update', payload.toMap());
+    if (isConnected && _socket != null) {
+      _socket!.emit('driver_location_update', payload.toMap());
+    } else {
+      // Queue bounded offline telemetry
+      if (_offlineQueue.length >= _maxOfflineQueueSize) {
+        _offlineQueue.removeAt(0); // Drop oldest
+      }
+      _offlineQueue.add(payload);
+      _ensureConnected();
+    }
   }
 
-  /// Broadcast a trip status change (driver only).
+  void _flushOfflineQueue() {
+    if (_offlineQueue.isEmpty || !isConnected || _socket == null) return;
+
+    final now = DateTime.now();
+    // Drop packets older than 60 seconds
+    final freshPackets = _offlineQueue.where((p) {
+      return now.difference(p.timestamp).inSeconds <= 60;
+    }).toList();
+
+    _offlineQueue.clear();
+
+    // Transmit latest fix immediately
+    if (freshPackets.isNotEmpty) {
+      final latest = freshPackets.last;
+      _socket!.emit('driver_location_update', latest.toMap());
+    }
+  }
+
   void emitTripStatus(String rideId, String status) {
     _socket?.emit('broadcast_trip_status', {'rideId': rideId, 'status': status});
   }
 
-  // ── Passenger streams ─────────────────────────────────────────────────────
+  // ── Passenger Listeners ───────────────────────────────────────────────────
 
-  /// Returns a broadcast stream of real-time driver location payloads for
-  /// a specific ride. Multiple listeners allowed (map screen + ETA widget).
   Stream<DriverLocationPayload> onDriverLocation(String rideId) {
-    if (!_locationControllers.containsKey(rideId) ||
-        _locationControllers[rideId]!.isClosed) {
-      _locationControllers[rideId] =
-          StreamController<DriverLocationPayload>.broadcast();
+    if (!_locationControllers.containsKey(rideId) || _locationControllers[rideId]!.isClosed) {
+      _locationControllers[rideId] = StreamController<DriverLocationPayload>.broadcast();
     }
     return _locationControllers[rideId]!.stream;
   }
 
-  /// Returns a broadcast stream of trip status strings ('boarding', 'active',
-  /// 'completed', 'cancelled') for a specific ride.
   Stream<String> onTripStatusChanged(String rideId) {
-    if (!_statusControllers.containsKey(rideId) ||
-        _statusControllers[rideId]!.isClosed) {
+    if (!_statusControllers.containsKey(rideId) || _statusControllers[rideId]!.isClosed) {
       _statusControllers[rideId] = StreamController<String>.broadcast();
     }
     return _statusControllers[rideId]!.stream;
@@ -216,15 +234,17 @@ class SocketClient {
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
+    _offlineQueue.clear();
+
     for (final ctrl in _locationControllers.values) {
       if (!ctrl.isClosed) ctrl.close();
     }
     _locationControllers.clear();
+
     for (final ctrl in _statusControllers.values) {
       if (!ctrl.isClosed) ctrl.close();
     }
     _statusControllers.clear();
-    debugPrint('[SocketClient] Disconnected and disposed.');
   }
 
   void _ensureConnected() {
@@ -233,5 +253,3 @@ class SocketClient {
     }
   }
 }
-
-enum SocketConnectionState { connected, disconnected, reconnecting }

@@ -155,7 +155,9 @@ class ActiveJourneyScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppSpacing.md),
                     Text(
-                      'Ready for Departure',
+                      activeBooking.isPaid
+                          ? 'Ready for Departure'
+                          : 'Payment Required to Board',
                       style: AppTypography.screenTitle.copyWith(
                         color: Colors.white,
                         fontSize: 22,
@@ -163,44 +165,58 @@ class ActiveJourneyScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Share your boarding verification PIN with the driver.',
+                      activeBooking.isPaid
+                          ? 'Share your boarding verification PIN with the driver.'
+                          : 'Deposit ride contribution into secure escrow to unlock your boarding pass.',
                       style: AppTypography.bodySmall.copyWith(
                         color: Colors.white70,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(AppRadii.sm),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'BOARDING PIN',
-                            style: AppTypography.caption.copyWith(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.0,
+                    if (activeBooking.isPaid) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'BOARDING PIN',
+                              style: AppTypography.caption.copyWith(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.0,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '7 4 1 9',
-                            style: AppTypography.screenTitle.copyWith(
-                              color: AppColors.softForest,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 4.0,
-                              fontSize: 20,
+                            Text(
+                              activeBooking.securityPin.split('').join(' '),
+                              style: AppTypography.screenTitle.copyWith(
+                                color: AppColors.softForest,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 4.0,
+                                fontSize: 20,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
+                    ] else ...[
+                      SahyanButton(
+                        text: 'Pay ₹${(activeBooking.totalContribution + 60).toStringAsFixed(0)} (Escrow Sandbox)',
+                        icon: Icons.lock_outline_rounded,
+                        variant: SahyanButtonVariant.secondary,
+                        isFullWidth: true,
+                        onPressed: () {
+                          context.push('/payment-checkout', extra: activeBooking);
+                        },
+                      ),
+                    ],
                   ],
                 ),
               ),

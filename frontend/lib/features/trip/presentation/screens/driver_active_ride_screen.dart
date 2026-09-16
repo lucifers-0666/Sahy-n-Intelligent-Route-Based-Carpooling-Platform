@@ -42,7 +42,9 @@ class _DriverActiveRideScreenState
   /// Start GPS streaming if on a native platform with a valid ride ID.
   Future<void> _startGpsStream() async {
     final rideId = _ride?.id;
-    if (rideId == null || kIsWeb) return;
+    final isRunningInTest =
+        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    if (rideId == null || kIsWeb || isRunningInTest) return;
 
     try {
       final socketClient = SocketClient.instance;

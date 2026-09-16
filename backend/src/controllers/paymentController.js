@@ -10,18 +10,19 @@ const Ride = require('../models/Ride');
 exports.createOrder = async (req, res) => {
   try {
     const { bookingId } = req.body;
+    const userId = (req.user._id || req.user.id).toString();
 
     const booking = await Booking.findById(bookingId).populate('ride');
     if (!booking) {
-      return res.status(404).json({ error: 'Booking not found' });
+      return res.status(404).json({ success: false, error: 'Booking not found' });
     }
 
-    if (booking.passenger.toString() !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized to pay for this booking' });
+    if (booking.passenger.toString() !== userId) {
+      return res.status(403).json({ success: false, error: 'Unauthorized to pay for this booking' });
     }
 
-    if (booking.paymentStatus !== 'pending') {
-      return res.status(400).json({ error: 'Booking is already paid or processing' });
+    if (booking.paymentStatus && booking.paymentStatus !== 'pending') {
+      return res.status(400).json({ success: false, error: 'Booking is already paid or processing' });
     }
 
     const platformFee = 20; // Fixed safety & platform fee
@@ -40,6 +41,7 @@ exports.createOrder = async (req, res) => {
     await transaction.save();
 
     res.status(201).json({
+      success: true,
       message: 'Payment order created successfully',
       transaction,
       breakdown: {
@@ -50,7 +52,7 @@ exports.createOrder = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ success: false, error: error.message || 'Server error' });
   }
 };
 
@@ -62,39 +64,48 @@ exports.createOrder = async (req, res) => {
 exports.verifyPayment = async (req, res) => {
   try {
     const { transactionId, gatewayReference, method = 'sandbox' } = req.body;
+    const userId = (req.user._id || req.user.id).toString();
 
     const transaction = await PaymentTransaction.findById(transactionId);
     if (!transaction) {
-      return res.status(404).json({ error: 'Transaction not found' });
+      return res.status(404).json({ success: false, error: 'Transaction not found' });
     }
 
-    if (transaction.passengerId.toString() !== req.user.id) {
-      return res.status(403).json({ error: 'Unauthorized' });
+    if (transaction.passengerId.toString() !== userId) {
+      return res.status(403).json({ success: false, error: 'Unauthorized' });
     }
 
     if (transaction.status !== 'pending') {
-      return res.status(400).json({ error: 'Transaction is already processed' });
+      return res.status(400).json({ success: false, error: 'Transaction is already processed' });
     }
 
-    // In a real app, verify the signature with the payment gateway here.
-    
+    const allowedMethods = ['upi', 'card', 'netbanking', 'sandbox'];
+    const validMethod = allowedMethods.includes(method) ? method : 'sandbox';
+
     transaction.status = 'escrow_held';
     transaction.gatewayReference = gatewayReference || `mock_tx_${Date.now()}`;
-    transaction.paymentMethod = method;
+    transaction.paymentMethod = validMethod;
     await transaction.save();
 
     const booking = await Booking.findById(transaction.bookingId);
-    booking.paymentStatus = 'paid';
-    booking.paymentTransactionId = transaction._id;
-    await booking.save();
+    if (booking) {
+      booking.paymentStatus = 'paid';
+      booking.paymentTransactionId = transaction._id;
+      await booking.save();
+    }
+
+    const bookingObj = booking ? booking.toObject() : null;
+    const txObj = transaction ? transaction.toObject() : null;
 
     res.status(200).json({
+      success: true,
       message: 'Payment verified successfully',
-      transaction,
-      booking,
+      transaction: txObj,
+      booking: bookingObj,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message || 'Server error' });
+    console.error('verifyPayment error:', error);
+    res.status(500).json({ success: false, error: error.message || 'Server error' });
   }
 };
 
@@ -106,22 +117,21 @@ exports.verifyPayment = async (req, res) => {
 exports.releaseEscrow = async (req, res) => {
   try {
     const { rideId } = req.body;
+    const userId = (req.user._id || req.user.id).toString();
 
     const ride = await Ride.findById(rideId);
     if (!ride) {
-      return res.status(404).json({ error: 'Ride not found' });
+      return res.status(404).json({ success: false, error: 'Ride not found' });
     }
 
-    // Usually triggered by system or driver when completing ride.
-    if (ride.driver.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Unauthorized to release escrow for this ride' });
+    if (ride.driver.toString() !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Unauthorized to release escrow for this ride' });
     }
 
     if (ride.status !== 'completed') {
-      return res.status(400).json({ error: 'Ride must be completed to release escrow' });
+      return res.status(400).json({ success: false, error: 'Ride must be completed to release escrow' });
     }
 
-    // Find all escrowed transactions for this ride
     const bookings = await Booking.find({ ride: rideId, paymentStatus: 'paid' });
     const bookingIds = bookings.map(b => b._id);
 
@@ -133,7 +143,7 @@ exports.releaseEscrow = async (req, res) => {
     for (let tx of transactions) {
       tx.status = 'settled_to_driver';
       await tx.save();
-      
+
       const booking = bookings.find(b => b._id.toString() === tx.bookingId.toString());
       if (booking) {
         booking.paymentStatus = 'escrow_released';
@@ -142,10 +152,12 @@ exports.releaseEscrow = async (req, res) => {
     }
 
     res.status(200).json({
+      success: true,
       message: 'Escrow released successfully',
       releasedTransactions: transactions.length,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ success: false, error: error.message || 'Server error' });
   }
 };
+

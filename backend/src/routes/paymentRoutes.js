@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middlewares/authMiddleware');
+const { authenticate } = require('../middleware/authMiddleware');
 const {
   createOrder,
   verifyPayment,
@@ -8,7 +8,7 @@ const {
 } = require('../controllers/paymentController');
 
 // All payment routes require authentication
-router.use(protect);
+router.use(authenticate);
 
 router.post('/order', createOrder);
 router.post('/verify', verifyPayment);

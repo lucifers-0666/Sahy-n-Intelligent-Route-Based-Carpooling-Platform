@@ -75,5 +75,5 @@ const adminAuth = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate, optionalAuth, adminAuth };
+module.exports = { authenticate, protect: authenticate, optionalAuth, adminAuth };
 

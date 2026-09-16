@@ -42,6 +42,7 @@ import 'package:sahyan/features/profile/presentation/screens/saved_places_screen
 import 'package:sahyan/features/profile/presentation/screens/reviews_ratings_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/ride_history_screen.dart';
 import 'package:sahyan/features/payments/presentation/screens/payment_methods_screen.dart';
+import 'package:sahyan/features/payments/presentation/screens/payment_checkout_screen.dart';
 import 'package:sahyan/features/payments/presentation/screens/driver_payout_screen.dart';
 import 'package:sahyan/features/payments/presentation/screens/payout_account_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/auth_success_screen.dart';
@@ -215,6 +216,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/payment-methods',
       builder: (context, state) => const PaymentMethodsScreen(),
+    ),
+    GoRoute(
+      path: '/payment-checkout',
+      builder: (context, state) {
+        final booking = state.extra as BookingModel;
+        return PaymentCheckoutScreen(booking: booking);
+      },
     ),
     GoRoute(
       path: '/driver/payout',

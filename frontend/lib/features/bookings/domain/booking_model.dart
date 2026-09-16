@@ -19,6 +19,8 @@ class BookingModel extends Equatable {
   final LocationModel pickup;
   final LocationModel drop;
   final String? pin;
+  final String paymentStatus;
+  final String? paymentTransactionId;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -32,6 +34,8 @@ class BookingModel extends Equatable {
     required this.contributionPerSeat,
     required this.totalContribution,
     required this.status,
+    this.paymentStatus = 'pending',
+    this.paymentTransactionId,
     this.passengerNote = '',
     required this.pickup,
     required this.drop,
@@ -53,6 +57,8 @@ class BookingModel extends Equatable {
   bool get isAccepted => status == BookingStatus.accepted;
   bool get isRejected => status == BookingStatus.rejected;
   bool get isCompleted => status == BookingStatus.completed;
+  bool get isPaid =>
+      paymentStatus == 'paid' || paymentStatus == 'escrow_released';
 
   // Backwards compatibility getters
   int get seatCount => requestedSeats;
@@ -190,6 +196,12 @@ class BookingModel extends Equatable {
       contributionPerSeat: perSeat,
       totalContribution: total,
       status: parsedStatus,
+      paymentStatus:
+          (json['paymentStatus'] ?? json['payment_status'])?.toString() ??
+          'pending',
+      paymentTransactionId:
+          (json['paymentTransactionId'] ?? json['payment_transaction_id'])
+              ?.toString(),
       passengerNote: json['passengerNote']?.toString() ?? '',
       pickup: resolvedPickup,
       drop: resolvedDrop,
@@ -216,6 +228,9 @@ class BookingModel extends Equatable {
       'contributionPerSeat': contributionPerSeat,
       'totalContribution': totalContribution,
       'status': status.name,
+      'paymentStatus': paymentStatus,
+      if (paymentTransactionId != null)
+        'paymentTransactionId': paymentTransactionId,
       'passengerNote': passengerNote,
       'pickup': pickup.toJson(),
       'drop': drop.toJson(),
@@ -236,6 +251,8 @@ class BookingModel extends Equatable {
     contributionPerSeat,
     totalContribution,
     status,
+    paymentStatus,
+    paymentTransactionId,
     passengerNote,
     pickup,
     drop,

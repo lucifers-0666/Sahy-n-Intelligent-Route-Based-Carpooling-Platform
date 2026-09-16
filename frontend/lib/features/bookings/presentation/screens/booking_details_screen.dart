@@ -596,9 +596,22 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
 
                 // Active journey button for accepted bookings
                 if (_booking.isAccepted) ...[
+                  if (!_booking.isPaid) ...[
+                    SahyanButton(
+                      text: 'Pay ₹${(_booking.totalContribution + 60).toStringAsFixed(0)} (Escrow Sandbox)',
+                      icon: Icons.lock_outline_rounded,
+                      onPressed: () {
+                        context.push('/payment-checkout', extra: _booking);
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
                   SahyanButton(
                     text: 'View Active Journey & Boarding PIN',
                     icon: Icons.directions_car_rounded,
+                    variant: _booking.isPaid
+                        ? SahyanButtonVariant.primary
+                        : SahyanButtonVariant.outline,
                     onPressed: () {
                       context.push('/active-journey', extra: _booking);
                     },

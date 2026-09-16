@@ -1,9 +1,7 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sahyan/core/network/socket_client.dart';
-import 'package:sahyan/core/services/driver_location_service.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/widgets/sayan_route_map.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -131,9 +129,9 @@ void main() {
 
     // ── Test 6: Connection health logic ───────────────────────────────────
     test('T6: Connection health is "reconnecting" after 10s no packet', () {
-      DateTime? lastPacketAt = DateTime.now().subtract(const Duration(seconds: 11));
+      final lastPacketAt = DateTime.now().subtract(const Duration(seconds: 11));
       final bool isLive = DateTime.now().difference(lastPacketAt).inSeconds < 10;
-      final bool isReconnecting = !isLive && lastPacketAt != null;
+      final bool isReconnecting = !isLive;
 
       expect(isLive, isFalse);
       expect(isReconnecting, isTrue);

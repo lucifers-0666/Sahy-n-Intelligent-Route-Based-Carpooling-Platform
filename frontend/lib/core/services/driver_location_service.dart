@@ -1,60 +1,82 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:geolocator/geolocator.dart';
+import '../location/data/providers/geolocator_provider.dart';
+import '../location/domain/gps_provider.dart';
+import '../location/domain/location_filter.dart';
+import '../location/domain/models/location_point.dart';
+import '../location/services/distance_tracking_service.dart';
+import '../location/services/location_cache_service.dart';
+import '../location/services/location_preprocessor.dart';
 import '../network/socket_client.dart';
 
-/// Foreground GPS streaming service for the driver.
+/// Production-grade Foreground GPS Streaming and Telematics Service for Drivers
 ///
 /// Lifecycle:
-///   1. Call [startStreaming] when the driver activates a trip.
-///   2. The service requests location permission, then subscribes to
-///      [Geolocator.getPositionStream] and emits each fix to Socket.IO.
-///   3. Call [stopStreaming] when the driver ends the trip.
-///
-/// On web or desktop (where geolocator is unavailable) the service
-/// gracefully returns without error — the simulation fallback in
-/// LiveRideTrackingScreen remains active on non-native platforms.
+/// 1. Call [startStreaming] when the driver starts trip boarding or activates trip.
+/// 2. Telemetry flows: GpsProvider -> LocationPreprocessor (Accuracy, Outlier, EMA Smoothing)
+///    -> DistanceTrackingService (Cumulative GPS Tracked Distance)
+///    -> SocketClient (JWT Authenticated Telematics).
+/// 3. Call [stopStreaming] when driver completes or cancels the trip.
 class DriverLocationService {
   DriverLocationService._internal();
   static final DriverLocationService instance = DriverLocationService._internal();
 
-  StreamSubscription<Position>? _positionSub;
+  GpsProvider _provider = GeolocatorProvider();
+  StreamSubscription<LocationPoint>? _positionSub;
   String? _activeRideId;
   bool _isStreaming = false;
 
+  LocationPreprocessor _preprocessor = LocationPreprocessor();
+  final DistanceTrackingService _distanceTracker = DistanceTrackingService();
+  final LocationCacheService _cacheService = LocationCacheService.instance;
+
   bool get isStreaming => _isStreaming;
+  String? get activeRideId => _activeRideId;
+  double get trackedDistanceMeters => _distanceTracker.totalTrackedDistanceMeters;
+  double get trackedDistanceKm => _distanceTracker.totalTrackedDistanceKm;
 
-  // ── Settings ──────────────────────────────────────────────────────────────
-
-  static const _locationSettings = LocationSettings(
-    accuracy: LocationAccuracy.high,
-    distanceFilter: 5, // metres
-    // NOTE: timeLimit is not supported in LocationSettings constructor;
-    // use interval inside AndroidSettings / AppleSettings if needed.
-  );
+  /// Custom provider injection for automated testing and preview environments
+  void setProviderForTesting(GpsProvider provider) {
+    _provider = provider;
+  }
 
   // ── Start Streaming ───────────────────────────────────────────────────────
 
-  /// Request permission and begin streaming GPS fixes for [rideId].
-  /// Returns `true` if streaming started successfully.
-  Future<bool> startStreaming(String rideId) async {
+  /// Request permission and begin streaming preprocessed GPS telematics for [rideId]
+  Future<bool> startStreaming(String rideId, {String? vehicleType, GpsProvider? provider}) async {
     if (_isStreaming) await stopStreaming();
 
-    // Web / desktop: geolocator is not supported.
-    if (kIsWeb) {
-      debugPrint('[DriverLocationService] Web platform — GPS streaming not supported.');
+    if (provider != null) {
+      _provider = provider;
+    } else {
+      _provider = GeolocatorProvider();
+    }
+
+    _preprocessor = LocationPreprocessor(
+      filter: LocationFilter(config: LocationFilterConfig.forVehicleType(vehicleType)),
+    );
+    _distanceTracker.reset();
+
+    // Check device location service status
+    final serviceEnabled = await _provider.isServiceEnabled();
+    if (!serviceEnabled && !kIsWeb) {
+      debugPrint('[DriverLocationService] Device location services are disabled.');
       return false;
     }
 
     // Permission check
     try {
-      final hasPermission = await _requestPermission();
-      if (!hasPermission) {
-        debugPrint('[DriverLocationService] Location permission denied.');
+      var status = await _provider.checkPermission();
+      if (status == LocationPermissionStatus.denied) {
+        status = await _provider.requestPermission();
+      }
+
+      if (status != LocationPermissionStatus.granted && !kIsWeb) {
+        debugPrint('[DriverLocationService] Location permission denied: $status');
         return false;
       }
     } catch (e) {
-      debugPrint('[DriverLocationService] Permission error: $e');
+      debugPrint('[DriverLocationService] Permission check error: $e');
       return false;
     }
 
@@ -62,20 +84,15 @@ class DriverLocationService {
     _isStreaming = true;
 
     try {
-      _positionSub = Geolocator.getPositionStream(
-        locationSettings: _locationSettings,
-      ).listen(
-        (Position position) {
-          _onPosition(position);
-        },
+      _positionSub = _provider.positionStream.listen(
+        _onRawPosition,
         onError: (Object e) {
           debugPrint('[DriverLocationService] Position stream error: $e');
-          // Attempt to restart on recoverable errors
         },
         cancelOnError: false,
       );
 
-      debugPrint('[DriverLocationService] Streaming GPS for ride: $rideId');
+      debugPrint('[DriverLocationService] Telematics streaming active for ride: $rideId');
       return true;
     } catch (e) {
       debugPrint('[DriverLocationService] Failed to start position stream: $e');
@@ -90,49 +107,54 @@ class DriverLocationService {
     await _positionSub?.cancel();
     _positionSub = null;
     _isStreaming = false;
+    _preprocessor.reset();
+    _distanceTracker.reset();
     debugPrint('[DriverLocationService] GPS streaming stopped for ride: $_activeRideId');
     _activeRideId = null;
   }
 
-  // ── Internal ──────────────────────────────────────────────────────────────
+  // ── Internal Pipeline ─────────────────────────────────────────────────────
 
-  void _onPosition(Position position) {
+  void _onRawPosition(LocationPoint raw) {
     if (_activeRideId == null) return;
 
+    // Execute Preprocessing Pipeline
+    final normalized = _preprocessor.process(raw);
+    if (normalized == null) {
+      if (kDebugMode) {
+        debugPrint('[DriverLocationService] GPS fix dropped by preprocessor pipeline.');
+      }
+      return;
+    }
+
+    // Accumulate validated cumulative GPS tracked distance
+    _distanceTracker.addPoint(normalized);
+
+    // Update in-memory local cache
+    _cacheService.saveLocation(normalized);
+
+    // Transmit compact telematics payload
     final payload = DriverLocationPayload(
       rideId: _activeRideId!,
-      latitude: position.latitude,
-      longitude: position.longitude,
-      heading: position.heading >= 0 ? position.heading : 0.0,
-      speed: position.speed * 3.6, // m/s → km/h
-      timestamp: DateTime.now(),
+      latitude: normalized.latitude,
+      longitude: normalized.longitude,
+      accuracy: normalized.accuracy,
+      heading: normalized.heading,
+      speed: normalized.speed,
+      timestamp: normalized.timestamp,
     );
 
     SocketClient.instance.emitDriverLocation(payload);
 
     if (kDebugMode) {
       debugPrint(
-        '[DriverLocationService] GPS: ${position.latitude.toStringAsFixed(5)}, '
-        '${position.longitude.toStringAsFixed(5)} | '
-        'hdg:${payload.heading.toStringAsFixed(1)}° | '
-        'spd:${payload.speed.toStringAsFixed(1)}km/h',
+        '[DriverLocationService] GPS: ${normalized.latitude.toStringAsFixed(5)}, '
+        '${normalized.longitude.toStringAsFixed(5)} | '
+        'acc:${normalized.accuracy.toStringAsFixed(1)}m | '
+        'hdg:${normalized.heading.toStringAsFixed(1)}° | '
+        'spd:${normalized.speed.toStringAsFixed(1)}km/h | '
+        'dist:${_distanceTracker.totalTrackedDistanceKm.toStringAsFixed(2)}km',
       );
     }
-  }
-
-  Future<bool> _requestPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      debugPrint('[DriverLocationService] Permission permanently denied. Open settings.');
-      return false;
-    }
-
-    return permission == LocationPermission.whileInUse ||
-        permission == LocationPermission.always;
   }
 }
