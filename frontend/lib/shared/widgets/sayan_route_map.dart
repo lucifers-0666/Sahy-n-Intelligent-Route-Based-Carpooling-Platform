@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -123,8 +124,9 @@ class _SayanRouteMapState extends State<SayanRouteMap>
   final Map<String, BitmapDescriptor> _markerIconCache = {};
   BitmapDescriptor? _vehicleMarkerIcon;
 
-  /// Determine if running in a headless widget test environment
+  /// Determine if running in a web or headless widget test environment
   bool get _isTestingEnvironment {
+    if (kIsWeb) return true;
     try {
       return Platform.environment.containsKey('FLUTTER_TEST');
     } catch (_) {

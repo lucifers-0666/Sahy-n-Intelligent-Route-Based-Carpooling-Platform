@@ -1226,6 +1226,7 @@ const KNOWN_HUBS = {
   ahmedabad: { lat: 23.0225, lng: 72.5714, name: 'Ahmedabad' },
   rajkot: { lat: 22.3039, lng: 70.8022, name: 'Rajkot' },
   vadodara: { lat: 22.3072, lng: 73.1812, name: 'Vadodara' },
+  baroda: { lat: 22.3072, lng: 73.1812, name: 'Vadodara' },
   surat: { lat: 21.1702, lng: 72.8311, name: 'Surat' },
   bhavnagar: { lat: 21.7645, lng: 72.1519, name: 'Bhavnagar' },
   jamnagar: { lat: 22.4707, lng: 70.0577, name: 'Jamnagar' },
@@ -1233,9 +1234,40 @@ const KNOWN_HUBS = {
   gift: { lat: 23.1611, lng: 72.6841, name: 'GIFT City' },
   'gift city': { lat: 23.1611, lng: 72.6841, name: 'GIFT City' },
   'sg highway': { lat: 23.0338, lng: 72.5074, name: 'SG Highway, Ahmedabad' },
+  iscon: { lat: 23.0285, lng: 72.5068, name: 'ISCON Cross Road, Ahmedabad' },
+  iskcon: { lat: 23.0285, lng: 72.5068, name: 'ISCON Cross Road, Ahmedabad' },
+  thaltej: { lat: 23.0504, lng: 72.5168, name: 'Thaltej, Ahmedabad' },
+  bopal: { lat: 23.0182, lng: 72.4831, name: 'South Bopal, Ahmedabad' },
+  gota: { lat: 23.0840, lng: 72.5310, name: 'Gota, Ahmedabad' },
+  vaishnodevi: { lat: 23.1287, lng: 72.5453, name: 'Vaishnodevi Circle, Ahmedabad' },
+  kalawad: { lat: 22.2810, lng: 70.7620, name: 'Kalawad Road, Rajkot' },
+  'kalawad road': { lat: 22.2810, lng: 70.7620, name: 'Kalawad Road, Rajkot' },
+  madhapar: { lat: 22.3129, lng: 70.7815, name: 'Madhapar Chokdi, Rajkot' },
+  vapi: { lat: 20.3708, lng: 72.9106, name: 'Vapi' },
+  navsari: { lat: 20.9540, lng: 72.9320, name: 'Navsari' },
+  valsad: { lat: 20.6120, lng: 72.9280, name: 'Valsad' },
   mehsana: { lat: 23.5880, lng: 72.3693, name: 'Mehsana' },
   morbi: { lat: 22.8125, lng: 70.8384, name: 'Morbi' },
 };
+
+function resolveHubCoordinates(text) {
+  if (!text || typeof text !== 'string') return null;
+  const clean = text.trim().toLowerCase();
+  // 1. Direct match or substring in text
+  for (const [key, hub] of Object.entries(KNOWN_HUBS)) {
+    if (clean.includes(key) || key.includes(clean)) {
+      return hub;
+    }
+  }
+  // 2. Token match
+  const tokens = clean.split(/[\s,.-]+/);
+  for (const token of tokens) {
+    if (token.length >= 3 && KNOWN_HUBS[token]) {
+      return KNOWN_HUBS[token];
+    }
+  }
+  return null;
+}
 
 /**
  * @desc    Search available rides matching passenger criteria
@@ -1258,7 +1290,7 @@ const searchRides = async (req, res, next) => {
       seats = 1,
       maxPickupDistanceKm = 30,
       maxDropDistanceKm = 30,
-      timeWindowHours = 4,
+      timeWindowHours = 24,
       pickupPolicy,
       minContribution,
       maxContribution,
@@ -1278,11 +1310,10 @@ const searchRides = async (req, res, next) => {
     let originLng = rawOriginLng !== undefined ? Number(rawOriginLng) : null;
 
     if ((originLat === null || isNaN(originLat)) && (originText || originParam)) {
-      const queryName = String(originText || originParam).trim().toLowerCase();
-      const hubMatch = Object.keys(KNOWN_HUBS).find((k) => queryName.includes(k));
-      if (hubMatch) {
-        originLat = KNOWN_HUBS[hubMatch].lat;
-        originLng = KNOWN_HUBS[hubMatch].lng;
+      const hub = resolveHubCoordinates(originText || originParam);
+      if (hub) {
+        originLat = hub.lat;
+        originLng = hub.lng;
       }
     }
 
@@ -1291,11 +1322,10 @@ const searchRides = async (req, res, next) => {
     let destLng = rawDestLng !== undefined ? Number(rawDestLng) : null;
 
     if ((destLat === null || isNaN(destLat)) && (destText || destParam)) {
-      const queryName = String(destText || destParam).trim().toLowerCase();
-      const hubMatch = Object.keys(KNOWN_HUBS).find((k) => queryName.includes(k));
-      if (hubMatch) {
-        destLat = KNOWN_HUBS[hubMatch].lat;
-        destLng = KNOWN_HUBS[hubMatch].lng;
+      const hub = resolveHubCoordinates(destText || destParam);
+      if (hub) {
+        destLat = hub.lat;
+        destLng = hub.lng;
       }
     }
 
@@ -1320,7 +1350,7 @@ const searchRides = async (req, res, next) => {
 
     // 5. Build base MongoDB filter
     const query = {
-      status: 'scheduled',
+      status: { $in: ['scheduled', 'boarding'] },
       availableSeats: { $gte: parsedSeats },
     };
 
@@ -1366,9 +1396,9 @@ const searchRides = async (req, res, next) => {
       }
     }
 
-    const parsedWindowHours = Math.max(1, Math.min(48, Number(timeWindowHours) || 4));
+    const parsedWindowHours = Math.max(1, Math.min(72, Number(timeWindowHours) || 24));
     const windowMs = parsedWindowHours * 60 * 60 * 1000;
-    const now = new Date(Date.now() - 15 * 60 * 1000); // 15 minute grace period for ongoing boarding
+    const now = new Date(Date.now() - 30 * 60 * 1000); // 30 minute grace period for ongoing boarding
 
     if (requestedDateTime) {
       const minBound = new Date(Math.max(now.getTime(), requestedDateTime.getTime() - windowMs));
