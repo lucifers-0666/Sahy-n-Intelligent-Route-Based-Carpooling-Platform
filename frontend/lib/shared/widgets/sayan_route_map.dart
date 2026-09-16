@@ -38,7 +38,7 @@ const String kSahyanMapStyle = '''
   {
     "featureType": "road.highway",
     "elementType": "geometry.stroke",
-    "stylers": [{"color": "#CBD8D0"}, {"weight": 1.2}]
+    "stylers": [{"color": "#CBD8D0"}, {"weight": 1}]
   },
   {
     "featureType": "road.arterial",
