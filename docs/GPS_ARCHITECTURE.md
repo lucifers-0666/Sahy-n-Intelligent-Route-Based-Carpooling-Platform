@@ -73,8 +73,9 @@ $$d = R \cdot c \quad (R = 6,371,000 \text{ m})$$
 * Maintaining a complete real-time in-memory road graph of highway networks inside a mobile client application consumes excessive memory, requires extensive offline map storage, and does not capture dynamic live traffic conditions.
 * Dijkstra is unnecessary for measuring point-to-point displacement, distance to nearest polyline segments, or cumulative traveled distance.
 
-### 2.2 Google Routes API for Road Routing
-* Utilized exclusively for road-network pathfinding, corridor geometry generation, traffic-aware travel duration, and toll estimations.
+### 2.2 Google Routes API v2 for Road Routing
+* Utilized exclusively for road-network pathfinding, corridor geometry generation, traffic-aware travel duration, and toll estimations via Google Routes API v2 (`POST /directions/v2:computeRoutes` and `POST /distanceMatrix/v2:computeRouteMatrix`).
+* Requests specify strict field masks (`X-Goog-FieldMask: routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.description,routes.routeLabels`) and map vehicle modes to `DRIVE` (sedan/SUV/EV) and `TWO_WHEELER` (motorcycle).
 * Kept strictly separated from high-frequency GPS acquisition to protect API quotas.
 
 ### 2.3 Sahyān Match Score
@@ -96,9 +97,16 @@ Configured weights:
 ### 3.1 Driver to Passenger Telematics Flow
 1. **Driver GPS Fix**: Android device acquires GPS coordinates via Geolocator.
 2. **Local Preprocessing**:
-   * Validates accuracy ($\le 50\text{m}$).
-   * Calculates displacement $\Delta d = \text{Haversine}(P_{t-1}, P_t)$ and speed $\Delta d / \Delta t$. Points exceeding maximum physical vehicle speed ($160\text{ km/h}$) are rejected as outliers.
-   * Smooths coordinates using Exponential Moving Average ($\alpha = 0.65$).
+   * **Accuracy Tiering**:
+     * $\le 20\text{m}$: High confidence
+     * $\le 50\text{m}$: Normal confidence
+     * $50\text{--}100\text{m}$: Degraded confidence (accepted with degraded flag)
+     * $> 100\text{m}$: Invalid fix (rejected)
+   * **Vehicle-Aware Outlier Rejection**: Calculates displacement $\Delta d = \text{Haversine}(P_{t-1}, P_t)$ and speed $\Delta d / \Delta t$. Points exceeding vehicle-specific thresholds are rejected:
+     * Motorcycle: $130\text{ km/h}$
+     * Auto Rickshaw: $80\text{ km/h}$
+     * Sedan / SUV / Default: $160\text{ km/h}$
+   * **Coordinate Smoothing**: Exponential Moving Average ($\alpha = 0.65$).
 3. **Transmission**: Compact JSON packet emitted over Socket.IO:
    ```json
    {
@@ -111,10 +119,10 @@ Configured weights:
      "timestamp": "2026-09-16T15:30:00.000Z"
    }
    ```
-4. **Backend Authorization Enforcement**:
-   * Socket connection is verified via JWT in handshake.
-   * Backend confirms sender user ID matches the assigned driver ID of the active ride in MongoDB.
-   * Non-drivers attempting to emit `driver_location_update` receive authorization errors.
+4. **Backend Authorization Enforcement (Fail-Closed)**:
+   * Socket connection is strictly authenticated via JWT in the handshake middleware. Missing, invalid, or expired tokens are immediately rejected with error code 401.
+   * On room join and location emit, the backend strictly verifies `socket.user._id` against the ride driver and booked passenger list in MongoDB. Client-supplied role claims are ignored.
+   * Database authorization errors fail closed (deny access).
 5. **Passenger Broadcast**: Authorized location packet is broadcast to room `ride:<rideId>`.
 6. **Passenger UI Rendering**:
    * `SayanRouteMap` receives coordinate update.
@@ -142,3 +150,4 @@ The system maintains strict semantic separation between distance metrics:
 * **Exponential Backoff**: Socket client attempts reconnection at intervals of 1000ms up to 5000ms.
 * **Stale Packet Dropping**: Upon reconnecting, historical buffer points older than 60 seconds are discarded to prevent burst spam. Only the latest valid fix is transmitted immediately.
 * **Local Continuity**: Local distance tracking and UI map rendering continue uninterrupted using cached route geometry.
+

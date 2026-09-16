@@ -2,7 +2,12 @@ const https = require('https');
 const RouteProvider = require('../routeProvider');
 
 /**
- * Google Routes API Provider implementation
+ * Modern Google Routes API (v2) Provider Implementation
+ *
+ * Direct integration with:
+ * - POST https://routes.googleapis.com/directions/v2:computeRoutes
+ * - POST https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix
+ * Using strict response field masks and vehicle-aware emission/routing modes.
  */
 class GoogleRoutesProvider extends RouteProvider {
   constructor(apiKey) {
@@ -15,14 +20,21 @@ class GoogleRoutesProvider extends RouteProvider {
     return key.length > 0 && key !== 'your_google_maps_api_key_here';
   }
 
-  _get(url, headers = {}) {
+  /**
+   * Helper to perform HTTPS POST requests with JSON payload and custom headers
+   */
+  _post(url, payload, headers = {}) {
     return new Promise((resolve, reject) => {
       const parsedUrl = new URL(url);
+      const dataStr = JSON.stringify(payload);
+
       const reqOptions = {
         hostname: parsedUrl.hostname,
         path: parsedUrl.pathname + parsedUrl.search,
-        method: 'GET',
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(dataStr),
           'Accept': 'application/json',
           ...headers,
         },
@@ -36,7 +48,47 @@ class GoogleRoutesProvider extends RouteProvider {
         res.on('end', () => {
           try {
             const parsed = JSON.parse(data);
-            resolve(parsed);
+            resolve({ statusCode: res.statusCode, body: parsed });
+          } catch (err) {
+            reject(new Error('Invalid JSON response from Google Routes API.'));
+          }
+        });
+      });
+
+      req.on('error', (err) => {
+        reject(err);
+      });
+      req.setTimeout(9000, () => {
+        req.destroy(new Error('Google Routes API request timed out.'));
+      });
+
+      req.write(dataStr);
+      req.end();
+    });
+  }
+
+  /**
+   * Helper to perform HTTPS GET requests
+   */
+  _get(url) {
+    return new Promise((resolve, reject) => {
+      const parsedUrl = new URL(url);
+      const reqOptions = {
+        hostname: parsedUrl.hostname,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: 'GET',
+        headers: { 'Accept': 'application/json' },
+      };
+
+      const req = https.request(reqOptions, (res) => {
+        let data = '';
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(data);
+            resolve({ statusCode: res.statusCode, body: parsed });
           } catch (err) {
             reject(new Error('Invalid JSON response from Google Maps API.'));
           }
@@ -47,12 +99,45 @@ class GoogleRoutesProvider extends RouteProvider {
         reject(err);
       });
       req.setTimeout(8000, () => {
-        req.destroy(new Error('Google Routes API request timed out.'));
+        req.destroy(new Error('Google Maps request timed out.'));
       });
       req.end();
     });
   }
 
+  /**
+   * Parse duration string (e.g. "1245s") into integer seconds
+   */
+  _parseDurationSeconds(durationStr) {
+    if (!durationStr) return 0;
+    if (typeof durationStr === 'number') return durationStr;
+    const match = durationStr.toString().match(/^(\d+(\.\d+)?)s?$/);
+    if (match) {
+      return Math.round(parseFloat(match[1]));
+    }
+    return 0;
+  }
+
+  /**
+   * Map Sahyān vehicle type to Google Routes API travelMode
+   */
+  _mapTravelMode(vehicleType) {
+    switch ((vehicleType || '').toLowerCase()) {
+      case 'motorcycle':
+      case 'scooter':
+      case 'electric_scooter':
+        return 'TWO_WHEELER';
+      default:
+        return 'DRIVE';
+    }
+  }
+
+  /**
+   * Calculate driving route using Google Routes API v2
+   * @param {Object} origin - { latitude, longitude, name }
+   * @param {Object} destination - { latitude, longitude, name }
+   * @param {Object} options - { waypoints, trafficAware, alternatives, vehicleType, avoidTolls, avoidHighways }
+   */
   async calculateRoute(origin, destination, options = {}) {
     if (!this.isConfigured()) {
       return {
@@ -64,96 +149,165 @@ class GoogleRoutesProvider extends RouteProvider {
     }
 
     const key = this.apiKey || process.env.GOOGLE_MAPS_API_KEY;
-    const originParam = `${origin.latitude},${origin.longitude}`;
-    const destParam = `${destination.latitude},${destination.longitude}`;
-    
-    let waypointsParam = '';
+    const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+
+    const travelMode = this._mapTravelMode(options.vehicleType);
+    const isElectric = (options.vehicleType || '').toLowerCase() === 'ev' ||
+      (options.vehicleType || '').toLowerCase() === 'electric_car';
+
+    const requestBody = {
+      origin: {
+        location: {
+          latLng: {
+            latitude: Number(origin.latitude),
+            longitude: Number(origin.longitude),
+          },
+        },
+      },
+      destination: {
+        location: {
+          latLng: {
+            latitude: Number(destination.latitude),
+            longitude: Number(destination.longitude),
+          },
+        },
+      },
+      travelMode,
+      routingPreference: options.trafficAware !== false ? 'TRAFFIC_AWARE' : 'TRAFFIC_UNAWARE',
+      computeAlternativeRoutes: options.alternatives === true,
+      routeModifiers: {
+        avoidTolls: options.avoidTolls === true,
+        avoidHighways: options.avoidHighways === true,
+        avoidFerries: true,
+        ...(isElectric ? { vehicleInfo: { emissionType: 'ELECTRIC' } } : {}),
+      },
+      languageCode: 'en-US',
+      units: 'METRIC',
+    };
+
     if (Array.isArray(options.waypoints) && options.waypoints.length > 0) {
-      const wpStr = options.waypoints
-        .map((wp) => `${wp.latitude},${wp.longitude}`)
-        .join('|');
-      waypointsParam = `&waypoints=${encodeURIComponent(wpStr)}`;
+      requestBody.intermediates = options.waypoints.map((wp) => ({
+        location: {
+          latLng: {
+            latitude: Number(wp.latitude),
+            longitude: Number(wp.longitude),
+          },
+        },
+      }));
     }
 
-    const trafficModel = options.trafficAware ? '&departure_time=now' : '';
-    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(
-      originParam
-    )}&destination=${encodeURIComponent(destParam)}${waypointsParam}${trafficModel}&mode=driving&key=${key}`;
+    const headers = {
+      'X-Goog-Api-Key': key,
+      'X-Goog-FieldMask':
+        'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline,routes.description,routes.legs,routes.travelAdvisory',
+    };
 
     try {
-      const response = await this._get(url);
+      const response = await this._post(url, requestBody, headers);
 
-      if (response.status === 'OK' && response.routes && response.routes.length > 0) {
-        const route = response.routes[0];
-        const leg = route.legs && route.legs.length > 0 ? route.legs[0] : null;
+      if (response.statusCode === 200 && response.body && Array.isArray(response.body.routes) && response.body.routes.length > 0) {
+        const primaryRoute = response.body.routes[0];
+        const distanceMeters = primaryRoute.distanceMeters || 0;
+        const durationSeconds = this._parseDurationSeconds(primaryRoute.duration);
 
-        if (!leg) {
-          return {
-            success: false,
-            error: 'NO_LEG_DATA',
-            message: 'Route found but leg data is unavailable.',
-          };
-        }
+        const alternatives = response.body.routes.slice(1).map((alt) => ({
+          distanceMeters: alt.distanceMeters || 0,
+          durationSeconds: this._parseDurationSeconds(alt.duration),
+          encodedPolyline: alt.polyline ? alt.polyline.encodedPolyline : '',
+          description: alt.description || 'Alternative Route',
+        }));
 
         return {
           success: true,
           apiKeyConfigured: true,
-          distanceMeters: leg.distance.value,
-          durationSeconds: leg.duration_in_traffic ? leg.duration_in_traffic.value : leg.duration.value,
-          distanceText: leg.distance.text,
-          durationText: leg.duration_in_traffic ? leg.duration_in_traffic.text : leg.duration.text,
-          encodedPolyline: route.overview_polyline ? route.overview_polyline.points : '',
-          startAddress: leg.start_address,
-          endAddress: leg.end_address,
-          summary: route.summary || 'Primary Highway',
+          distanceMeters,
+          durationSeconds,
+          distanceText: `${(distanceMeters / 1000).toFixed(1)} km`,
+          durationText: `${Math.round(durationSeconds / 60)} mins`,
+          encodedPolyline: primaryRoute.polyline ? primaryRoute.polyline.encodedPolyline : '',
+          summary: primaryRoute.description || 'Primary Corridor',
+          startAddress: origin.name || 'Origin',
+          endAddress: destination.name || 'Destination',
+          alternatives,
         };
       }
 
-      if (response.status === 'ZERO_RESULTS') {
+      if (response.body && response.body.error) {
         return {
           success: false,
-          error: 'ZERO_RESULTS',
-          message: 'No driving route could be found between the selected origin and destination.',
+          error: response.body.error.status || 'ROUTES_API_ERROR',
+          message: response.body.error.message || 'Google Routes API error.',
         };
       }
 
       return {
         success: false,
-        error: response.status || 'GOOGLE_MAPS_ERROR',
-        message: response.error_message || `Google Maps API returned status: ${response.status}`,
+        error: 'ZERO_RESULTS',
+        message: 'No driving route found between origin and destination.',
       };
     } catch (err) {
       return {
         success: false,
         error: 'NETWORK_ERROR',
-        message: `Failed to connect to Google Maps API: ${err.message}`,
+        message: `Failed to connect to Google Routes API: ${err.message}`,
       };
     }
   }
 
-  async calculateRouteMatrix(origins, destinations) {
+  /**
+   * Calculate distance matrix using Google Routes API v2 computeRouteMatrix
+   */
+  async calculateRouteMatrix(origins, destinations, options = {}) {
     if (!this.isConfigured()) {
-      return {
-        success: false,
-        error: 'GOOGLE_MAPS_KEY_NOT_CONFIGURED',
-      };
+      return { success: false, error: 'GOOGLE_MAPS_KEY_NOT_CONFIGURED' };
     }
+
     const key = this.apiKey || process.env.GOOGLE_MAPS_API_KEY;
-    const originsParam = origins.map((o) => `${o.latitude},${o.longitude}`).join('|');
-    const destsParam = destinations.map((d) => `${d.latitude},${d.longitude}`).join('|');
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(
-      originsParam
-    )}&destinations=${encodeURIComponent(destsParam)}&mode=driving&key=${key}`;
+    const url = 'https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix';
+
+    const requestBody = {
+      origins: origins.map((orig) => ({
+        waypoint: {
+          location: {
+            latLng: {
+              latitude: Number(orig.latitude),
+              longitude: Number(orig.longitude),
+            },
+          },
+        },
+      })),
+      destinations: destinations.map((dest) => ({
+        waypoint: {
+          location: {
+            latLng: {
+              latitude: Number(dest.latitude),
+              longitude: Number(dest.longitude),
+            },
+          },
+        },
+      })),
+      travelMode: this._mapTravelMode(options.vehicleType),
+      routingPreference: 'TRAFFIC_AWARE',
+    };
+
+    const headers = {
+      'X-Goog-Api-Key': key,
+      'X-Goog-FieldMask': 'originIndex,destinationIndex,status,distanceMeters,duration',
+    };
 
     try {
-      const response = await this._get(url);
-      if (response.status === 'OK') {
+      const response = await this._post(url, requestBody, headers);
+      if (response.statusCode === 200) {
         return {
           success: true,
-          rows: response.rows,
+          matrix: response.body,
         };
       }
-      return { success: false, error: response.status };
+      return {
+        success: false,
+        error: response.body?.error?.status || 'ROUTE_MATRIX_ERROR',
+        message: response.body?.error?.message,
+      };
     } catch (err) {
       return { success: false, error: 'NETWORK_ERROR', message: err.message };
     }
@@ -170,8 +324,8 @@ class GoogleRoutesProvider extends RouteProvider {
 
     try {
       const response = await this._get(url);
-      if (response.status === 'OK' && response.results && response.results.length > 0) {
-        const first = response.results[0];
+      if (response.statusCode === 200 && response.body?.status === 'OK' && response.body.results?.length > 0) {
+        const first = response.body.results[0];
         return {
           success: true,
           formattedAddress: first.formatted_address,
@@ -180,7 +334,7 @@ class GoogleRoutesProvider extends RouteProvider {
           placeId: first.place_id,
         };
       }
-      return { success: false, error: response.status };
+      return { success: false, error: response.body?.status || 'GEOCODE_ERROR' };
     } catch (err) {
       return { success: false, error: 'NETWORK_ERROR', message: err.message };
     }
@@ -195,15 +349,15 @@ class GoogleRoutesProvider extends RouteProvider {
 
     try {
       const response = await this._get(url);
-      if (response.status === 'OK' && response.results && response.results.length > 0) {
-        const first = response.results[0];
+      if (response.statusCode === 200 && response.body?.status === 'OK' && response.body.results?.length > 0) {
+        const first = response.body.results[0];
         return {
           success: true,
           formattedAddress: first.formatted_address,
           placeId: first.place_id,
         };
       }
-      return { success: false, error: response.status };
+      return { success: false, error: response.body?.status || 'REVERSE_GEOCODE_ERROR' };
     } catch (err) {
       return { success: false, error: 'NETWORK_ERROR', message: err.message };
     }

@@ -19,6 +19,30 @@ class LocationProcessor {
   }
 
   /**
+   * Get maximum physical speed in km/h for a given vehicle type
+   */
+  static getMaxSpeedKmhForVehicle(vehicleType) {
+    switch ((vehicleType || '').toLowerCase()) {
+      case 'motorcycle':
+      case 'scooter':
+      case 'electric_scooter':
+        return 130.0;
+      case 'auto_rickshaw':
+      case 'electric_auto_rickshaw':
+        return 80.0;
+      case 'truck':
+      case 'bus':
+        return 110.0;
+      case 'sedan':
+      case 'suv':
+      case 'hatchback':
+      case 'ev':
+      default:
+        return 160.0;
+    }
+  }
+
+  /**
    * Validate raw telemetry payload structure and values
    * @param {Object} payload
    * @returns {{ valid: boolean, error?: string, sanitized?: Object }}
@@ -28,7 +52,7 @@ class LocationProcessor {
       return { valid: false, error: 'Payload must be a non-null object' };
     }
 
-    const { rideId, latitude, longitude, accuracy, speed, heading, timestamp } = payload;
+    const { rideId, latitude, longitude, accuracy, speed, heading, timestamp, vehicleType } = payload;
 
     if (!rideId || typeof rideId !== 'string') {
       return { valid: false, error: 'rideId is required and must be a string' };
@@ -75,14 +99,15 @@ class LocationProcessor {
         speed: spd,
         heading: hdg,
         timestamp: time.toISOString(),
+        vehicleType: vehicleType || 'sedan',
       },
     };
   }
 
   /**
-   * Check if consecutive coordinate jump is an outlier (exceeds physical speed limit)
+   * Check if consecutive coordinate jump is an outlier (exceeds vehicle-aware physical speed limit)
    */
-  static isOutlier(prevPoint, currentPoint, maxSpeedKmh = 160) {
+  static isOutlier(prevPoint, currentPoint, vehicleTypeOrSpeedLimit = 'sedan') {
     if (!prevPoint) return false;
     const distMeters = this.haversineDistance(
       prevPoint.latitude,
@@ -92,6 +117,10 @@ class LocationProcessor {
     );
     const timeDeltaSec = (new Date(currentPoint.timestamp).getTime() - new Date(prevPoint.timestamp).getTime()) / 1000;
     if (timeDeltaSec <= 0) return distMeters > 50;
+
+    const maxSpeedKmh = typeof vehicleTypeOrSpeedLimit === 'number'
+      ? vehicleTypeOrSpeedLimit
+      : this.getMaxSpeedKmhForVehicle(vehicleTypeOrSpeedLimit);
 
     const speedMps = distMeters / timeDeltaSec;
     const speedKmh = speedMps * 3.6;
