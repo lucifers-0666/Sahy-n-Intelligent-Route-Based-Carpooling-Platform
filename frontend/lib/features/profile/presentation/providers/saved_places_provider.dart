@@ -1,18 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/saved_place_model.dart';
 
-class SavedPlace {
-  final String id;
-  final String label; // 'Home', 'Work', 'College', 'Custom'
-  final String address;
-  final String? landmark;
-
-  const SavedPlace({
-    required this.id,
-    required this.label,
-    required this.address,
-    this.landmark,
-  });
-}
+export '../../domain/saved_place_model.dart';
 
 class SavedPlacesNotifier extends StateNotifier<List<SavedPlace>> {
   SavedPlacesNotifier()

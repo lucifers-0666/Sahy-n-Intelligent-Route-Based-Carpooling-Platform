@@ -57,6 +57,8 @@ import 'package:sahyan/features/trip/presentation/screens/safety_center_screen.d
 import 'package:sahyan/features/settings/presentation/screens/help_support_screen.dart';
 import 'package:sahyan/features/home/presentation/screens/system_states_screen.dart';
 import 'package:sahyan/features/admin/presentation/screens/admin_dashboard_screen.dart';
+import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:sahyan/features/trip/presentation/screens/gps_diagnostic_screen.dart';
 import 'package:sahyan/shared/widgets/app_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -73,6 +75,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/auth-entry',
       builder: (context, state) => const AuthDecisionScreen(),
+    ),
+    GoRoute(
+      path: '/welcome',
+      builder: (context, state) => const WelcomeScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
@@ -128,8 +134,16 @@ final appRouter = GoRouter(
       builder: (context, state) => const ConfirmPayScreen(),
     ),
     GoRoute(
+      path: '/booking-review',
+      builder: (context, state) => const ConfirmPayScreen(),
+    ),
+    GoRoute(
       path: '/booking-confirmation',
       builder: (context, state) => const BookingConfirmationScreen(),
+    ),
+    GoRoute(
+      path: '/passenger/bookings',
+      builder: (context, state) => const MyBookingsScreen(),
     ),
     GoRoute(
       path: '/booking-details',
@@ -292,6 +306,10 @@ final appRouter = GoRouter(
       builder: (context, state) => const SystemStatesScreen(),
     ),
     GoRoute(
+      path: '/gps-diagnostics',
+      builder: (context, state) => const GpsDiagnosticScreen(),
+    ),
+    GoRoute(
       path: '/admin',
       builder: (context, state) => const AdminDashboardScreen(),
     ),
@@ -337,6 +355,10 @@ final appRouter = GoRouter(
         StatefulShellBranch(
           routes: [
             GoRoute(
+              path: '/bookings',
+              builder: (context, state) => const BookingsHubScreen(),
+            ),
+            GoRoute(
               path: '/my-bookings',
               builder: (context, state) => const BookingsHubScreen(),
             ),
@@ -351,7 +373,7 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/profile',
-              builder: (context, state) => const ProfileSafetyScreen(),
+              builder: (context, state) => const ProfileScreen(),
             ),
             GoRoute(
               path: '/profile/safety',

@@ -76,3 +76,7 @@ class SahyanPrimaryCTA extends StatelessWidget {
     );
   }
 }
+
+/// CamelCase alias for SahyanPrimaryCTA
+typedef SahyanPrimaryCta = SahyanPrimaryCTA;
+

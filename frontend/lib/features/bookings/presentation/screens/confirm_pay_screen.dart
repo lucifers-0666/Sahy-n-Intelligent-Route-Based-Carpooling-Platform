@@ -304,3 +304,6 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
     );
   }
 }
+
+/// Descriptive domain alias for ConfirmPayScreen
+typedef BookingReviewScreen = ConfirmPayScreen;

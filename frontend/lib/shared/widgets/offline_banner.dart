@@ -86,3 +86,6 @@ class SahyanOfflineBanner extends StatelessWidget {
     );
   }
 }
+
+/// Backwards compatibility alias
+typedef OfflineBanner = SahyanOfflineBanner;

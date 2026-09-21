@@ -15,3 +15,6 @@ class SahyanApp extends StatelessWidget {
     );
   }
 }
+
+/// Backwards compatibility alias
+typedef App = SahyanApp;
