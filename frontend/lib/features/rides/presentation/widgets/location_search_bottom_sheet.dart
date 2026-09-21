@@ -1,6 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:sahyan/app/theme/app_theme.dart';
+import 'package:sahyan/core/location/data/providers/geolocator_provider.dart';
+import 'package:sahyan/core/location/domain/gps_provider.dart';
+import 'package:sahyan/core/network/api_config.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 
 /// Pre-curated, verified Gujarat highway transport hubs and intercity nodes
@@ -111,8 +116,13 @@ class LocationSearchBottomSheet extends StatefulWidget {
 class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
   late final TextEditingController _searchController;
   final FocusNode _focusNode = FocusNode();
+  final GeolocatorProvider _gpsProvider = GeolocatorProvider();
+
   String _query = '';
   bool _isLocating = false;
+  bool _isSearching = false;
+  List<LocationModel> _apiResults = [];
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -126,111 +136,169 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _searchController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
 
-  List<LocationModel> get _filteredResults {
+  void _onSearchChanged(String val) {
+    setState(() => _query = val);
+    _debounceTimer?.cancel();
+
+    final trimmed = val.trim();
+    if (trimmed.length < 2) {
+      setState(() {
+        _isSearching = false;
+        _apiResults = [];
+      });
+      return;
+    }
+
+    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
+      _fetchPredictions(trimmed);
+    });
+  }
+
+  Future<void> _fetchPredictions(String input) async {
+    setState(() => _isSearching = true);
+
+    try {
+      final baseUrl = ApiConfig.baseUrl;
+      final uri = Uri.parse(
+        '$baseUrl/rides/places/autocomplete?input=${Uri.encodeComponent(input)}',
+      );
+
+      final res = await http.get(uri).timeout(const Duration(seconds: 4));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (data['success'] == true && data['predictions'] is List) {
+          final list = (data['predictions'] as List).map((item) {
+            final map = item as Map<String, dynamic>;
+            final rawName = map['name'] as String?;
+            final desc = map['description'] as String? ?? input;
+            final name = (rawName != null && rawName.isNotEmpty) ? rawName : desc;
+            final city = map['city'] as String? ?? 'Gujarat';
+            final lat = (map['latitude'] as num?)?.toDouble() ?? 23.0225;
+            final lng = (map['longitude'] as num?)?.toDouble() ?? 72.5714;
+            final placeId = map['placeId'] as String?;
+
+            return LocationModel(
+              name: name,
+              address: desc,
+              city: city,
+              latitude: lat,
+              longitude: lng,
+              placeId: placeId,
+            );
+          }).toList();
+
+          if (mounted) {
+            setState(() {
+              _apiResults = list;
+              _isSearching = false;
+            });
+            return;
+          }
+        }
+      }
+    } catch (_) {
+      // Graceful fallback to local corridor hub matching on error
+    }
+
+    if (mounted) {
+      setState(() => _isSearching = false);
+    }
+  }
+
+  List<LocationModel> get _displayedResults {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) {
       return GujaratCorridorHubs.popularHubs;
     }
 
-    final matched = GujaratCorridorHubs.popularHubs.where((hub) {
+    final localMatches = GujaratCorridorHubs.popularHubs.where((hub) {
       return hub.name.toLowerCase().contains(query) ||
           hub.address.toLowerCase().contains(query) ||
           hub.city.toLowerCase().contains(query);
     }).toList();
 
-    // If query does not match any known hub, offer ad-hoc custom location
-    if (matched.isEmpty) {
-      return [
-        LocationModel(
-          name: _query.trim(),
-          address: '${_query.trim()}, Gujarat',
-          city: 'Gujarat',
-          latitude: 23.0225,
-          longitude: 72.5714,
-          placeId: 'custom_${_query.hashCode.abs()}',
-        ),
-      ];
+    // Combine local corridor matches with Nominatim API suggestions
+    final combined = <LocationModel>[...localMatches];
+    final seenNames = localMatches.map((h) => h.name.toLowerCase()).toSet();
+
+    for (final res in _apiResults) {
+      if (!seenNames.contains(res.name.toLowerCase())) {
+        combined.add(res);
+        seenNames.add(res.name.toLowerCase());
+      }
     }
-    return matched;
+
+    return combined;
   }
 
   Future<void> _handleUseCurrentLocation() async {
     setState(() => _isLocating = true);
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final serviceEnabled = await _gpsProvider.isServiceEnabled();
       if (!serviceEnabled) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Location services are disabled on your device.'),
+            content: Text('Device location services are disabled.'),
             backgroundColor: SahyanColors.urgentCoral,
           ),
         );
         return;
       }
 
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Location permission was denied.'),
-              backgroundColor: SahyanColors.urgentCoral,
-            ),
-          );
-          return;
-        }
+      var perm = await _gpsProvider.checkPermission();
+      if (perm == LocationPermissionStatus.denied ||
+          perm == LocationPermissionStatus.unknown) {
+        perm = await _gpsProvider.requestPermission();
       }
 
-      if (permission == LocationPermission.deniedForever) {
+      if (perm != LocationPermissionStatus.granted) {
         if (!mounted) return;
+        final errorMsg = perm == LocationPermissionStatus.deniedForever
+            ? 'Location permissions are permanently denied. Please enable in Settings.'
+            : 'Location permission was denied.';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            backgroundColor: SahyanColors.urgentCoral,
+          ),
+        );
+        return;
+      }
+
+      final position = await _gpsProvider.getCurrentPosition();
+      if (position != null && mounted) {
+        final currentLoc = LocationModel(
+          name: 'Current Location',
+          address: 'GPS (${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})',
+          city: 'Current Area',
+          latitude: position.latitude,
+          longitude: position.longitude,
+          placeId: 'gps_current',
+        );
+        Navigator.of(context).pop(currentLoc);
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Location permissions are permanently denied. Please enable in Settings.'),
+            content: Text('Unable to acquire GPS fix. Please verify location settings.'),
             backgroundColor: SahyanColors.urgentCoral,
           ),
         );
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 6),
-        ),
-      );
-
-      final currentLoc = LocationModel(
-        name: 'Current Location',
-        address: 'GPS (${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})',
-        city: 'Current Area',
-        latitude: position.latitude,
-        longitude: position.longitude,
-        placeId: 'gps_current',
-      );
-
-      if (mounted) {
-        Navigator.of(context).pop(currentLoc);
       }
     } catch (e) {
-      // Fallback to Ahmedabad hub if location resolution fails
       if (mounted) {
-        const fallback = LocationModel(
-          name: 'Current Location (Ahmedabad)',
-          address: 'SG Highway, Ahmedabad, Gujarat',
-          city: 'Ahmedabad',
-          latitude: 23.0270,
-          longitude: 72.5080,
-          placeId: 'gps_fallback',
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Location error: $e'),
+            backgroundColor: SahyanColors.urgentCoral,
+          ),
         );
-        Navigator.of(context).pop(fallback);
       }
     } finally {
       if (mounted) {
@@ -242,6 +310,7 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final results = _displayedResults;
 
     return Container(
       constraints: BoxConstraints(
@@ -334,24 +403,34 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
                     color: SahyanColors.primaryDark,
                     size: 22,
                   ),
-                  suffixIcon: _query.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.cancel, size: 18, color: SahyanColors.textMuted),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _query = '');
-                          },
+                  suffixIcon: _isSearching
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: SahyanColors.primaryDark,
+                            ),
+                          ),
                         )
-                      : null,
+                      : _query.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.cancel, size: 18, color: SahyanColors.textMuted),
+                              onPressed: () {
+                                _searchController.clear();
+                                _onSearchChanged('');
+                              },
+                            )
+                          : null,
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
                   ),
                 ),
-                onChanged: (val) {
-                  setState(() => _query = val);
-                },
+                onChanged: _onSearchChanged,
               ),
             ),
           ),
@@ -429,7 +508,7 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
 
           const SizedBox(height: 12),
 
-          // Section Header: Popular Gujarat Corridors
+          // Section Header: Popular Gujarat Corridors / Search Results
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             child: Row(
@@ -449,88 +528,101 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
 
           // Corridor / Autocomplete List
           Flexible(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              itemCount: _filteredResults.length,
-              separatorBuilder: (ctx, idx) => const Divider(
-                color: SahyanColors.border,
-                height: 1,
-                thickness: 0.6,
-              ),
-              itemBuilder: (ctx, idx) {
-                final hub = _filteredResults[idx];
-                return Material(
-                  color: Colors.transparent,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
-                    leading: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: SahyanColors.chipBackground,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: SahyanColors.border,
-                          width: 0.6,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.place_outlined,
-                        size: 20,
-                        color: SahyanColors.primaryDark,
-                      ),
-                    ),
-                    title: Text(
-                      hub.name,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: SahyanColors.textMain,
-                      ),
-                    ),
-                    subtitle: Text(
-                      hub.address,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: SahyanColors.textMuted,
-                      ),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: SahyanColors.canvas,
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: SahyanColors.border,
-                          width: 0.6,
-                        ),
-                      ),
+            child: results.isEmpty && !_isSearching
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: Center(
                       child: Text(
-                        hub.city,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: SahyanColors.primaryDark,
+                        'No matching locations found',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: SahyanColors.textMuted,
                         ),
                       ),
                     ),
-                    onTap: () {
-                      Navigator.of(context).pop(hub);
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    itemCount: results.length,
+                    separatorBuilder: (ctx, idx) => const Divider(
+                      color: SahyanColors.border,
+                      height: 1,
+                      thickness: 0.6,
+                    ),
+                    itemBuilder: (ctx, idx) {
+                      final hub = results[idx];
+                      return Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
+                          leading: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: SahyanColors.chipBackground,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: SahyanColors.border,
+                                width: 0.6,
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.place_outlined,
+                              size: 20,
+                              color: SahyanColors.primaryDark,
+                            ),
+                          ),
+                          title: Text(
+                            hub.name,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: SahyanColors.textMain,
+                            ),
+                          ),
+                          subtitle: Text(
+                            hub.address,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: SahyanColors.textMuted,
+                            ),
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: SahyanColors.canvas,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: SahyanColors.border,
+                                width: 0.6,
+                              ),
+                            ),
+                            child: Text(
+                              hub.city,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: SahyanColors.primaryDark,
+                              ),
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.of(context).pop(hub);
+                          },
+                        ),
+                      );
                     },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),

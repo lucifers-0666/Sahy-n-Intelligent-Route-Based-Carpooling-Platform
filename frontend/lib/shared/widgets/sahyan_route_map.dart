@@ -1,78 +1,35 @@
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart' as fmap;
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 
-/// Minimalist Luxury Light theme JSON styling for Google Maps
-const String kSahyanMapStyle = '''
-[
-  {
-    "featureType": "administrative",
-    "elementType": "labels.text.fill",
-    "stylers": [{"color": "#444444"}]
-  },
-  {
-    "featureType": "landscape",
-    "elementType": "all",
-    "stylers": [{"color": "#F4F7F5"}]
-  },
-  {
-    "featureType": "poi",
-    "elementType": "all",
-    "stylers": [{"visibility": "off"}]
-  },
-  {
-    "featureType": "road",
-    "elementType": "all",
-    "stylers": [{"saturation": -100}, {"lightness": 45}]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry.fill",
-    "stylers": [{"color": "#E2EBE5"}]
-  },
-  {
-    "featureType": "road.highway",
-    "elementType": "geometry.stroke",
-    "stylers": [{"color": "#CBD8D0"}, {"weight": 1}]
-  },
-  {
-    "featureType": "road.arterial",
-    "elementType": "geometry.fill",
-    "stylers": [{"color": "#FFFFFF"}]
-  },
-  {
-    "featureType": "transit",
-    "elementType": "all",
-    "stylers": [{"visibility": "off"}]
-  },
-  {
-    "featureType": "water",
-    "elementType": "all",
-    "stylers": [{"color": "#D5E5DC"}, {"visibility": "on"}]
-  }
-]
-''';
+/// Helper to convert any LatLng-like object (latlong2 or google_maps_flutter) to latlong2.LatLng
+ll.LatLng toLatLong(dynamic point) {
+  if (point is ll.LatLng) return point;
+  return ll.LatLng(
+    (point.latitude as num).toDouble(),
+    (point.longitude as num).toDouble(),
+  );
+}
 
 /// Canonical Sahyān Route Map widget with real-time polyline rendering,
-/// live vehicle marker animation, and camera tracking.
+/// live vehicle marker animation, and camera tracking powered by OpenStreetMap.
 class SahyanRouteMap extends StatefulWidget {
   final LocationModel origin;
   final LocationModel destination;
-  final List<LatLng> polylinePoints;
+  final List<dynamic> polylinePoints;
   final List<LocationModel> stopovers;
-  final LatLng? driverPosition;
+  final dynamic driverPosition;
   final double? driverHeading;
-  final LatLngBounds? bounds;
+  final dynamic bounds;
   final bool interactive;
   final bool showControls;
   final double? height;
-  final void Function(GoogleMapController controller)? onMapCreated;
+  final void Function(dynamic controller)? onMapCreated;
 
   /// Vehicle type code used to select the marker icon colour.
   /// Accepted values: 'sedan','suv','hatchback','ev','motorcycle', etc.
@@ -111,23 +68,19 @@ typedef SayanRouteMap = SahyanRouteMap;
 
 class _SahyanRouteMapState extends State<SahyanRouteMap>
     with SingleTickerProviderStateMixin {
-  GoogleMapController? _mapController;
+  fmap.MapController? _mapController;
   bool _isMapReady = false;
 
   // ── Interpolation state ──────────────────────────────────────────────────
   late AnimationController _interpolationController;
   late Animation<double> _interpolationAnim;
 
-  LatLng? _prevDriverPos;
-  LatLng? _currentDriverPos;
+  ll.LatLng? _prevDriverPos;
+  ll.LatLng? _currentDriverPos;
   double _prevHeading = 0.0;
   double _currentHeading = 0.0;
-  LatLng? _displayDriverPos;
+  ll.LatLng? _displayDriverPos;
   double _displayHeading = 0.0;
-
-  // ── Custom marker icon cache ─────────────────────────────────────────────
-  final Map<String, BitmapDescriptor> _markerIconCache = {};
-  BitmapDescriptor? _vehicleMarkerIcon;
 
   /// Determine if running in a web or headless widget test environment
   bool get _isTestingEnvironment {
@@ -143,10 +96,15 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   void initState() {
     super.initState();
 
-    _displayDriverPos = widget.driverPosition;
+    _mapController = fmap.MapController();
+
+    if (widget.driverPosition != null) {
+      final pos = toLatLong(widget.driverPosition);
+      _displayDriverPos = pos;
+      _prevDriverPos = pos;
+      _currentDriverPos = pos;
+    }
     _displayHeading = widget.driverHeading ?? 0.0;
-    _prevDriverPos = widget.driverPosition;
-    _currentDriverPos = widget.driverPosition;
 
     _interpolationController = AnimationController(
       vsync: this,
@@ -158,14 +116,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     );
 
     _interpolationController.addListener(_onInterpolationTick);
-
-    if (widget.vehicleTypeCode != null && !_isTestingEnvironment) {
-      _loadVehicleMarkerIcon(widget.vehicleTypeCode!);
-    }
   }
 
   @override
-  void didUpdateWidget(covariant SayanRouteMap oldWidget) {
+  void didUpdateWidget(covariant SahyanRouteMap oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (_mapController != null && _isMapReady && widget.bounds != null) {
@@ -175,24 +129,20 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     // New driver position received — start interpolation
     if (widget.driverPosition != null &&
         widget.driverPosition != oldWidget.driverPosition) {
-      _prevDriverPos = _displayDriverPos ?? widget.driverPosition;
+      final newPos = toLatLong(widget.driverPosition);
+      _prevDriverPos = _displayDriverPos ?? newPos;
       _prevHeading = _displayHeading;
-      _currentDriverPos = widget.driverPosition;
+      _currentDriverPos = newPos;
       _currentHeading = _shortestHeading(_prevHeading, widget.driverHeading ?? 0.0);
 
       _interpolationController.forward(from: 0.0);
-    }
-
-    if (widget.vehicleTypeCode != oldWidget.vehicleTypeCode &&
-        widget.vehicleTypeCode != null &&
-        !_isTestingEnvironment) {
-      _loadVehicleMarkerIcon(widget.vehicleTypeCode!);
     }
   }
 
   @override
   void dispose() {
     _interpolationController.dispose();
+    _mapController?.dispose();
     super.dispose();
   }
 
@@ -209,103 +159,23 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     final heading = _prevHeading + (_currentHeading - _prevHeading) * t;
 
     setState(() {
-      _displayDriverPos = LatLng(lat, lng);
+      _displayDriverPos = ll.LatLng(lat, lng);
       _displayHeading = heading;
     });
 
     // Camera follow
     if (widget.followVehicle && _isMapReady && _mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLng(LatLng(lat, lng)),
-      );
+      try {
+        _mapController!.move(ll.LatLng(lat, lng), _mapController!.camera.zoom);
+      } catch (_) {}
     }
   }
 
-  /// Returns the shortest angular delta so heading never wraps 359→1 as +358°.
+  /// Returns the shortest angular delta so heading never wraps 359 to 1 as +358 degrees.
   double _shortestHeading(double from, double to) {
     double delta = (to - from + 360) % 360;
     if (delta > 180) delta -= 360;
     return from + delta;
-  }
-
-  // ── Custom marker icon ───────────────────────────────────────────────────
-
-  Future<void> _loadVehicleMarkerIcon(String typeCode) async {
-    // Check cache first
-    if (_markerIconCache.containsKey(typeCode)) {
-      if (mounted) setState(() => _vehicleMarkerIcon = _markerIconCache[typeCode]);
-      return;
-    }
-
-    final Color markerColor = _colorForVehicleType(typeCode);
-
-    try {
-      // Try loading asset icon if it exists
-      final assetPath = 'assets/icons/vehicles/$typeCode/icon.png';
-      final bytes = await _tryLoadAsset(assetPath);
-      if (bytes != null) {
-        final descriptor = BitmapDescriptor.bytes(bytes, width: 48, height: 48);
-        _markerIconCache[typeCode] = descriptor;
-        if (mounted) setState(() => _vehicleMarkerIcon = descriptor);
-        return;
-      }
-    } catch (_) {
-      // Fall through to canvas-drawn marker
-    }
-
-    // Fallback: draw a canvas-based arrow marker
-    final descriptor = await _buildCanvasVehicleMarker(markerColor);
-    _markerIconCache[typeCode] = descriptor;
-    if (mounted) setState(() => _vehicleMarkerIcon = descriptor);
-  }
-
-  Future<Uint8List?> _tryLoadAsset(String path) async {
-    try {
-      final data = await rootBundle.load(path);
-      return data.buffer.asUint8List();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Future<BitmapDescriptor> _buildCanvasVehicleMarker(Color color) async {
-    const size = 56.0;
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size, size));
-
-    // Shadow
-    final shadowPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.25)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
-    canvas.drawCircle(const Offset(size / 2, size / 2 + 2), size / 2 - 6, shadowPaint);
-
-    // Circle background
-    final bgPaint = Paint()..color = color;
-    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 6, bgPaint);
-
-    // White ring
-    final ringPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 6, ringPaint);
-
-    // Arrow pointing up (north)
-    final arrowPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    final arrowPath = Path()
-      ..moveTo(size / 2, 10)
-      ..lineTo(size / 2 - 7, size - 12)
-      ..lineTo(size / 2, size - 18)
-      ..lineTo(size / 2 + 7, size - 12)
-      ..close();
-    canvas.drawPath(arrowPath, arrowPaint);
-
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(size.toInt(), size.toInt());
-    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
-    return BitmapDescriptor.bytes(bytes!.buffer.asUint8List(), width: size, height: size);
   }
 
   Color _colorForVehicleType(String code) {
@@ -334,87 +204,142 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   void _fitBounds() {
     if (widget.bounds == null || _mapController == null) return;
     try {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngBounds(widget.bounds!, 48.0),
+      final sw = toLatLong(widget.bounds.southwest);
+      final ne = toLatLong(widget.bounds.northeast);
+      _mapController!.fitCamera(
+        fmap.CameraFit.bounds(
+          bounds: fmap.LatLngBounds(sw, ne),
+          padding: const EdgeInsets.all(48.0),
+        ),
       );
     } catch (_) {}
   }
 
-  Set<Polyline> _buildPolylines() {
-    if (widget.polylinePoints.isEmpty) return {};
-    return {
-      Polyline(
-        polylineId: const PolylineId('route_glow'),
-        points: widget.polylinePoints,
+  List<fmap.Polyline> _buildPolylines() {
+    if (widget.polylinePoints.isEmpty) return [];
+    final points = widget.polylinePoints.map(toLatLong).toList();
+    return [
+      fmap.Polyline(
+        points: points,
         color: SahyanColors.primaryMint.withValues(alpha: 0.35),
-        width: 8,
+        strokeWidth: 8,
       ),
-      Polyline(
-        polylineId: const PolylineId('route_primary'),
-        points: widget.polylinePoints,
+      fmap.Polyline(
+        points: points,
         color: SahyanColors.primaryDark,
-        width: 4,
-        startCap: Cap.roundCap,
-        endCap: Cap.roundCap,
+        strokeWidth: 4,
       ),
-    };
+    ];
   }
 
-  Set<Marker> _buildMarkers() {
-    final markers = <Marker>{};
+  List<fmap.Marker> _buildMarkers() {
+    final markers = <fmap.Marker>[];
 
-    markers.add(Marker(
-      markerId: const MarkerId('origin_marker'),
-      position: LatLng(widget.origin.latitude, widget.origin.longitude),
-      infoWindow: InfoWindow(
-        title: 'Pickup: ${widget.origin.name}',
-        snippet: widget.origin.city,
+    // Origin marker
+    markers.add(
+      fmap.Marker(
+        point: ll.LatLng(widget.origin.latitude, widget.origin.longitude),
+        width: 40,
+        height: 40,
+        child: Container(
+          decoration: BoxDecoration(
+            color: SahyanColors.primaryDark,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.trip_origin_rounded, size: 20, color: Colors.white),
+        ),
       ),
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-    ));
+    );
 
-    markers.add(Marker(
-      markerId: const MarkerId('destination_marker'),
-      position: LatLng(widget.destination.latitude, widget.destination.longitude),
-      infoWindow: InfoWindow(
-        title: 'Drop: ${widget.destination.name}',
-        snippet: widget.destination.city,
+    // Destination marker
+    markers.add(
+      fmap.Marker(
+        point: ll.LatLng(widget.destination.latitude, widget.destination.longitude),
+        width: 40,
+        height: 40,
+        child: Container(
+          decoration: BoxDecoration(
+            color: SahyanColors.primaryMint,
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.location_on_rounded, size: 22, color: Colors.white),
+        ),
       ),
-      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
-    ));
+    );
 
+    // Stopovers
     for (int i = 0; i < widget.stopovers.length; i++) {
       final stop = widget.stopovers[i];
-      markers.add(Marker(
-        markerId: MarkerId('stopover_${i}_${stop.name}'),
-        position: LatLng(stop.latitude, stop.longitude),
-        infoWindow: InfoWindow(title: 'Stop: ${stop.name}'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-      ));
+      markers.add(
+        fmap.Marker(
+          point: ll.LatLng(stop.latitude, stop.longitude),
+          width: 32,
+          height: 32,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0284C7),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 1.5),
+            ),
+            child: const Icon(Icons.flag_rounded, size: 16, color: Colors.white),
+          ),
+        ),
+      );
     }
 
     // Driver vehicle marker — uses interpolated position & heading
-    final driverPos = _displayDriverPos ?? widget.driverPosition;
+    final driverPos = _displayDriverPos ?? (widget.driverPosition != null ? toLatLong(widget.driverPosition) : null);
     if (driverPos != null) {
-      markers.add(Marker(
-        markerId: const MarkerId('driver_vehicle_marker'),
-        position: driverPos,
-        rotation: _displayHeading,
-        flat: true,
-        anchor: const Offset(0.5, 0.5),
-        infoWindow: const InfoWindow(title: 'Driver Live Location'),
-        icon: _vehicleMarkerIcon ??
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-      ));
+      markers.add(
+        fmap.Marker(
+          point: driverPos,
+          width: 50,
+          height: 50,
+          child: Transform.rotate(
+            angle: _displayHeading * math.pi / 180.0,
+            child: Container(
+              decoration: BoxDecoration(
+                color: _colorForVehicleType(widget.vehicleTypeCode ?? ''),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.navigation_rounded, size: 26, color: Colors.white),
+            ),
+          ),
+        ),
+      );
     }
 
     return markers;
   }
 
-  CameraPosition _getInitialCameraPosition() {
+  ll.LatLng _getInitialCenter() {
     final lat = (widget.origin.latitude + widget.destination.latitude) / 2;
     final lng = (widget.origin.longitude + widget.destination.longitude) / 2;
-    return CameraPosition(target: LatLng(lat, lng), zoom: 8.5);
+    return ll.LatLng(lat, lng);
   }
 
   // ── Build ────────────────────────────────────────────────────────────────
@@ -427,26 +352,35 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
           ? _buildVectorFallbackPreview()
           : Stack(
               children: [
-                GoogleMap(
-                  style: kSahyanMapStyle,
-                  initialCameraPosition: _getInitialCameraPosition(),
-                  onMapCreated: (controller) {
-                    _mapController = controller;
-                    _isMapReady = true;
-                    _fitBounds();
-                    widget.onMapCreated?.call(controller);
-                  },
-                  polylines: _buildPolylines(),
-                  markers: _buildMarkers(),
-                  zoomControlsEnabled: widget.showControls,
-                  compassEnabled: widget.interactive,
-                  myLocationButtonEnabled: false,
-                  myLocationEnabled: false,
-                  scrollGesturesEnabled: widget.interactive,
-                  zoomGesturesEnabled: widget.interactive,
-                  tiltGesturesEnabled: false,
-                  rotateGesturesEnabled: widget.interactive,
-                  mapToolbarEnabled: false,
+                fmap.FlutterMap(
+                  mapController: _mapController,
+                  options: fmap.MapOptions(
+                    initialCenter: _getInitialCenter(),
+                    initialZoom: 8.5,
+                    interactionOptions: fmap.InteractionOptions(
+                      flags: widget.interactive
+                          ? fmap.InteractiveFlag.all
+                          : fmap.InteractiveFlag.none,
+                    ),
+                    onMapReady: () {
+                      _isMapReady = true;
+                      _fitBounds();
+                      widget.onMapCreated?.call(_mapController);
+                    },
+                  ),
+                  children: [
+                    fmap.TileLayer(
+                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'com.sahyan.app',
+                      maxZoom: 19,
+                    ),
+                    fmap.PolylineLayer(
+                      polylines: _buildPolylines(),
+                    ),
+                    fmap.MarkerLayer(
+                      markers: _buildMarkers(),
+                    ),
+                  ],
                 ),
 
                 // ── Live Route Corridor badge ──────────────────────────────
@@ -485,11 +419,32 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                   ),
                 ),
 
+                // ── OpenStreetMap Attribution ──────────────────────────────
+                Positioned(
+                  bottom: 4,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: SahyanColors.surface.withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: const Text(
+                      'OpenStreetMap',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: SahyanColors.textMuted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+
                 // ── Follow / Free-pan toggle FAB ───────────────────────────
                 if (widget.driverPosition != null && widget.onFollowToggle != null)
                   Positioned(
                     bottom: 16,
-                    right: 16,
+                    left: 16,
                     child: GestureDetector(
                       onTap: () => widget.onFollowToggle!(!widget.followVehicle),
                       child: Container(
@@ -565,7 +520,8 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               points: widget.polylinePoints,
               origin: widget.origin,
               destination: widget.destination,
-              driverPosition: _displayDriverPos ?? widget.driverPosition,
+              driverPosition: _displayDriverPos ??
+                  (widget.driverPosition != null ? toLatLong(widget.driverPosition) : null),
               driverHeading: _displayHeading,
             ),
           ),
@@ -653,10 +609,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
 // ── Vector route painter ───────────────────────────────────────────────────
 
 class _SayanVectorRoutePainter extends CustomPainter {
-  final List<LatLng> points;
+  final List<dynamic> points;
   final LocationModel origin;
   final LocationModel destination;
-  final LatLng? driverPosition;
+  final dynamic driverPosition;
   final double driverHeading;
 
   const _SayanVectorRoutePainter({

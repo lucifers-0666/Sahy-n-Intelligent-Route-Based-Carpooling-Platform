@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:sahyan/core/network/api_config.dart';
 import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/features/rides/domain/ride_model.dart';
 import 'package:sahyan/shared/models/location_model.dart';
@@ -44,7 +45,7 @@ class RouteGeometryService {
     return _detectGujaratHighway(origin, dest);
   }
 
-  /// Calculate route using Directions API or offline curved highway geometry fallback
+  /// Calculate route using free OSRM route service via backend API with offline fallback
   static Future<RouteGeometryResult> calculateRoute({
     required LocationModel origin,
     required LocationModel destination,
@@ -52,62 +53,74 @@ class RouteGeometryService {
     List<LocationModel> waypoints = const [],
   }) async {
     final activeStopovers = [...stopovers, ...waypoints];
-    final apiKey = activeApiKey;
 
-    if (apiKey != null && apiKey.isNotEmpty) {
-      try {
-        final uri = Uri.parse(
-          'https://maps.googleapis.com/maps/api/directions/json?'
-          'origin=${origin.latitude},${origin.longitude}'
-          '&destination=${destination.latitude},${destination.longitude}'
-          '${activeStopovers.isNotEmpty ? "&waypoints=${activeStopovers.map((s) => "${s.latitude},${s.longitude}").join("|")}" : ""}'
-          '&mode=driving&key=$apiKey',
-        );
+    try {
+      final baseUrl = ApiConfig.baseUrl;
+      final uri = Uri.parse('$baseUrl/rides/route/calculate');
 
-        final res = await http.get(uri).timeout(const Duration(seconds: 4));
-        if (res.statusCode == 200) {
-          final data = jsonDecode(res.body) as Map<String, dynamic>;
-          if (data['status'] == 'OK' && (data['routes'] as List).isNotEmpty) {
-            final routeJson = data['routes'][0] as Map<String, dynamic>;
-            final overviewPolyline =
-                routeJson['overview_polyline']?['points'] as String? ?? '';
-            final leg = routeJson['legs']?[0] as Map<String, dynamic>?;
-            final distanceMeters =
-                (leg?['distance']?['value'] as num?)?.toDouble() ?? 0.0;
-            final durationSeconds =
-                (leg?['duration']?['value'] as num?)?.toInt() ?? 0;
-            final summary =
-                routeJson['summary'] as String? ?? 'Primary Highway';
+      final body = jsonEncode({
+        'origin': {
+          'latitude': origin.latitude,
+          'longitude': origin.longitude,
+          'name': origin.name,
+        },
+        'destination': {
+          'latitude': destination.latitude,
+          'longitude': destination.longitude,
+          'name': destination.name,
+        },
+      });
 
-            final decoded = RouteService.decodePolyline(overviewPolyline);
-            final latLngList = decoded
-                .map((p) => LatLng(p.latitude, p.longitude))
-                .toList();
+      final res = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 5));
 
-            final bounds = calculateBounds(latLngList, origin, destination);
-            final distKm = (distanceMeters / 1000).toStringAsFixed(0);
-            final durHours = durationSeconds ~/ 3600;
-            final durMins = (durationSeconds % 3600) ~/ 60;
-            final durStr =
-                durHours > 0 ? '${durHours}h ${durMins}m' : '${durMins}m';
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        if (data['success'] == true && data['encodedPolyline'] != null) {
+          final encodedPolyline = data['encodedPolyline'] as String;
+          final distanceMeters =
+              (data['distanceMeters'] as num?)?.toDouble() ?? 0.0;
+          final durationSeconds =
+              (data['durationSeconds'] as num?)?.toInt() ?? 0;
+          final highway = _detectGujaratHighway(origin, destination);
 
-            return RouteGeometryResult(
-              route: RouteInfo(
-                encodedPolyline: overviewPolyline,
-                distanceMeters: distanceMeters,
-                durationSeconds: durationSeconds,
-              ),
-              bounds: bounds,
-              polylineCoordinates: latLngList,
-              highwayName: summary,
-              keyWaypoints: activeStopovers.map((s) => s.name).toList(),
-              telemetrySummary: 'via $summary · $distKm km · $durStr',
-            );
-          }
+          final decoded = RouteService.decodePolyline(encodedPolyline);
+          final latLngList = decoded
+              .map((p) => LatLng(p.latitude, p.longitude))
+              .toList();
+
+          final bounds = calculateBounds(latLngList, origin, destination);
+          final distKm = (distanceMeters / 1000).toStringAsFixed(0);
+          final durHours = durationSeconds ~/ 3600;
+          final durMins = (durationSeconds % 3600) ~/ 60;
+          final durStr =
+              durHours > 0 ? '${durHours}h ${durMins}m' : '${durMins}m';
+
+          final waypoints = activeStopovers.isNotEmpty
+              ? activeStopovers.map((s) => s.name).toList()
+              : _suggestDefaultWaypoints(origin, destination);
+
+          return RouteGeometryResult(
+            route: RouteInfo(
+              encodedPolyline: encodedPolyline,
+              distanceMeters: distanceMeters,
+              durationSeconds: durationSeconds,
+            ),
+            bounds: bounds,
+            polylineCoordinates: latLngList,
+            highwayName: highway,
+            keyWaypoints: waypoints,
+            telemetrySummary: 'via $highway · $distKm km · $durStr',
+          );
         }
-      } catch (_) {
-        // Fall back gracefully to offline geometric interpolation
       }
+    } catch (_) {
+      // Fall back gracefully to offline geometric interpolation
     }
 
     return _generateOfflineFallbackRoute(
