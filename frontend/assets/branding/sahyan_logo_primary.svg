@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 90" fill="none">
+  <defs>
+    <linearGradient id="primary_emerald" x1="10" y1="10" x2="70" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B5D4B"/>
+      <stop offset="100%" stop-color="#084C3A"/>
+    </linearGradient>
+    <linearGradient id="primary_mint" x1="30" y1="20" x2="70" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A7E8D2"/>
+      <stop offset="100%" stop-color="#5CC6A5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- SYMBOL (Scaled 0.75x at offset x=10, y=5) -->
+  <g transform="translate(5, 5) scale(0.66)">
+    <!-- Upper Route Arc -->
+    <path d="M 22 28 C 36 28 52 40 64 54 L 88 54 C 92 54 94 57 92 60 L 76 74 C 73 76 69 74 69 70 L 69 66 C 58 56 46 44 22 44 C 18 44 16 40 16 36 C 16 32 18 28 22 28 Z" fill="url(#primary_emerald)"/>
+    <!-- Lower Route Arc -->
+    <path d="M 22 92 C 36 92 52 80 64 66 L 88 66 C 92 66 94 63 92 60 L 76 46 C 73 44 69 46 69 50 L 69 54 C 58 64 46 76 22 76 C 18 76 16 80 16 84 C 16 88 18 92 22 92 Z" fill="url(#primary_emerald)"/>
+    <!-- Dynamic Match Core -->
+    <path d="M 58 60 L 78 43 C 81 40 86 42 86 47 L 86 73 C 86 78 81 80 78 77 L 58 60 Z" fill="url(#primary_mint)"/>
+    <!-- Focal Node -->
+    <circle cx="68" cy="60" r="4.5" fill="#FFFFFF"/>
+  </g>
+
+  <!-- SAHYĀN WORDMARK -->
+  <text x="86" y="55" 
+        font-family="'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif" 
+        font-size="42" 
+        font-weight="800" 
+        letter-spacing="-0.8" 
+        fill="#0B5D4B">
+    Sahy<tspan fill="#0B5D4B">ā</tspan>n
+  </text>
+
+  <!-- Macron over 'a' precisely drawn for brand consistency -->
+  <rect x="254" y="22" width="16" height="3.5" rx="1.75" fill="#0B5D4B"/>
+
+  <!-- Subtitle Tagline -->
+  <text x="88" y="74" 
+        font-family="'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif" 
+        font-size="11" 
+        font-weight="600" 
+        letter-spacing="1.2" 
+        fill="#6B7F78">
+    INTELLIGENT CARPOOLING
+  </text>
+</svg>
