@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
+import 'package:sahyan/features/trip/presentation/widgets/rate_trip_sheet.dart';
 import 'package:sahyan/features/trip/presentation/widgets/sos_action_bottom_sheet.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
 
@@ -104,7 +105,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
         ),
       ),
       body: SafeArea(
-        child: PageView(
+        child: bookingsAsync.isLoading
+            ? _buildShimmerLoading()
+            : PageView(
           controller: _pageController,
           physics: const BouncingScrollPhysics(),
           onPageChanged: (index) {
@@ -124,25 +127,25 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                   parent: BouncingScrollPhysics(),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Column(
-                  children: [
-                    _buildLiveTelematicsBadge(),
-                    const SizedBox(height: 14),
-                    _buildDigitalBoardingPass(
-                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
-                    ),
-                    const SizedBox(height: 14),
-                    _buildActionDock(
-                      driverName: activeBookings.isNotEmpty
-                          ? (activeBookings.first.ride?.driverName ?? 'Rohit Patel')
-                          : 'Rohit Patel',
-                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
-                    ),
-                    const SizedBox(height: 14),
-                    _buildEcoImpactCard(),
-                    const SizedBox(height: 24),
-                  ],
-                ),
+                child: activeBookings.isEmpty
+                    ? _buildEmptyActiveState()
+                    : Column(
+                        children: [
+                          _buildLiveTelematicsBadge(booking: activeBookings.first),
+                          const SizedBox(height: 14),
+                          _buildDigitalBoardingPass(
+                            booking: activeBookings.first,
+                          ),
+                          const SizedBox(height: 14),
+                          _buildActionDock(
+                            driverName: activeBookings.first.ride?.driverName ?? 'Driver',
+                            booking: activeBookings.first,
+                          ),
+                          const SizedBox(height: 14),
+                          _buildEcoImpactCard(),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
               ),
             ),
 
@@ -162,7 +165,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                     if (pendingBookings.isNotEmpty) ...[
                       ...pendingBookings.map((b) => _buildLivePendingCard(b)),
                     ] else ...[
-                      _buildUpcomingRequestsBento(),
+                      _buildEmptyPendingState(),
                     ],
                     const SizedBox(height: 14),
                     _buildEcoImpactCard(),
@@ -188,7 +191,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                     if (historyBookings.isNotEmpty) ...[
                       ...historyBookings.map((b) => _buildLiveHistoryCard(b)),
                     ] else ...[
-                      _buildHistorySection(),
+                      _buildEmptyHistoryState(),
                     ],
                     const SizedBox(height: 14),
                     _buildEcoImpactCard(),
@@ -203,14 +206,241 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildLiveTelematicsBadge() {
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Loading skeleton
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  Widget _buildShimmerLoading() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      child: Column(
+        children: List.generate(3, (i) => _ShimmerCard(index: i)),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Empty States
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  Widget _buildEmptyActiveState() {
+    return Column(
+      children: [
+        const SizedBox(height: 24),
+        BentoContainer(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: const BoxDecoration(
+                  color: SahyanColors.primaryLight,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.route_rounded,
+                  size: 36,
+                  color: SahyanColors.primaryDark,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'No Active Journey',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: SahyanColors.textMain,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Book a seat on a verified intercity corridor to see your active ride here.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: SahyanColors.textMuted,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () => context.go('/home'),
+                  icon: const Icon(Icons.search_rounded, size: 18),
+                  label: const Text('Find a Ride →'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SahyanColors.primaryDark,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    textStyle: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyPendingState() {
+    return BentoContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: SahyanColors.goldStar.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.pending_actions_rounded,
+              size: 32,
+              color: SahyanColors.goldStar,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No Pending Requests',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: SahyanColors.textMain,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Booking requests awaiting driver approval will appear here.',
+            style: TextStyle(
+              fontSize: 12,
+              color: SahyanColors.textMuted,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: () => context.go('/home'),
+            icon: const Icon(Icons.search_rounded, size: 16),
+            label: const Text('Find a Ride →'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: SahyanColors.primaryDark,
+              side: const BorderSide(color: SahyanColors.border, width: 0.8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyHistoryState() {
+    return BentoContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(
+              color: SahyanColors.primaryLight,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.history_rounded,
+              size: 32,
+              color: SahyanColors.primaryDark,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No Completed Journeys',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: SahyanColors.textMain,
+              letterSpacing: -0.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Your completed corridor rides and trip summaries will appear here.',
+            style: TextStyle(
+              fontSize: 12,
+              color: SahyanColors.textMuted,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          OutlinedButton.icon(
+            onPressed: () => context.go('/home'),
+            icon: const Icon(Icons.search_rounded, size: 16),
+            label: const Text('Find a Ride →'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: SahyanColors.primaryDark,
+              side: const BorderSide(color: SahyanColors.border, width: 0.8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: const TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Live Telematics Badge — derives display text from real booking data.
+  Widget _buildLiveTelematicsBadge({BookingModel? booking}) {
+    final hasLiveRide = booking != null;
+    final pickupDesc = hasLiveRide
+        ? (booking.pickup.address.isNotEmpty
+            ? booking.pickup.address
+            : (booking.ride?.origin.address ?? 'your pickup point'))
+        : null;
+    final shortPickup = pickupDesc != null && pickupDesc.length > 32
+        ? '${pickupDesc.substring(0, 30)}…'
+        : (pickupDesc ?? '');
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: SahyanColors.primaryLight,
+        color: hasLiveRide ? SahyanColors.primaryLight : SahyanColors.canvas,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: SahyanColors.primaryMint.withValues(alpha: 0.3),
+          color: hasLiveRide
+              ? SahyanColors.primaryMint.withValues(alpha: 0.3)
+              : SahyanColors.border,
           width: 0.8,
         ),
       ),
@@ -222,49 +452,62 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               color: SahyanColors.surface,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.navigation_rounded,
+            child: Icon(
+              hasLiveRide ? Icons.navigation_rounded : Icons.directions_car_outlined,
               color: SahyanColors.primaryDark,
               size: 18,
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Driver en route to pickup · 4.2 km away',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: SahyanColors.primaryDark,
+          Expanded(
+            child: hasLiveRide
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Driver heading to · $shortPickup',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: SahyanColors.primaryDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Boarding PIN: ${booking.securityPin} · Track live for ETA',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: SahyanColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  )
+                : const Text(
+                    'No active ride telematics',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: SahyanColors.textMuted,
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'ETA: 8 mins at Iscon Cross Roads, SG Highway',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    color: SahyanColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
           ),
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              color: SahyanColors.primaryMint,
-              shape: BoxShape.circle,
+          if (hasLiveRide)
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: SahyanColors.primaryMint,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
         ],
       ),
     );
   }
+
 
   Widget _buildDigitalBoardingPass({BookingModel? booking}) {
     final driverName = booking?.ride?.driverName ?? 'Rohit Patel';
@@ -433,7 +676,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Journey Timeline
+                 // Journey Timeline — real departure/arrival times
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -480,9 +723,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
-                                      '06:30 PM',
-                                      style: TextStyle(
+                                    Text(
+                                      booking?.ride?.departureTime ?? '-- : --',
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
                                         color: SahyanColors.textMain,
@@ -508,9 +751,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
-                                      '09:45 PM',
-                                      style: TextStyle(
+                                    Text(
+                                      booking?.ride?.estimatedArrival ?? '-- : --',
+                                      style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
                                         color: SahyanColors.textMain,
@@ -1029,34 +1272,72 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: SahyanColors.border, width: 0.8),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '₹$fare total · $seats Seat${seats > 1 ? 's' : ''}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: SahyanColors.textMain,
-                        ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '₹$fare total · $seats Seat${seats > 1 ? 's' : ''}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: SahyanColors.textMain,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Driver: $driverName',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: SahyanColors.textMuted,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Driver: $driverName',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: SahyanColors.textMuted,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+                // Rate Trip CTA — shown only for completed bookings
+                if (isCompleted) ...[
+                  const SizedBox(height: 12),
+                  const Divider(color: SahyanColors.border, height: 1, thickness: 0.8),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => RateTripSheet.show(
+                        context,
+                        booking: booking,
+                        driverName: driverName,
+                      ),
+                      icon: const Icon(Icons.star_outline_rounded, size: 16),
+                      label: const Text('Rate this Trip'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: SahyanColors.primaryDark,
+                        side: const BorderSide(
+                          color: SahyanColors.primaryDark,
+                          width: 0.8,
+                        ),
+                        minimumSize: const Size(double.infinity, 36),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        textStyle: const TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1065,156 +1346,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildUpcomingRequestsBento() {
-    return BentoContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text(
-                  'Approval Pending',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: SahyanColors.textMain,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: SahyanColors.goldStar.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Under Review',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: SahyanColors.goldStar,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: SahyanColors.canvas,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: SahyanColors.border, width: 0.8),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: SahyanColors.primaryLight,
-                      child: Text(
-                        'PS',
-                        style: TextStyle(
-                          color: SahyanColors.primaryDark,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Dr. Priya Sharma',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: SahyanColors.textMain,
-                            ),
-                          ),
-                          Text(
-                            'Ahmedabad → Surat · Tomorrow 07:00 AM',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: SahyanColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Divider(
-                  color: SahyanColors.border,
-                  height: 1,
-                  thickness: 0.8,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        '2 Seats Requested · ₹520 total',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: SahyanColors.textMain,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Request details viewed'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: SahyanColors.primaryDark,
-                        side: const BorderSide(
-                          color: SahyanColors.border,
-                          width: 0.8,
-                        ),
-                        minimumSize: const Size(80, 32),
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'View Details',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildEcoImpactCard() {
     return BentoContainer(
@@ -1262,89 +1394,123 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildHistorySection() {
-    return BentoContainer(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Completed Journeys',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: SahyanColors.textMain,
-            ),
+
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shimmer skeleton card
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ShimmerCard extends StatefulWidget {
+  final int index;
+  const _ShimmerCard({required this.index});
+
+  @override
+  State<_ShimmerCard> createState() => _ShimmerCardState();
+}
+
+class _ShimmerCardState extends State<_ShimmerCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _anim = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (context, _) {
+        final opacity = 0.4 + _anim.value * 0.35;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: SahyanColors.surface,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: SahyanColors.border, width: 0.8),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: SahyanColors.canvas,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: SahyanColors.border, width: 0.8),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Rajkot → Ahmedabad',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: SahyanColors.textMain,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      '₹350',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: SahyanColors.textMain,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Yesterday · 219 km · Driver: Jay Patel',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: SahyanColors.textMuted,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  _shimmerBox(40, 40, radius: 20, opacity: opacity),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _shimmerBox(120, 12, opacity: opacity),
+                      const SizedBox(height: 6),
+                      _shimmerBox(80, 10, opacity: opacity),
+                    ],
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _shimmerBox(double.infinity, 48, radius: 12, opacity: opacity),
+              const SizedBox(height: 10),
+              _shimmerBox(double.infinity, 40, radius: 12, opacity: opacity),
+            ],
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _shimmerBox(
+    double width,
+    double height, {
+    double radius = 8,
+    required double opacity,
+  }) {
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: SahyanColors.border,
+          borderRadius: BorderRadius.circular(radius),
+        ),
       ),
     );
   }
 }
 
+/// Draws a subtle horizontal dashed perforation line for ticket notch dividers.
 class _DashedLinePainter extends CustomPainter {
+  const _DashedLinePainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = SahyanColors.border
-      ..strokeWidth = 1.0;
+      ..strokeWidth = size.height <= 0 ? 1.0 : size.height
+      ..style = PaintingStyle.stroke;
 
     const dashWidth = 5.0;
     const dashSpace = 4.0;
-    double startX = 0;
-
+    double startX = 0.0;
     while (startX < size.width) {
+      final endX = (startX + dashWidth > size.width) ? size.width : startX + dashWidth;
       canvas.drawLine(
-        Offset(startX, 0),
-        Offset(startX + dashWidth, 0),
+        Offset(startX, size.height / 2),
+        Offset(endX, size.height / 2),
         paint,
       );
       startX += dashWidth + dashSpace;
@@ -1354,3 +1520,4 @@ class _DashedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+

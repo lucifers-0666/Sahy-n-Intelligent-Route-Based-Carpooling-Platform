@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../shared/models/location_model.dart';
 import '../../../../shared/widgets/bento/bento_widgets.dart';
-import '../../../../shared/widgets/sahyan_logo.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
@@ -18,7 +17,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _originController = TextEditingController(
     text: 'SG Highway, Ahmedabad',
   );
@@ -41,6 +41,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay _selectedTime = const TimeOfDay(hour: 17, minute: 30);
 
+  // Pulsating dot animation controller
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulseAnimation;
+
   static const List<Map<String, dynamic>> _quickCorridors = [
     {
       'from': 'Bhuj',
@@ -61,9 +65,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       'toLng': 72.8311,
     },
     {
-      'from': 'Baroda',
+      'from': 'Vadodara',
       'to': 'Ahmedabad',
-      'price': 180,
+      'price': 210,
       'fromLat': 22.3072,
       'fromLng': 73.1812,
       'toLat': 23.0225,
@@ -81,7 +85,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
   void dispose() {
+    _pulseController.dispose();
     _originController.dispose();
     _destinationController.dispose();
     super.dispose();
@@ -214,51 +231,73 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            // 1. Top Header Bar
+            // ──────────────────────────────────────────────────────────────
+            // 1. Top App Header Bar
+            // ──────────────────────────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               sliver: SliverToBoxAdapter(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Left: Brand tag + Greeting + Location pill
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SahyanLogo(
-                            variant: SahyanLogoVariant.horizontal,
-                            size: 24,
-                          ),
-                          const SizedBox(height: 4),
+                          // Brand tag: ● SAHYĀN 2026
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Flexible(
-                                child: Text(
-                                  'Hey $displayName',
-                                  style: const TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.5,
-                                    color: SahyanColors.textMain,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: const BoxDecoration(
+                                  color: SahyanColors.primaryMint,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              const Text(
+                                'SAHYĀN 2026',
+                                style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: SahyanColors.textMuted,
+                                  letterSpacing: 1.5,
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 4),
+                          // Main greeting
+                          Text(
+                            'Hey $displayName 👋',
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: SahyanColors.textMain,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          // Active Location Pill
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
+                              horizontal: 9,
+                              vertical: 4,
                             ),
                             decoration: BoxDecoration(
                               color: SahyanColors.primaryLight,
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(
-                                color: SahyanColors.primaryMint.withValues(alpha: 0.3),
+                                color: SahyanColors.primaryMint
+                                    .withValues(alpha: 0.3),
                                 width: 0.8,
                               ),
                             ),
@@ -273,12 +312,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     shape: BoxShape.circle,
                                   ),
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: 5),
+                                const Text(
+                                  '📍',
+                                  style: TextStyle(fontSize: 10),
+                                ),
+                                const SizedBox(width: 2),
                                 const Flexible(
                                   child: Text(
                                     'Ahmedabad Hub',
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       color: SahyanColors.primaryDark,
                                     ),
@@ -292,6 +337,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ],
                       ),
                     ),
+
+                    const SizedBox(width: 12),
+
+                    // Right: Notification Bell + Avatar
                     Row(
                       children: [
                         // Notification Bell
@@ -300,8 +349,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           children: [
                             Material(
                               color: SahyanColors.surface,
-                              shape: CircleBorder(
-                                side: const BorderSide(
+                              shape: const CircleBorder(
+                                side: BorderSide(
                                   color: SahyanColors.border,
                                   width: 0.8,
                                 ),
@@ -309,12 +358,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               child: InkWell(
                                 onTap: () => context.push('/notifications'),
                                 customBorder: const CircleBorder(),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(10),
-                                  child: Icon(
-                                    Icons.notifications_outlined,
-                                    size: 20,
-                                    color: SahyanColors.textMain,
+                                child: const SizedBox(
+                                  width: 40,
+                                  height: 40,
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.notifications_outlined,
+                                      size: 20,
+                                      color: SahyanColors.textMain,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -324,13 +376,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 top: -2,
                                 right: -2,
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 1,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: SahyanColors.primaryMint,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.white, width: 1.5),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
                                   ),
-                                  constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
                                   child: Text(
                                     '$unreadNotifs',
                                     style: const TextStyle(
@@ -345,7 +406,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ],
                         ),
                         const SizedBox(width: 10),
-                        // Avatar Badge
+
+                        // User Avatar with verified badge
                         GestureDetector(
                           onTap: () => context.push('/profile'),
                           child: Stack(
@@ -364,8 +426,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 ),
                                 alignment: Alignment.center,
                                 child: Text(
-                                  displayName.substring(0, 1).toUpperCase(),
+                                  displayName
+                                      .substring(0, 1)
+                                      .toUpperCase(),
                                   style: const TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                     color: SahyanColors.primaryDark,
@@ -398,9 +463,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
+            // ──────────────────────────────────────────────────────────────
             // 2. Hero Search Bento Card
+            // ──────────────────────────────────────────────────────────────
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
               sliver: SliverToBoxAdapter(
                 child: HeroSearchCard(
                   originController: _originController,
@@ -418,168 +485,87 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-
-            // 3. Section Title: Gujarat Smart Corridors
+            // ──────────────────────────────────────────────────────────────
+            // 3. Section Header: Live Highway Corridors
+            // ──────────────────────────────────────────────────────────────
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
               sliver: SliverToBoxAdapter(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Gujarat Smart Corridors',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.4,
-                              color: SahyanColors.textMain,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Popular Routes in Gujarat',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: SahyanColors.textMuted,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                    const Text(
+                      'Live Highway Corridors',
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                        color: SahyanColors.textMain,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    PillTag(
-                      label: 'Live Mesh',
-                      icon: Icons.hub_rounded,
-                      variant: PillTagVariant.mint,
-                      fontSize: 11,
-                    ),
+                    // ● Live Telematics pulsating badge
+                    _PulsatingTelematics(animation: _pulseAnimation),
                   ],
                 ),
               ),
             ),
 
-            // 4. Bento Grid: Live Mesh Card & Telematics
+            // ──────────────────────────────────────────────────────────────
+            // 4. Corridor Bento Cards + Metric Mini Bentos
+            // ──────────────────────────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // Bento 1: Live Mesh Express Card
-                  BentoContainer(
+                  // Corridor Card 1: Ahmedabad → Rajkot Express
+                  _CorridorBentoCard(
+                    routeName: 'Ahmedabad ➔ Rajkot Express',
+                    speedLabel: '⚡ 94 km/h avg',
+                    driverInfo: '12 verified drivers ready · Next in 8 mins',
+                    badges: const ['via NH47', 'EV Fastlane'],
+                    badgeVariants: const [
+                      PillTagVariant.neutral,
+                      PillTagVariant.mint,
+                    ],
+                    badgeIcons: const [null, Icons.bolt_rounded],
+                    price: '₹320 / seat',
                     onTap: () {
                       _originController.text = 'Ahmedabad SG Highway';
                       _destinationController.text = 'Rajkot Trikon Baug';
                       _handleSearch();
                     },
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Expanded(
-                              child: Text(
-                                'Ahmedabad -> Rajkot Express',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                  color: SahyanColors.textMain,
-                                  letterSpacing: -0.3,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: SahyanColors.primaryLight,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 3,
-                                    backgroundColor: SahyanColors.primaryMint,
-                                  ),
-                                  SizedBox(width: 5),
-                                  Text(
-                                    '94 km/h avg',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: SahyanColors.primaryDark,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          '12 drivers ready on SG Highway corridor · Next departure in 8 mins',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: SahyanColors.textMuted,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                PillTag(
-                                  label: 'via NH47 Express',
-                                  variant: PillTagVariant.neutral,
-                                  fontSize: 11,
-                                ),
-                                const SizedBox(width: 6),
-                                PillTag(
-                                  label: 'EV Fastlane',
-                                  variant: PillTagVariant.mint,
-                                  icon: Icons.bolt_rounded,
-                                  fontSize: 11,
-                                ),
-                              ],
-                            ),
-                            const Text(
-                              '₹320',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: SahyanColors.primaryDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
                   ),
 
                   const SizedBox(height: 12),
 
-                  // Bento 2 & 3: Two-Column Mini Bento Row
-                  // Bento 2 & 3: Metric Mini Bentos
+                  // Corridor Card 2: Surat → Vadodara
+                  _CorridorBentoCard(
+                    routeName: 'Surat ➔ Vadodara Expressway',
+                    speedLabel: '⚡ 88 km/h avg',
+                    driverInfo: '8 verified drivers ready · Next in 14 mins',
+                    badges: const ['via NH48', 'Zero Toll'],
+                    badgeVariants: const [
+                      PillTagVariant.neutral,
+                      PillTagVariant.mint,
+                    ],
+                    badgeIcons: const [null, Icons.check_circle_outline_rounded],
+                    price: '₹210 / seat',
+                    onTap: () {
+                      _originController.text = 'Surat';
+                      _destinationController.text = 'Vadodara';
+                      _handleSearch();
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Two-Column Mini Bentos
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isNarrow = constraints.maxWidth < 280;
+
                       final co2Card = BentoContainer(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -597,7 +583,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   label: '+24%',
                                   variant: PillTagVariant.mint,
                                   fontSize: 10,
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                 ),
                               ],
                             ),
@@ -605,6 +594,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             const Text(
                               '14.2 kg',
                               style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
                                 color: SahyanColors.textMain,
@@ -615,6 +605,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             const Text(
                               'CO₂ Offset This Month',
                               style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: SahyanColors.textMuted,
@@ -641,7 +632,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   label: 'Off-Peak',
                                   variant: PillTagVariant.gold,
                                   fontSize: 10,
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                 ),
                               ],
                             ),
@@ -649,6 +643,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             const Text(
                               'Save 18%',
                               style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 fontSize: 22,
                                 fontWeight: FontWeight.w900,
                                 color: SahyanColors.textMain,
@@ -659,6 +654,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             const Text(
                               'Smart Surge Drop Active',
                               style: TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: SahyanColors.textMuted,
@@ -690,7 +686,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
                   const SizedBox(height: 12),
 
-                  // Bento 4: Live Highway Telematics Card
+                  // Telematics status card
                   BentoContainer(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -716,6 +712,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               Text(
                                 'Zero Congestion Detected',
                                 style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   color: SahyanColors.textMain,
@@ -725,6 +722,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               Text(
                                 'NH47 Limbdi Toll cleared · Smooth transit flow',
                                 style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 12,
                                   color: SahyanColors.textMuted,
                                   fontWeight: FontWeight.w500,
@@ -746,6 +744,203 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Private Widgets
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// Corridor Bento Card with top/mid/bottom row structure per spec.
+class _CorridorBentoCard extends StatelessWidget {
+  final String routeName;
+  final String speedLabel;
+  final String driverInfo;
+  final List<String> badges;
+  final List<PillTagVariant> badgeVariants;
+  final List<IconData?> badgeIcons;
+  final String price;
+  final VoidCallback onTap;
+
+  const _CorridorBentoCard({
+    required this.routeName,
+    required this.speedLabel,
+    required this.driverInfo,
+    required this.badges,
+    required this.badgeVariants,
+    required this.badgeIcons,
+    required this.price,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return BentoContainer(
+      onTap: onTap,
+      padding: const EdgeInsets.all(18),
+      borderRadius: BorderRadius.circular(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Row: Route name + Speed pill
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  routeName,
+                  style: const TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: SahyanColors.textMain,
+                    letterSpacing: -0.3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: SahyanColors.primaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: SahyanColors.primaryMint.withValues(alpha: 0.3),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: const BoxDecoration(
+                        color: SahyanColors.primaryMint,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      speedLabel,
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: SahyanColors.primaryDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          // Mid Row: Driver info
+          Text(
+            driverInfo,
+            style: const TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 12,
+              color: SahyanColors.textMuted,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Bottom Row: Route badges + Price
+          Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: List.generate(badges.length, (i) {
+                    return PillTag(
+                      label: badges[i],
+                      variant: badgeVariants[i],
+                      icon: badgeIcons[i],
+                      fontSize: 11,
+                    );
+                  }),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                price,
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                  color: SahyanColors.primaryDark,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pulsating "● Live Telematics" badge with scale animation.
+class _PulsatingTelematics extends StatelessWidget {
+  final Animation<double> animation;
+
+  const _PulsatingTelematics({required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: SahyanColors.primaryLight,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: SahyanColors.primaryMint.withValues(alpha: 0.3),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Pulsating dot
+          AnimatedBuilder(
+            animation: animation,
+            builder: (context, _) {
+              return Transform.scale(
+                scale: animation.value,
+                child: Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: SahyanColors.primaryMint,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 5),
+          const Text(
+            'Live Telematics',
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: SahyanColors.primaryDark,
+              letterSpacing: -0.1,
+            ),
+          ),
+        ],
       ),
     );
   }
