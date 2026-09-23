@@ -6,6 +6,7 @@ import 'package:sahyan/core/theme/app_theme.dart';
 import 'package:sahyan/core/widgets/app_text_field.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -368,6 +369,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          SahyanLogo(
+            variant: SahyanLogoVariant.horizontal,
+            size: 26,
+          ),
+          SizedBox(height: 12),
           Text(
             'Join Sahyān',
             style: TextStyle(

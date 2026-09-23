@@ -8,6 +8,7 @@ import 'package:sahyan/core/widgets/verification_badge.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -493,16 +494,35 @@ class ProfileScreen extends ConsumerWidget {
                       onPressed: () => _confirmLogout(context, ref),
                     ),
 
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     Center(
-                      child: Text(
-                        'Sahyān Mobility v1.0.0',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SahyanLogo(
+                            variant: SahyanLogoVariant.symbolOnly,
+                            size: 26,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Sahyān Mobility v1.0.0',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Intelligent Route-Based Carpooling Platform',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textSecondary.withValues(alpha: 0.7),
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class AuthDecisionScreen extends ConsumerWidget {
   const AuthDecisionScreen({super.key});
@@ -63,32 +64,12 @@ class AuthDecisionScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Icon(
-                                Icons.directions_car_rounded,
-                                size: emblemSize * 0.5,
-                                color: SahyanColors.surface,
-                              ),
-                              // Subtle Mint Accent Node
-                              Positioned(
-                                right: emblemSize * 0.22,
-                                top: emblemSize * 0.24,
-                                child: Container(
-                                  width: 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                    color: SahyanColors.primaryMint,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: SahyanColors.primaryDark,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: Center(
+                            child: SahyanLogo(
+                              variant: SahyanLogoVariant.symbolOnly,
+                              theme: SahyanLogoTheme.monochromeWhite,
+                              size: emblemSize * 0.55,
+                            ),
                           ),
                         ),
                       ],

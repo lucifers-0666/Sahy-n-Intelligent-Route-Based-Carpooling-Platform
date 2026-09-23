@@ -360,6 +360,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   context.go('/auth-entry');
                 },
               ),
+              const SizedBox(height: AppSpacing.xl),
+
+              // Brand Mark Signature
+              const Center(
+                child: SahyanLogo(
+                  variant: SahyanLogoVariant.stacked,
+                  size: 44,
+                  showTagline: true,
+                ),
+              ),
               const SizedBox(height: AppSpacing.lg),
             ],
           ),

@@ -62,6 +62,7 @@ class ApiClient {
         if (res != null) {
           _resolvedBaseUrl = res;
           baseUrl = res;
+          ApiConfig.setCustomBaseUrl(res);
           return res;
         }
       }

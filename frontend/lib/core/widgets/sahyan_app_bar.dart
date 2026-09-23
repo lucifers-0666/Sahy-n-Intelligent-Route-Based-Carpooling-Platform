@@ -4,6 +4,8 @@ import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
 import '../../app/theme/app_typography.dart';
 
+import '../../shared/widgets/sahyan_logo.dart';
+
 /// Standardized Sahyān Header AppBar component.
 /// Delivers an airy, unhurried navigation header adhering to the Stitch visual style.
 class SahyanAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -14,6 +16,7 @@ class SahyanAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<Widget>? actions;
   final Color backgroundColor;
   final bool centerTitle;
+  final bool showBrandLogo;
 
   const SahyanAppBar({
     super.key,
@@ -24,6 +27,7 @@ class SahyanAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.backgroundColor = AppColors.warmBackground,
     this.centerTitle = false,
+    this.showBrandLogo = false,
   });
 
   @override
@@ -66,12 +70,27 @@ class SahyanAppBar extends StatelessWidget implements PreferredSizeWidget {
             : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            title,
-            style: AppTypography.sectionHeader.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showBrandLogo) ...[
+                const SahyanLogo(
+                  variant: SahyanLogoVariant.symbolOnly,
+                  size: 22,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+              ],
+              Flexible(
+                child: Text(
+                  title,
+                  style: AppTypography.sectionHeader.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),

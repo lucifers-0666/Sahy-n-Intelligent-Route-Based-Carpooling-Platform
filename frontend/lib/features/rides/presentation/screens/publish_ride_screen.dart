@@ -9,6 +9,7 @@ import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
 import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class PublishRideScreen extends ConsumerStatefulWidget {
   const PublishRideScreen({super.key});
@@ -161,13 +162,23 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
             }
           },
         ),
-        title: const Text(
-          'Offer a Ride',
-          style: TextStyle(
-            color: SahyanColors.textMain,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-          ),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SahyanLogo(
+              variant: SahyanLogoVariant.symbolOnly,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Offer a Ride',
+              style: TextStyle(
+                color: SahyanColors.textMain,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
         centerTitle: true,
         actions: [

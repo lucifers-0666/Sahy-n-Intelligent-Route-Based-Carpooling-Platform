@@ -35,9 +35,8 @@ class TripSafetyScreen extends StatelessWidget {
                             color: AppColors.softForest,
                             borderRadius: BorderRadius.circular(AppRadii.sm),
                           ),
-                          child: const Icon(
-                            Icons.shield_rounded,
-                            color: AppColors.primaryForest,
+                          child: const SahyanLogo(
+                            variant: SahyanLogoVariant.symbolOnly,
                             size: 24,
                           ),
                         ),

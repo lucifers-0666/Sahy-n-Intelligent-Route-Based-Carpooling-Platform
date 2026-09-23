@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
@@ -171,14 +172,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.shield_outlined,
-                      size: 13,
-                      color: SahyanColors.primaryDark,
+                    SahyanLogo(
+                      variant: SahyanLogoVariant.symbolOnly,
+                      size: 14,
                     ),
-                    SizedBox(width: 5),
+                    SizedBox(width: 6),
                     Text(
-                      'SAHYĀN MOBILITY 2026',
+                      'SAHYĀN MOBILITY',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
@@ -240,7 +240,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Ahmedabad ➔ Rajkot · SG Highway Corridor Active',
+                    'Ahmedabad -> Rajkot · SG Highway Corridor Active',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -527,7 +527,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             const SizedBox(height: 14),
           ],
 
-          // Primary CTA: Authenticate & Continue ➔
+          // Primary CTA: Authenticate & Continue ->
           ElevatedButton(
             onPressed: _isLoading ? null : _handleAuthenticate,
             style: ElevatedButton.styleFrom(
@@ -571,7 +571,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             child: TextButton(
               onPressed: () => context.go('/home'),
               child: const Text(
-                'Explore Gujarat Corridors as Guest ➔',
+                'Explore Gujarat Corridors as Guest ->',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,

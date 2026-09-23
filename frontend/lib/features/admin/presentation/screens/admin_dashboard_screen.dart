@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../providers/admin_provider.dart';
 import '../../domain/admin_models.dart';
+import '../../../../shared/widgets/sahyan_logo.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -50,8 +51,12 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                   iconTheme: const IconThemeData(color: _textMain),
                   title: const Row(
                     children: [
-                      Icon(Icons.shield_rounded, color: _accentMint, size: 20),
-                      SizedBox(width: 8),
+                      SahyanLogo(
+                        variant: SahyanLogoVariant.symbolOnly,
+                        size: 22,
+                        theme: SahyanLogoTheme.monochromeWhite,
+                      ),
+                      SizedBox(width: 10),
                       Text(
                         'Sahyān Admin',
                         style: TextStyle(
@@ -219,7 +224,11 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Center(
-                    child: Icon(Icons.shield_rounded, color: _bgCanvas, size: 22),
+                    child: SahyanLogo(
+                      variant: SahyanLogoVariant.symbolOnly,
+                      size: 24,
+                      theme: SahyanLogoTheme.primaryGreen,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -1429,7 +1438,7 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Corridor: ${ride.originName} ➔ ${ride.destinationName}', style: const TextStyle(color: _textMuted, fontSize: 12)),
+            Text('Corridor: ${ride.originName} -> ${ride.destinationName}', style: const TextStyle(color: _textMuted, fontSize: 12)),
             const SizedBox(height: 12),
             TextField(
               controller: reasonController,

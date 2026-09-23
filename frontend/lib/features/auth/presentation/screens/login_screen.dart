@@ -9,6 +9,7 @@ import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
 import 'package:sahyan/core/widgets/app_text_field.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 enum _LoginMethod { password, otp }
 enum _OtpStep { enterPhone, enterOtp }
@@ -360,18 +361,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             runSpacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: SahyanColors.primaryDark,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.directions_car_rounded,
-                  color: SahyanColors.primaryMint,
-                  size: 18,
-                ),
+              const SahyanLogo(
+                variant: SahyanLogoVariant.symbolOnly,
+                size: 32,
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -490,7 +482,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Animated Sliding Pill Switcher [ 🔒 Password ] and [ 📱 Phone OTP ]
+  /// Animated Sliding Pill Switcher [ Password ] and [ Phone OTP ]
   Widget _buildSegmentedSwitcher() {
     return Container(
       height: 48,

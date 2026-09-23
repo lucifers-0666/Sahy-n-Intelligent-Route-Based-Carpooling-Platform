@@ -5,6 +5,7 @@ import '../../app/providers/user_mode_provider.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_typography.dart';
 import '../../core/widgets/primary_button.dart';
+import 'sahyan_logo.dart';
 
 class AuthGateDialog extends ConsumerWidget {
   final String title;
@@ -81,9 +82,8 @@ class AuthGateDialog extends ConsumerWidget {
                       color: AppColors.softForest,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.lock_outline_rounded,
-                      color: AppColors.primaryForest,
+                    child: const SahyanLogo(
+                      variant: SahyanLogoVariant.symbolOnly,
                       size: 24,
                     ),
                   ),

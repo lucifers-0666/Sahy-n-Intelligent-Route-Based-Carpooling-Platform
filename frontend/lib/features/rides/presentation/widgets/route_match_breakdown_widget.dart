@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
 import 'package:sahyan/features/rides/domain/ride_search_result.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class RouteMatchBreakdownWidget extends StatelessWidget {
   final RouteMatchDetails match;
@@ -52,11 +53,21 @@ class RouteMatchBreakdownWidget extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Route Match Analysis',
-                          style: AppTypography.sectionHeader.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            const SahyanLogo(
+                              variant: SahyanLogoVariant.symbolOnly,
+                              size: 22,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Route Match Analysis',
+                              style: AppTypography.sectionHeader.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
                         IconButton(
                           icon: const Icon(Icons.close, size: 20),

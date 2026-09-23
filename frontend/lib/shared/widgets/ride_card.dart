@@ -11,6 +11,7 @@ import '../../core/widgets/vehicles/vehicle_icon.dart';
 import '../../features/rides/domain/ride_search_result.dart';
 import '../../features/rides/presentation/widgets/route_match_breakdown_widget.dart';
 import '../models/ride_model.dart';
+import 'sahyan_logo.dart';
 
 /// Redesigned Sahyān Ride Card matching Figma & Stitch design specifications.
 /// Presents ride details, intelligent match breakdown, route timeline, vehicle icon, driver credentials, and pricing.
@@ -67,12 +68,12 @@ class RideCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.auto_awesome,
-                            size: 12,
-                            color: AppColors.white,
+                          const SahyanLogo(
+                            variant: SahyanLogoVariant.symbolOnly,
+                            size: 13,
+                            theme: SahyanLogoTheme.monochromeWhite,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 5),
                           Text(
                             '${match.score}% Match',
                             style: AppTypography.caption.copyWith(

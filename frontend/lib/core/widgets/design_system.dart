@@ -31,3 +31,4 @@ export 'sahyan_match_score_badge.dart';
 export 'vehicles/vehicle_icon.dart';
 export 'vehicles/vehicle_painters.dart';
 export 'vehicles/vehicle_map_marker_service.dart';
+export '../../shared/widgets/sahyan_logo.dart';

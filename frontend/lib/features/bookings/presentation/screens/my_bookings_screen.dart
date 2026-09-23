@@ -35,6 +35,7 @@ class _MyBookingsScreenState extends ConsumerState<MyBookingsScreen> {
       appBar: SahyanAppBar(
         title: 'My Bookings',
         showBackButton: false,
+        showBrandLogo: true,
         actions: [
           TextButton.icon(
             style: TextButton.styleFrom(

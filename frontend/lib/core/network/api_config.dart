@@ -55,7 +55,7 @@ class ApiConfig {
   /// Ordered candidate hosts probed on Android devices during local development
   static List<String> get candidateHosts => [
     localAdbReverseUrl,
-    'http://10.60.144.149:$port/api/v1',
+    'http://10.172.63.149:$port/api/v1',
     localhostUrl,
     emulatorUrl,
   ];

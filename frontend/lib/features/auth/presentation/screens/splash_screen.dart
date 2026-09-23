@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahyan/app/providers/app_startup_provider.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -73,93 +74,40 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Responsive Animated Squircle Container
+                  // Official Sahyān Brand Identity (Converging Corridor Symbol + Wordmark + Tagline)
                   Container(
-                    width: logoSize,
-                    height: logoSize,
+                    padding: EdgeInsets.all((logoSize * 0.16).clamp(16.0, 24.0)),
                     decoration: BoxDecoration(
-                      color: SahyanColors.primaryDark,
+                      color: SahyanColors.surface,
                       borderRadius: BorderRadius.circular(logoSize * 0.28),
+                      border: Border.all(
+                        color: SahyanColors.border,
+                        width: 1.0,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: SahyanColors.primaryDark.withValues(alpha: 0.18),
-                          blurRadius: 28,
-                          offset: const Offset(0, 10),
+                          color: SahyanColors.primaryDark.withValues(alpha: 0.08),
+                          blurRadius: 32,
+                          offset: const Offset(0, 12),
                         ),
                       ],
                     ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        CustomPaint(
-                          size: Size(logoSize * 0.58, logoSize * 0.58),
-                          painter: _GeometricCarpoolEmblemPainter(),
-                        ),
-                        // Mint accent node
-                        Positioned(
-                          right: logoSize * 0.22,
-                          top: logoSize * 0.24,
-                          child: Container(
-                            width: (logoSize * 0.08).clamp(6.0, 9.0),
-                            height: (logoSize * 0.08).clamp(6.0, 9.0),
-                            decoration: BoxDecoration(
-                              color: SahyanColors.primaryMint,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: SahyanColors.primaryMint.withValues(alpha: 0.8),
-                                  blurRadius: 6,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                    child: SahyanLogo(
+                      variant: SahyanLogoVariant.stacked,
+                      theme: SahyanLogoTheme.primaryGreen,
+                      size: (logoSize * 0.72).clamp(72.0, 100.0),
+                      showTagline: true,
                     ),
                   )
                       .animate()
                       .fadeIn(duration: 800.ms, curve: Curves.easeOut)
-                      .slideY(begin: 0.15, end: 0, duration: 800.ms, curve: Curves.easeOut)
+                      .slideY(begin: 0.12, end: 0, duration: 800.ms, curve: Curves.easeOut)
                       .scale(
-                        begin: const Offset(0.85, 0.85),
+                        begin: const Offset(0.9, 0.9),
                         end: const Offset(1.0, 1.0),
                         duration: 800.ms,
                         curve: Curves.easeOut,
                       ),
-
-                  SizedBox(height: (logoSize * 0.24).clamp(16.0, 24.0)),
-
-                  // App Title
-                  const Text(
-                    'Sahyān',
-                    style: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: SahyanColors.textMain,
-                      letterSpacing: -0.5,
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(delay: 200.ms, duration: 800.ms, curve: Curves.easeOut)
-                      .slideY(begin: 0.15, end: 0, duration: 800.ms, curve: Curves.easeOut),
-
-                  const SizedBox(height: 8),
-
-                  // Brand Tagline
-                  const Text(
-                    'SMART ROUTE CARPOOLING',
-                    style: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: SahyanColors.textMuted,
-                      letterSpacing: 2.0,
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(delay: 350.ms, duration: 800.ms, curve: Curves.easeOut)
-                      .slideY(begin: 0.15, end: 0, duration: 800.ms, curve: Curves.easeOut),
 
                   const SizedBox(height: 32),
 
@@ -284,66 +232,3 @@ class _AmbientGlowPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Custom geometric carpool emblem painter:
-/// Two converging route paths forming a minimalist S-symbol.
-class _GeometricCarpoolEmblemPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 3.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    // Route Path 1 (Top curve forming upper loop of S)
-    final path1 = Path();
-    path1.moveTo(size.width * 0.25, size.height * 0.35);
-    path1.cubicTo(
-      size.width * 0.35,
-      size.height * 0.15,
-      size.width * 0.75,
-      size.height * 0.18,
-      size.width * 0.65,
-      size.height * 0.45,
-    );
-    path1.cubicTo(
-      size.width * 0.60,
-      size.height * 0.55,
-      size.width * 0.40,
-      size.height * 0.52,
-      size.width * 0.35,
-      size.height * 0.62,
-    );
-    path1.cubicTo(
-      size.width * 0.28,
-      size.height * 0.78,
-      size.width * 0.65,
-      size.height * 0.85,
-      size.width * 0.75,
-      size.height * 0.68,
-    );
-
-    canvas.drawPath(path1, paint);
-
-    // Accent line representing converging feeder corridor in energetic mint
-    final feederPaint = Paint()
-      ..color = SahyanColors.primaryMint
-      ..strokeWidth = 3.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final feederPath = Path();
-    feederPath.moveTo(size.width * 0.2, size.height * 0.65);
-    feederPath.quadraticBezierTo(
-      size.width * 0.35,
-      size.height * 0.55,
-      size.width * 0.5,
-      size.height * 0.52,
-    );
-    canvas.drawPath(feederPath, feederPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}

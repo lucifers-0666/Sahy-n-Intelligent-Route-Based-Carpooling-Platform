@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahyan/app/providers/app_startup_provider.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
+import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 /// App Router bridge for Luxury Onboarding Screen
 class OnboardingScreen extends ConsumerWidget {
@@ -84,27 +85,33 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar: Skip button with 48x48 touch target
-            Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: TextButton(
-                  onPressed: widget.onFinish,
-                  style: TextButton.styleFrom(
-                    minimumSize: const Size(48, 48),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            // Top Bar: Sahyān Logo + Skip button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SahyanLogo(
+                    variant: SahyanLogoVariant.horizontal,
+                    size: 24,
                   ),
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      color: SahyanColors.primaryDark,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                  TextButton(
+                    onPressed: widget.onFinish,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(48, 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    child: const Text(
+                      'Skip',
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        color: SahyanColors.primaryDark,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ),
 
