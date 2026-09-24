@@ -43,7 +43,11 @@ class RouteService {
       final int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
       lng += dlng;
 
-      points.add(LatLngPoint(lat / 1E5, lng / 1E5));
+      final pLat = lat / 1E5;
+      final pLng = lng / 1E5;
+      if (pLat >= -90.0 && pLat <= 90.0 && pLng >= -180.0 && pLng <= 180.0) {
+        points.add(LatLngPoint(pLat, pLng));
+      }
     }
 
     return points;

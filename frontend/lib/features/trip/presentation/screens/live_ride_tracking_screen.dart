@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart' as fmap;
+import 'package:latlong2/latlong.dart';
 import 'package:sahyan/core/widgets/design_system.dart';
 import 'package:sahyan/core/network/socket_client.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
@@ -54,7 +55,7 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
 
   // ── Route geometry ───────────────────────────────────────────────────────
   List<LatLng> _polylinePoints = [];
-  LatLngBounds? _bounds;
+  fmap.LatLngBounds? _bounds;
   String _highwayCorridor = 'via NH47';
   double _totalDistanceKm = 219.0;
   int _totalDurationMins = 195;
@@ -127,25 +128,38 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
   // ── Route geometry ───────────────────────────────────────────────────────
 
   Future<void> _loadRouteGeometry() async {
-    final result = await RouteGeometryService.calculateRoute(
-      origin: _origin,
-      destination: _destination,
-    );
-    if (!mounted) return;
-    setState(() {
-      _polylinePoints = result.polylinePoints;
-      _bounds = result.bounds;
-      _highwayCorridor = result.highwayCorridor;
-      _totalDistanceKm = result.distanceKm;
-      _totalDurationMins = result.durationMinutes;
-      _remainingKm = result.distanceKm;
-      _remainingMins = result.durationMinutes;
-      _isLoadingRoute = false;
-    });
+    try {
+      final result = await RouteGeometryService.calculateRoute(
+        origin: _origin,
+        destination: _destination,
+      );
+      if (!mounted) return;
+      setState(() {
+        _polylinePoints = result.polylinePoints;
+        _bounds = result.bounds;
+        _highwayCorridor = result.highwayCorridor;
+        _totalDistanceKm = result.distanceKm;
+        _totalDurationMins = result.durationMinutes;
+        _remainingKm = result.distanceKm;
+        _remainingMins = result.durationMinutes;
+        _isLoadingRoute = false;
+      });
 
-    // If simulation was already started, seed initial position on route
-    if (_useSimulation && _simController != null) {
-      _updateSimPosition(_simController!.value);
+      // If simulation was already started, seed initial position on route
+      if (_useSimulation && _simController != null) {
+        _updateSimPosition(_simController!.value);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingRoute = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Route unavailable. Please try again.'),
+          backgroundColor: SahyanColors.urgentCoral,
+        ),
+      );
     }
   }
 

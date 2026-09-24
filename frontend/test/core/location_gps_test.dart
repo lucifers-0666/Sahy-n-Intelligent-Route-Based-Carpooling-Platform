@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' hide DistanceCalculator;
 import 'package:sahyan/core/location/data/providers/mock_location_provider.dart';
 import 'package:sahyan/core/location/domain/distance_calculator.dart';
 import 'package:sahyan/core/location/domain/gps_provider.dart';

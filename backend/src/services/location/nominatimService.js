@@ -35,7 +35,7 @@ class NominatimService {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'Sahyan-Carpooling-MCA-Project/1.0 (contact: mca-carpooling@college.edu)',
+          'User-Agent': 'Sahyan-Carpooling-Platform/1.0 (https://github.com/lucifers-0666/Sahy-n-Intelligent-Route-Based-Carpooling-Platform)',
         },
       };
 

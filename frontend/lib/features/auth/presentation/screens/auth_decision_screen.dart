@@ -131,15 +131,15 @@ class AuthDecisionScreen extends ConsumerWidget {
                     children: const [
                       _TrustBadge(
                         icon: Icons.verified_user_rounded,
-                        label: '✓ Verified Profiles',
+                        label: 'Verified Profiles',
                       ),
                       _TrustBadge(
                         icon: Icons.shield_outlined,
-                        label: '🛡️ Fair Cost Sharing',
+                        label: 'Fair Cost Sharing',
                       ),
                       _TrustBadge(
                         icon: Icons.bolt_rounded,
-                        label: '⚡ Direct Routes',
+                        label: 'Direct Routes',
                       ),
                     ],
                   ),

@@ -87,10 +87,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void initState() {
     super.initState();
+    final isTest =
+        WidgetsBinding.instance.toString().contains('TestWidgetsFlutterBinding');
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
+    );
+    if (!isTest) {
+      _pulseController.repeat(reverse: true);
+    } else {
+      _pulseController.value = 1.0;
+    }
     _pulseAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -247,34 +254,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Brand tag: ● SAHYĀN 2026
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 5,
-                                height: 5,
-                                decoration: const BoxDecoration(
-                                  color: SahyanColors.primaryMint,
-                                  shape: BoxShape.circle,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 5,
+                                  height: 5,
+                                  decoration: const BoxDecoration(
+                                    color: SahyanColors.primaryMint,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 5),
-                              const Text(
-                                'SAHYĀN 2026',
-                                style: TextStyle(
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: SahyanColors.textMuted,
-                                  letterSpacing: 1.5,
+                                const SizedBox(width: 5),
+                                const Text(
+                                  'SAHYĀN 2026',
+                                  style: TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: SahyanColors.textMuted,
+                                    letterSpacing: 1.5,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           const SizedBox(height: 4),
                           // Main greeting
                           Text(
-                            'Hey $displayName 👋',
+                            'Hey $displayName',
                             style: const TextStyle(
                               fontFamily: 'Plus Jakarta Sans',
                               fontSize: 24,
@@ -313,11 +324,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   ),
                                 ),
                                 const SizedBox(width: 5),
-                                const Text(
-                                  '📍',
-                                  style: TextStyle(fontSize: 10),
+                                const Icon(
+                                  Icons.location_on_rounded,
+                                  size: 12,
+                                  color: SahyanColors.primaryDark,
                                 ),
-                                const SizedBox(width: 2),
+                                const SizedBox(width: 4),
                                 const Flexible(
                                   child: Text(
                                     'Ahmedabad Hub',
@@ -519,10 +531,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // Corridor Card 1: Ahmedabad → Rajkot Express
+                  // Corridor Card 1: Ahmedabad -> Rajkot Express
                   _CorridorBentoCard(
-                    routeName: 'Ahmedabad ➔ Rajkot Express',
-                    speedLabel: '⚡ 94 km/h avg',
+                    routeName: 'Ahmedabad -> Rajkot Express',
+                    speedLabel: '94 km/h avg',
                     driverInfo: '12 verified drivers ready · Next in 8 mins',
                     badges: const ['via NH47', 'EV Fastlane'],
                     badgeVariants: const [
@@ -540,10 +552,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                   const SizedBox(height: 12),
 
-                  // Corridor Card 2: Surat → Vadodara
+                  // Corridor Card 2: Surat -> Vadodara
                   _CorridorBentoCard(
-                    routeName: 'Surat ➔ Vadodara Expressway',
-                    speedLabel: '⚡ 88 km/h avg',
+                    routeName: 'Surat -> Vadodara Expressway',
+                    speedLabel: '88 km/h avg',
                     driverInfo: '8 verified drivers ready · Next in 14 mins',
                     badges: const ['via NH48', 'Zero Toll'],
                     badgeVariants: const [

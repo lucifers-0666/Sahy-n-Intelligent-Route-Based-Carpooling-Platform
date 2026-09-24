@@ -6,7 +6,7 @@ import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_radii.dart';
 import 'package:sahyan/app/theme/app_spacing.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';

@@ -1,5 +1,5 @@
 import 'dart:math' as math;
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' hide DistanceCalculator;
 import '../domain/distance_calculator.dart';
 import '../domain/models/location_point.dart';
 

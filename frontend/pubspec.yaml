@@ -41,7 +41,7 @@ dependencies:
   equatable: ^2.1.0
   flutter_secure_storage: ^11.0.0
   http: ^1.6.0
-  google_maps_flutter: ^2.18.0
+  flutter_svg: ^2.0.17
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   flutter_animate: ^4.5.2
@@ -71,6 +71,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/branding/
     - assets/icons/vehicles/sedan/
     - assets/icons/vehicles/hatchback/
     - assets/icons/vehicles/suv/

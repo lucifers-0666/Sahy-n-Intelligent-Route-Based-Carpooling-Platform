@@ -238,8 +238,8 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        expect(find.text('Find a Shared Ride'), findsOneWidget);
-        expect(find.text('Popular Routes in Gujarat'), findsOneWidget);
+        expect(find.text('Where are you heading?'), findsOneWidget);
+        expect(find.text('Ahmedabad Hub'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },
     );

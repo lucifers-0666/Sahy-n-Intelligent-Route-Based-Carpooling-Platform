@@ -17,8 +17,9 @@ const {
 } = require('../controllers/rideController');
 
 // Route calculation & Places Autocomplete
-router.post('/calculate-route', authenticate, calculateRoute);
-router.get('/places/autocomplete', authenticate, autocompletePlaces);
+router.post('/calculate-route', optionalAuth, calculateRoute);
+router.post('/route/calculate', optionalAuth, calculateRoute);
+router.get('/places/autocomplete', optionalAuth, autocompletePlaces);
 
 // Search rides (Passenger search - Public / Optional Auth)
 router.get('/search', optionalAuth, searchRides);

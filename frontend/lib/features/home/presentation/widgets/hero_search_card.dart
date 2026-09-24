@@ -31,7 +31,7 @@ class HeroSearchCard extends StatefulWidget {
     required this.onSeatsChanged,
     required this.onSearch,
     this.popularCorridors = const [
-      {'from': 'Bhuj', 'to': 'Ahmedabad', 'price': 388},
+      {'from': 'Bhuj', 'to': 'Ahmd', 'price': 388},
       {'from': 'Rajkot', 'to': 'Surat', 'price': 520},
       {'from': 'Baroda', 'to': 'Ahmedabad', 'price': 180},
       {'from': 'Morbi', 'to': 'Rajkot', 'price': 120},
@@ -77,25 +77,23 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ─── A. Header Row ───────────────────────────────────────────────
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              const Expanded(
-                child: Text(
-                  'Where are you heading?',
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                    color: SahyanColors.textMain,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              const Text(
+                'Where are you heading?',
+                style: TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                  color: SahyanColors.textMain,
                 ),
               ),
-              const SizedBox(width: 10),
-              // ⚡ Express Corridors badge
+              // Express Corridors badge
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -109,26 +107,29 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                     width: 0.8,
                   ),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.bolt_rounded,
-                      size: 12,
-                      color: SahyanColors.primaryDark,
-                    ),
-                    SizedBox(width: 3),
-                    Text(
-                      'Express Corridors',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
+                child: const FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.bolt_rounded,
+                        size: 12,
                         color: SahyanColors.primaryDark,
-                        letterSpacing: -0.1,
                       ),
-                    ),
-                  ],
+                      SizedBox(width: 3),
+                      Text(
+                        'Express Corridors',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: SahyanColors.primaryDark,
+                          letterSpacing: -0.1,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -399,13 +400,10 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                     ),
                   ),
                   SizedBox(width: 8),
-                  Text(
-                    '→',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 16,
+                    color: Colors.white,
                   ),
                 ],
               ),
@@ -418,7 +416,7 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
 }
 
 /// ─── Unified Dual-Cell Parameters Bar ────────────────────────────────────────
-/// One seamless container: [📅 Date + Time] | [− Seats +]
+/// One seamless container: [ Date + Time ] | [ Seats ]
 /// No double borders, equal height, perfectly balanced.
 class _ParamsBar extends StatefulWidget {
   final String formattedDate;
@@ -518,92 +516,96 @@ class _ParamsBarState extends State<_ParamsBar> {
           ),
 
           // Right Cell — Seat stepper
-          SizedBox(
-            width: 130,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 100, maxWidth: 135),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Minus button
-                  AnimatedScale(
-                    scale: _minusScaled ? 0.82 : 1.0,
-                    duration: const Duration(milliseconds: 120),
-                    curve: Curves.easeOut,
-                    child: GestureDetector(
-                      onTap: _tapMinus,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: widget.selectedSeats > 1
-                              ? SahyanColors.surface
-                              : const Color(0xFFF0F4F1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: SahyanColors.border,
-                            width: 0.8,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Minus button
+                    AnimatedScale(
+                      scale: _minusScaled ? 0.82 : 1.0,
+                      duration: const Duration(milliseconds: 120),
+                      curve: Curves.easeOut,
+                      child: GestureDetector(
+                        onTap: _tapMinus,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: widget.selectedSeats > 1
+                                ? SahyanColors.surface
+                                : const Color(0xFFF0F4F1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: SahyanColors.border,
+                              width: 0.8,
+                            ),
                           ),
-                        ),
-                        child: Icon(
-                          Icons.remove_rounded,
-                          size: 14,
-                          color: widget.selectedSeats > 1
-                              ? SahyanColors.textMain
-                              : SahyanColors.textDisabled,
+                          child: Icon(
+                            Icons.remove_rounded,
+                            size: 14,
+                            color: widget.selectedSeats > 1
+                                ? SahyanColors.textMain
+                                : SahyanColors.textDisabled,
+                          ),
                         ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                  // Seat count label
-                  Text(
-                    '${widget.selectedSeats} Seat${widget.selectedSeats == 1 ? '' : 's'}',
-                    style: const TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: SahyanColors.textMain,
+                    // Seat count label
+                    Text(
+                      '${widget.selectedSeats} Seat${widget.selectedSeats == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: SahyanColors.textMain,
+                      ),
                     ),
-                  ),
 
-                  const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                  // Plus button
-                  AnimatedScale(
-                    scale: _plusScaled ? 0.82 : 1.0,
-                    duration: const Duration(milliseconds: 120),
-                    curve: Curves.easeOut,
-                    child: GestureDetector(
-                      onTap: _tapPlus,
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: widget.selectedSeats < 6
-                              ? SahyanColors.primaryDark
-                              : const Color(0xFFF0F4F1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
+                    // Plus button
+                    AnimatedScale(
+                      scale: _plusScaled ? 0.82 : 1.0,
+                      duration: const Duration(milliseconds: 120),
+                      curve: Curves.easeOut,
+                      child: GestureDetector(
+                        onTap: _tapPlus,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
                             color: widget.selectedSeats < 6
                                 ? SahyanColors.primaryDark
-                                : SahyanColors.border,
-                            width: 0.8,
+                                : const Color(0xFFF0F4F1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: widget.selectedSeats < 6
+                                  ? SahyanColors.primaryDark
+                                  : SahyanColors.border,
+                              width: 0.8,
+                            ),
                           ),
-                        ),
-                        child: Icon(
-                          Icons.add_rounded,
-                          size: 14,
-                          color: widget.selectedSeats < 6
-                              ? Colors.white
-                              : SahyanColors.textDisabled,
+                          child: Icon(
+                            Icons.add_rounded,
+                            size: 14,
+                            color: widget.selectedSeats < 6
+                                ? Colors.white
+                                : SahyanColors.textDisabled,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

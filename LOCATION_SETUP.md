@@ -1,4 +1,4 @@
-# Sahyan - Location, Map, and Routing Subsystem Documentation
+# Sahyān - Location, Map, and Routing Subsystem Documentation
 
 ## Overview
 
@@ -69,7 +69,7 @@ The system is engineered to run on a 100% free and open-source foundation with z
    - Integrated inside `SahyanRouteMap` (`lib/shared/widgets/sahyan_route_map.dart`).
    - Uses `TileLayer` with OpenStreetMap URL template:
      `https://tile.openstreetmap.org/{z}/{x}/{y}.png`
-   - Configured with `userAgentPackageName: 'com.sahyan.app'` conforming to OpenStreetMap Tile Usage Policy.
+   - Configured with `userAgentPackageName: 'com.sahyan.sahyan'` conforming to OpenStreetMap Tile Usage Policy.
 2. **Layer Hierarchy**:
    - Bottom: OpenStreetMap raster tiles.
    - Middle: `PolylineLayer` rendering the dual-tone route line (mint translucent glow backing with pine dark primary route).

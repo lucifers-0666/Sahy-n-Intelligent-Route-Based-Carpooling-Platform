@@ -7,7 +7,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 
-/// Helper to convert any LatLng-like object (latlong2 or google_maps_flutter) to latlong2.LatLng
+/// Helper to convert any LatLng-like coordinate object to latlong2.LatLng
 ll.LatLng toLatLong(dynamic point) {
   if (point is ll.LatLng) return point;
   return ll.LatLng(
@@ -371,7 +371,7 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                   children: [
                     fmap.TileLayer(
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.sahyan.app',
+                      userAgentPackageName: 'com.sahyan.sahyan',
                       maxZoom: 19,
                     ),
                     fmap.PolylineLayer(

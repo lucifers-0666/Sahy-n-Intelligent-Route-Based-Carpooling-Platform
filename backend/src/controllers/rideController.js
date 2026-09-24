@@ -4,7 +4,6 @@ const Vehicle = require('../models/Vehicle');
 const User = require('../models/User');
 const Booking = require('../models/Booking');
 const PaymentTransaction = require('../models/PaymentTransaction');
-const googleMapsService = require('../services/googleMapsService');
 const OsrmRouteProvider = require('../services/location/providers/osrmRouteProvider');
 const osrmRouteProvider = new OsrmRouteProvider();
 const nominatimService = require('../services/location/nominatimService');
@@ -1161,19 +1160,10 @@ const calculateRoute = async (req, res, next) => {
       });
     }
 
-    let result;
-    if (googleMapsService.isConfigured()) {
-      result = await googleMapsService.calculateRoute(
-        { latitude: originLat, longitude: originLng, name: origin.name || '' },
-        { latitude: destLat, longitude: destLng, name: destination.name || '' }
-      );
-    }
-    if (!result || !result.success) {
-      result = await osrmRouteProvider.calculateRoute(
-        { latitude: originLat, longitude: originLng, name: origin.name || '' },
-        { latitude: destLat, longitude: destLng, name: destination.name || '' }
-      );
-    }
+    const result = await osrmRouteProvider.calculateRoute(
+      { latitude: originLat, longitude: originLng, name: origin.name || '' },
+      { latitude: destLat, longitude: destLng, name: destination.name || '' }
+    );
 
     if (!result.success) {
       return res.status(400).json(result);
@@ -1202,13 +1192,7 @@ const autocompletePlaces = async (req, res, next) => {
       });
     }
 
-    let result;
-    if (googleMapsService.isConfigured()) {
-      result = await googleMapsService.autocompletePlaces(String(input).trim());
-    }
-    if (!result || !result.success) {
-      result = await nominatimService.autocompletePlaces(String(input).trim());
-    }
+    const result = await nominatimService.autocompletePlaces(String(input).trim());
 
     if (!result.success) {
       return res.status(400).json(result);
@@ -1468,18 +1452,10 @@ const searchRides = async (req, res, next) => {
           process.argv.some((arg) => typeof arg === 'string' && arg.includes('test'));
 
         if (!isTestEnv) {
-          if (googleMapsService.isConfigured()) {
-            routeResult = await googleMapsService.calculateRoute(
-              { latitude: originLat, longitude: originLng },
-              { latitude: destLat, longitude: destLng }
-            );
-          }
-          if (!routeResult || !routeResult.success) {
-            routeResult = await osrmRouteProvider.calculateRoute(
-              { latitude: originLat, longitude: originLng },
-              { latitude: destLat, longitude: destLng }
-            );
-          }
+          const routeResult = await osrmRouteProvider.calculateRoute(
+            { latitude: originLat, longitude: originLng },
+            { latitude: destLat, longitude: destLng }
+          );
           if (routeResult && routeResult.success && routeResult.encodedPolyline) {
             passengerPoints = decodePolyline(routeResult.encodedPolyline);
           }

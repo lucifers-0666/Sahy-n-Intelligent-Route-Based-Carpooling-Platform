@@ -88,7 +88,7 @@ const createReview = async (req, res, next) => {
     Notification.create({
       user: revieweeId,
       title: 'New Trip Review Received',
-      message: `${req.user.name} rated your journey ${Math.round(numRating)} ★ "${cleanComment || (cleanTags[0] ?? 'Great ride')}"`,
+      message: `${req.user.name} rated your journey ${Math.round(numRating)} stars "${cleanComment || (cleanTags[0] ?? 'Great ride')}"`,
       category: 'ride',
       routeTarget: '/reviews',
     }).catch((err) => console.error('[Notification] Error creating review notification:', err.message));

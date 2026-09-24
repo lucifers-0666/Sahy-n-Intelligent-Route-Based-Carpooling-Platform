@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// Official Sahyān Brand Color Palette Constants
 class SahyanBrandColors {
@@ -26,7 +27,7 @@ enum SahyanLogoTheme {
   monochromeDark, // Neutral dark on light surface
 }
 
-/// Production-ready vector logo widget for Sahyān
+/// Production-ready vector logo widget for Sahyān powered by official SVG branding assets.
 class SahyanLogo extends StatelessWidget {
   final SahyanLogoVariant variant;
   final SahyanLogoTheme theme;
@@ -52,17 +53,6 @@ class SahyanLogo extends StatelessWidget {
     }
   }
 
-  Color get _accentColor {
-    switch (theme) {
-      case SahyanLogoTheme.primaryGreen:
-        return SahyanBrandColors.accentMint;
-      case SahyanLogoTheme.monochromeWhite:
-        return Colors.white.withValues(alpha: 0.8);
-      case SahyanLogoTheme.monochromeDark:
-        return const Color(0xFF555555);
-    }
-  }
-
   Color get _taglineColor {
     switch (theme) {
       case SahyanLogoTheme.primaryGreen:
@@ -74,19 +64,27 @@ class SahyanLogo extends StatelessWidget {
     }
   }
 
+  ColorFilter? get _svgColorFilter {
+    if (theme == SahyanLogoTheme.monochromeWhite) {
+      return const ColorFilter.mode(Colors.white, BlendMode.srcIn);
+    }
+    if (theme == SahyanLogoTheme.monochromeDark) {
+      return const ColorFilter.mode(Color(0xFF1A1A1A), BlendMode.srcIn);
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     switch (variant) {
       case SahyanLogoVariant.symbolOnly:
-        return SizedBox(
+        return SvgPicture.asset(
+          'assets/branding/sahyan_symbol.svg',
           width: size,
           height: size,
-          child: CustomPaint(
-            painter: _SahyanSymbolPainter(
-              primaryColor: _primaryColor,
-              accentColor: _accentColor,
-            ),
-          ),
+          fit: BoxFit.contain,
+          semanticsLabel: 'Sahyān Symbol',
+          colorFilter: _svgColorFilter,
         );
 
       case SahyanLogoVariant.wordmarkOnly:
@@ -97,15 +95,13 @@ class SahyanLogo extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SizedBox(
+            SvgPicture.asset(
+              'assets/branding/sahyan_symbol.svg',
               width: size,
               height: size,
-              child: CustomPaint(
-                painter: _SahyanSymbolPainter(
-                  primaryColor: _primaryColor,
-                  accentColor: _accentColor,
-                ),
-              ),
+              fit: BoxFit.contain,
+              semanticsLabel: 'Sahyān Symbol',
+              colorFilter: _svgColorFilter,
             ),
             SizedBox(width: size * 0.28),
             _buildWordmark(context),
@@ -117,15 +113,13 @@ class SahyanLogo extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            SizedBox(
+            SvgPicture.asset(
+              'assets/branding/sahyan_symbol.svg',
               width: size * 1.4,
               height: size * 1.4,
-              child: CustomPaint(
-                painter: _SahyanSymbolPainter(
-                  primaryColor: _primaryColor,
-                  accentColor: _accentColor,
-                ),
-              ),
+              fit: BoxFit.contain,
+              semanticsLabel: 'Sahyān Symbol',
+              colorFilter: _svgColorFilter,
             ),
             SizedBox(height: size * 0.22),
             _buildWordmark(context, centerAlign: true),
@@ -176,90 +170,7 @@ class SahyanLogo extends StatelessWidget {
   }
 }
 
-/// Custom painter executing the mathematical geometric construction of the Sahyān symbol
-class _SahyanSymbolPainter extends CustomPainter {
-  final Color primaryColor;
-  final Color accentColor;
 
-  const _SahyanSymbolPainter({
-    required this.primaryColor,
-    required this.accentColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final scale = size.width / 120.0;
-    canvas.save();
-    canvas.scale(scale);
-
-    final primaryPaint = Paint()
-      ..color = primaryColor
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
-
-    final accentPaint = Paint()
-      ..color = accentColor
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
-
-    final nodePaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
-
-    // Upper Route Arc: Originates at top-left, curves smoothly into central corridor
-    final upperPath = Path()
-      ..moveTo(22, 28)
-      ..cubicTo(36, 28, 52, 40, 64, 54)
-      ..lineTo(88, 54)
-      ..cubicTo(92, 54, 94, 57, 92, 60)
-      ..lineTo(76, 74)
-      ..cubicTo(73, 76, 69, 74, 69, 70)
-      ..lineTo(69, 66)
-      ..cubicTo(58, 56, 46, 44, 22, 44)
-      ..cubicTo(18, 44, 16, 40, 16, 36)
-      ..cubicTo(16, 32, 18, 28, 22, 28)
-      ..close();
-
-    // Lower Route Arc: Converges from bottom-left into shared corridor
-    final lowerPath = Path()
-      ..moveTo(22, 92)
-      ..cubicTo(36, 92, 52, 80, 64, 66)
-      ..lineTo(88, 66)
-      ..cubicTo(92, 66, 94, 63, 92, 60)
-      ..lineTo(76, 46)
-      ..cubicTo(73, 44, 69, 46, 69, 50)
-      ..lineTo(69, 54)
-      ..cubicTo(58, 64, 46, 76, 22, 76)
-      ..cubicTo(18, 76, 16, 80, 16, 84)
-      ..cubicTo(16, 88, 18, 92, 22, 92)
-      ..close();
-
-    // Dynamic Convergence Core: Forward-pointing match apex
-    final apexPath = Path()
-      ..moveTo(58, 60)
-      ..lineTo(78, 43)
-      ..cubicTo(81, 40, 86, 42, 86, 47)
-      ..lineTo(86, 73)
-      ..cubicTo(86, 78, 81, 80, 78, 77)
-      ..close();
-
-    canvas.drawPath(upperPath, primaryPaint);
-    canvas.drawPath(lowerPath, primaryPaint);
-    canvas.drawPath(apexPath, accentPaint);
-
-    // Sync Point Node
-    canvas.drawCircle(const Offset(68, 60), 4.5, nodePaint);
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _SahyanSymbolPainter oldDelegate) {
-    return oldDelegate.primaryColor != primaryColor ||
-        oldDelegate.accentColor != accentColor;
-  }
-}
 
 /// Supporting visual language widget for Sahyān's Route Match Score (e.g. 94% Match)
 class SahyanRouteMatchBadge extends StatelessWidget {

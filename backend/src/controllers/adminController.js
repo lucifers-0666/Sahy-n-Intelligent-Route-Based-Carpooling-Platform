@@ -173,7 +173,7 @@ exports.verifyDriver = async (req, res, next) => {
       // Trigger user notification
       await Notification.create({
         user: user._id,
-        title: 'Driver Verification Approved! 🎉',
+        title: 'Driver Verification Approved!',
         message: 'Your documents have been verified. You can now publish and share carpool journeys on Sahyān.',
         category: 'system',
         routeTarget: '/vehicles',

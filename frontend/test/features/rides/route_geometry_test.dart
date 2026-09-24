@@ -1,14 +1,50 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:latlong2/latlong.dart' hide DistanceCalculator;
+import 'package:sahyan/features/rides/domain/ride_model.dart';
 import 'package:sahyan/features/rides/domain/services/route_geometry_service.dart';
 import 'package:sahyan/features/rides/presentation/widgets/location_search_bottom_sheet.dart';
 import 'package:sahyan/features/trip/presentation/screens/live_ride_tracking_screen.dart';
 import 'package:sahyan/shared/models/location_model.dart';
-import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 
 void main() {
   group('Phase 3: RouteGeometryService Unit Tests', () {
+    setUp(() {
+      RouteGeometryService.mockRouteProvider = (orig, dest, stopovers) {
+        final coords = [
+          LatLng(orig.latitude, orig.longitude),
+          for (final s in stopovers) LatLng(s.latitude, s.longitude),
+          LatLng(dest.latitude, dest.longitude),
+        ];
+        final waypoints = stopovers.isNotEmpty
+            ? stopovers.map((s) => s.name).toList()
+            : ['Sanand Junction', 'Limbdi', 'Sayla', 'Chotila'];
+        return RouteGeometryResult(
+          route: const RouteInfo(
+            encodedPolyline: '_p~iF~ps|U_ulLnnqC_mqNvxq`@',
+            distanceMeters: 216000,
+            durationSeconds: 12600,
+          ),
+          polylineCoordinates: List.generate(
+            25,
+            (i) => LatLng(
+              orig.latitude + (dest.latitude - orig.latitude) * i / 24,
+              orig.longitude + (dest.longitude - orig.longitude) * i / 24,
+            ),
+          ),
+          keyWaypoints: waypoints,
+          highwayName: 'NH47',
+          telemetrySummary: '216 km · 3h 30m via NH47',
+          bounds: RouteGeometryService.calculateBounds(coords, orig, dest),
+        );
+      };
+    });
+
+    tearDown(() {
+      RouteGeometryService.mockRouteProvider = null;
+    });
+
     final originAmd = LocationModel.fromCoordinates(
       name: 'Iscon Cross Roads',
       latitude: 23.0270,
@@ -119,10 +155,10 @@ void main() {
       ];
 
       final bounds = RouteGeometryService.calculateBounds(points);
-      expect(bounds.southwest.latitude, 22.2850);
-      expect(bounds.northeast.latitude, 23.0270);
-      expect(bounds.southwest.longitude, 70.7720);
-      expect(bounds.northeast.longitude, 72.5080);
+      expect(bounds.southWest.latitude, 22.2850);
+      expect(bounds.northEast.latitude, 23.0270);
+      expect(bounds.southWest.longitude, 70.7720);
+      expect(bounds.northEast.longitude, 72.5080);
     });
   });
 
@@ -233,7 +269,7 @@ void main() {
             body: SizedBox(
               height: 200,
               width: 360,
-              child: SayanRouteMap(
+              child: SahyanRouteMap(
                 origin: origin,
                 destination: destination,
                 polylinePoints: const [

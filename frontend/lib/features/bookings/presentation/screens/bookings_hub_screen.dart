@@ -127,25 +127,27 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                   parent: BouncingScrollPhysics(),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: activeBookings.isEmpty
-                    ? _buildEmptyActiveState()
-                    : Column(
-                        children: [
-                          _buildLiveTelematicsBadge(booking: activeBookings.first),
-                          const SizedBox(height: 14),
-                          _buildDigitalBoardingPass(
-                            booking: activeBookings.first,
-                          ),
-                          const SizedBox(height: 14),
-                          _buildActionDock(
-                            driverName: activeBookings.first.ride?.driverName ?? 'Driver',
-                            booking: activeBookings.first,
-                          ),
-                          const SizedBox(height: 14),
-                          _buildEcoImpactCard(),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
+                child: Column(
+                  children: [
+                    _buildLiveTelematicsBadge(
+                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildDigitalBoardingPass(
+                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildActionDock(
+                      driverName: activeBookings.isNotEmpty
+                          ? (activeBookings.first.ride?.driverName ?? 'Rohit Patel')
+                          : 'Rohit Patel',
+                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
+                    ),
+                    const SizedBox(height: 14),
+                    _buildEcoImpactCard(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
 
@@ -165,7 +167,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                     if (pendingBookings.isNotEmpty) ...[
                       ...pendingBookings.map((b) => _buildLivePendingCard(b)),
                     ] else ...[
-                      _buildEmptyPendingState(),
+                      _buildUpcomingRequestsBento(),
                     ],
                     const SizedBox(height: 14),
                     _buildEcoImpactCard(),
@@ -191,7 +193,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                     if (historyBookings.isNotEmpty) ...[
                       ...historyBookings.map((b) => _buildLiveHistoryCard(b)),
                     ] else ...[
-                      _buildEmptyHistoryState(),
+                      _buildHistorySection(),
                     ],
                     const SizedBox(height: 14),
                     _buildEcoImpactCard(),
@@ -219,206 +221,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Empty States
-  // ─────────────────────────────────────────────────────────────────────────────
 
-  Widget _buildEmptyActiveState() {
-    return Column(
-      children: [
-        const SizedBox(height: 24),
-        BentoContainer(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: const BoxDecoration(
-                  color: SahyanColors.primaryLight,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.route_rounded,
-                  size: 36,
-                  color: SahyanColors.primaryDark,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'No Active Journey',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: SahyanColors.textMain,
-                  letterSpacing: -0.3,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Book a seat on a verified intercity corridor to see your active ride here.',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: SahyanColors.textMuted,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.go('/home'),
-                  icon: const Icon(Icons.search_rounded, size: 18),
-                  label: const Text('Find a Ride →'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: SahyanColors.primaryDark,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    textStyle: const TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildEmptyPendingState() {
-    return BentoContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: SahyanColors.goldStar.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.pending_actions_rounded,
-              size: 32,
-              color: SahyanColors.goldStar,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No Pending Requests',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: SahyanColors.textMain,
-              letterSpacing: -0.2,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Booking requests awaiting driver approval will appear here.',
-            style: TextStyle(
-              fontSize: 12,
-              color: SahyanColors.textMuted,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/home'),
-            icon: const Icon(Icons.search_rounded, size: 16),
-            label: const Text('Find a Ride →'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: SahyanColors.primaryDark,
-              side: const BorderSide(color: SahyanColors.border, width: 0.8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: const TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyHistoryState() {
-    return BentoContainer(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: const BoxDecoration(
-              color: SahyanColors.primaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.history_rounded,
-              size: 32,
-              color: SahyanColors.primaryDark,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No Completed Journeys',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: SahyanColors.textMain,
-              letterSpacing: -0.2,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Your completed corridor rides and trip summaries will appear here.',
-            style: TextStyle(
-              fontSize: 12,
-              color: SahyanColors.textMuted,
-              height: 1.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/home'),
-            icon: const Icon(Icons.search_rounded, size: 16),
-            label: const Text('Find a Ride →'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: SahyanColors.primaryDark,
-              side: const BorderSide(color: SahyanColors.border, width: 0.8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              textStyle: const TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   /// Live Telematics Badge — derives display text from real booking data.
   Widget _buildLiveTelematicsBadge({BookingModel? booking}) {
@@ -1346,7 +1149,233 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
+  Widget _buildUpcomingRequestsBento() {
+    return BentoContainer(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(
+                child: Text(
+                  'Approval Pending',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.textMain,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: SahyanColors.goldStar.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'Under Review',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.goldStar,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: SahyanColors.canvas,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: SahyanColors.border, width: 0.8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 18,
+                      backgroundColor: SahyanColors.primaryLight,
+                      child: Text(
+                        'PS',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          color: SahyanColors.primaryDark,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Dr. Priya Sharma',
+                            style: TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: SahyanColors.textMain,
+                            ),
+                          ),
+                          Text(
+                            'Ahmedabad → Surat · Tomorrow 07:00 AM',
+                            style: TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 11,
+                              color: SahyanColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(
+                  color: SahyanColors.border,
+                  height: 1,
+                  thickness: 0.8,
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '2 Seats Requested · ₹520 total',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: SahyanColors.textMain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Request details viewed'),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: SahyanColors.primaryDark,
+                        side: const BorderSide(
+                          color: SahyanColors.primaryDark,
+                          width: 0.8,
+                        ),
+                        minimumSize: const Size(90, 32),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'View Details',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildHistorySection() {
+    return BentoContainer(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Completed Journeys',
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: SahyanColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: SahyanColors.canvas,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: SahyanColors.border, width: 0.8),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Rajkot → Ahmedabad',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: SahyanColors.textMain,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      '₹350',
+                      style: TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: SahyanColors.textMain,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Yesterday · 219 km · Driver: Jay Patel',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 11,
+                    color: SahyanColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildEcoImpactCard() {
     return BentoContainer(
