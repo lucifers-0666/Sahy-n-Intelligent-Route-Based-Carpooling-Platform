@@ -23,6 +23,7 @@ import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_s
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
 import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import '../rides_provider.dart';
 
 class RideDetailsScreen extends ConsumerWidget {
@@ -190,11 +191,90 @@ class RideDetailsScreen extends ConsumerWidget {
                       child: SizedBox(
                         height: 200,
                         width: double.infinity,
-                        child: SayanRouteMap(
-                          origin: ride.origin,
-                          destination: ride.destination,
-                          polylinePoints: polylinePoints,
-                          bounds: bounds,
+                        child: Stack(
+                          children: [
+                            SayanRouteMap(
+                              origin: ride.origin,
+                              destination: ride.destination,
+                              polylinePoints: polylinePoints,
+                              bounds: bounds,
+                            ),
+                            // Tap to expand
+                            Positioned.fill(
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    FullScreenRouteMapSheet.show(
+                                      context: context,
+                                      origin: ride.origin,
+                                      destination: ride.destination,
+                                      polylinePoints: polylinePoints,
+                                      bounds: bounds,
+                                      corridorHighway: 'Gujarat Highway Corridor Active',
+                                      distanceKm: ride.route?.distanceKm,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            // Expand Map Button
+                            Positioned(
+                              top: 10,
+                              right: 10,
+                              child: Material(
+                                color: Colors.white.withValues(alpha: 0.95),
+                                borderRadius: BorderRadius.circular(8),
+                                elevation: 2,
+                                child: InkWell(
+                                  onTap: () {
+                                    FullScreenRouteMapSheet.show(
+                                      context: context,
+                                      origin: ride.origin,
+                                      destination: ride.destination,
+                                      polylinePoints: polylinePoints,
+                                      bounds: bounds,
+                                      corridorHighway: 'Gujarat Highway Corridor Active',
+                                      distanceKm: ride.route?.distanceKm,
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 5,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppColors.border,
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.open_in_full_rounded,
+                                          size: 12,
+                                          color: AppColors.primaryForest,
+                                        ),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'Expand Map ⤢',
+                                          style: TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.primaryForest,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),

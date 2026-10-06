@@ -1493,11 +1493,22 @@ const searchRides = async (req, res, next) => {
       requestedSeats: parsedSeats,
     });
 
+    // Stage 2: Filter candidates by deviation tolerance
+    const filteredResults = results.filter((item) => {
+      if (originLat !== null && originLng !== null) {
+        if (item.pickupDistanceKm > parsedPickupDist) return false;
+      }
+      if (destLat !== null && destLng !== null) {
+        if (item.destinationDistanceKm > parsedDropDist) return false;
+      }
+      return true;
+    });
+
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || (req.query.page ? 10 : 50)));
-    const totalResults = results.length;
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || (req.query.page ? 10 : 20)));
+    const totalResults = filteredResults.length;
     const totalPages = Math.ceil(totalResults / limit) || 1;
-    const paginatedResults = results.slice((page - 1) * limit, page * limit);
+    const paginatedResults = filteredResults.slice((page - 1) * limit, page * limit);
 
     return res.status(200).json({
       success: true,
@@ -1521,6 +1532,127 @@ const searchRides = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc    Get live Gujarat Highway Corridors and dynamic pricing
+ * @route   GET /api/v1/rides/corridors
+ * @access  Public / Optional Auth
+ */
+const getCorridors = async (req, res, next) => {
+  try {
+    const activeRides = await Ride.find({
+      status: { $in: ['active', 'boarding'] },
+    }).select('origin destination contributionPerSeat').lean();
+
+    const corridors = [
+      {
+        id: 'corridor_amd_raj',
+        from: 'Ahmedabad',
+        to: 'Rajkot',
+        price: 320,
+        distanceKm: 214,
+        avgDurationMinutes: 190,
+        viaHighway: 'NH47',
+        fromLat: 23.0225,
+        fromLng: 72.5714,
+        toLat: 22.3039,
+        toLng: 70.8022,
+        activeDriversCount: 12,
+        avgSpeedKmh: 94,
+        isEvFastlane: true,
+      },
+      {
+        id: 'corridor_sur_bdq',
+        from: 'Surat',
+        to: 'Vadodara',
+        price: 210,
+        distanceKm: 152,
+        avgDurationMinutes: 130,
+        viaHighway: 'NH48',
+        fromLat: 21.1702,
+        fromLng: 72.8311,
+        toLat: 22.3072,
+        toLng: 73.1812,
+        activeDriversCount: 8,
+        avgSpeedKmh: 88,
+        isEvFastlane: true,
+      },
+      {
+        id: 'corridor_bhuj_amd',
+        from: 'Bhuj',
+        to: 'Ahmedabad',
+        price: 388,
+        distanceKm: 332,
+        avgDurationMinutes: 320,
+        viaHighway: 'NH947',
+        fromLat: 23.2420,
+        fromLng: 69.6669,
+        toLat: 23.0225,
+        toLng: 72.5714,
+        activeDriversCount: 6,
+        avgSpeedKmh: 82,
+        isEvFastlane: false,
+      },
+      {
+        id: 'corridor_raj_sur',
+        from: 'Rajkot',
+        to: 'Surat',
+        price: 520,
+        distanceKm: 420,
+        avgDurationMinutes: 410,
+        viaHighway: 'NH47',
+        fromLat: 22.3039,
+        fromLng: 70.8022,
+        toLat: 21.1702,
+        toLng: 72.8311,
+        activeDriversCount: 5,
+        avgSpeedKmh: 85,
+        isEvFastlane: true,
+      },
+      {
+        id: 'corridor_morbi_raj',
+        from: 'Morbi',
+        to: 'Rajkot',
+        price: 120,
+        distanceKm: 68,
+        avgDurationMinutes: 70,
+        viaHighway: 'SH24',
+        fromLat: 22.8120,
+        fromLng: 70.8370,
+        toLat: 22.3039,
+        toLng: 70.8022,
+        activeDriversCount: 7,
+        avgSpeedKmh: 75,
+        isEvFastlane: false,
+      },
+    ];
+
+    if (activeRides.length > 0) {
+      corridors.forEach(c => {
+        const matching = activeRides.filter(r => 
+          (r.origin?.city && r.origin.city.toLowerCase() === c.from.toLowerCase()) ||
+          (r.destination?.city && r.destination.city.toLowerCase() === c.to.toLowerCase())
+        );
+        if (matching.length > 0) {
+          c.activeDriversCount = matching.length;
+          const avgPrice = Math.round(
+            matching.reduce((acc, curr) => acc + (curr.contributionPerSeat || c.price), 0) / matching.length
+          );
+          if (avgPrice > 0) c.price = avgPrice;
+        }
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Corridors retrieved successfully',
+      data: corridors,
+      count: corridors.length,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createRide,
   getRides,
@@ -1534,5 +1666,7 @@ module.exports = {
   calculateRoute,
   autocompletePlaces,
   searchRides,
+  getCorridors,
 };
+
 

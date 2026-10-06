@@ -193,6 +193,7 @@ rideSchema.index({ 'destination.point': '2dsphere' });
 // Compound indexes for queries
 rideSchema.index({ driver: 1, status: 1 });
 rideSchema.index({ status: 1, departureTime: 1 });
+rideSchema.index({ status: 1, availableSeats: 1, departureTime: 1 });
 
 // Ensure JSON serialization formats id correctly
 rideSchema.set('toJSON', {

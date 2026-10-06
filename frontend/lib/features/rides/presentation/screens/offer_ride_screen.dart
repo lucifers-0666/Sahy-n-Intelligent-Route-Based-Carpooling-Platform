@@ -18,6 +18,7 @@ import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 
 class OfferRideScreen extends ConsumerStatefulWidget {
   const OfferRideScreen({super.key});
@@ -782,28 +783,123 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
             child: SizedBox(
               height: 220,
               width: double.infinity,
-              child: SayanRouteMap(
-                origin: draft.origin!,
-                destination: draft.destination!,
-                polylinePoints:
-                    draft.route != null &&
-                        draft.route!.encodedPolyline.isNotEmpty
-                    ? RouteService.decodePolyline(draft.route!.encodedPolyline)
-                          .map((pt) => LatLng(pt.latitude, pt.longitude))
-                          .toList()
-                    : const [],
-                stopovers: draft.stopovers,
-                bounds:
-                    draft.route != null &&
-                        draft.route!.encodedPolyline.isNotEmpty
-                    ? RouteGeometryService.calculateBounds(
-                        RouteService.decodePolyline(
-                          draft.route!.encodedPolyline,
-                        )
-                            .map((pt) => LatLng(pt.latitude, pt.longitude))
-                            .toList(),
-                      )
-                    : null,
+              child: Stack(
+                children: [
+                  SayanRouteMap(
+                    origin: draft.origin!,
+                    destination: draft.destination!,
+                    polylinePoints:
+                        draft.route != null &&
+                            draft.route!.encodedPolyline.isNotEmpty
+                        ? RouteService.decodePolyline(draft.route!.encodedPolyline)
+                              .map((pt) => LatLng(pt.latitude, pt.longitude))
+                              .toList()
+                        : const [],
+                    stopovers: draft.stopovers,
+                    bounds:
+                        draft.route != null &&
+                            draft.route!.encodedPolyline.isNotEmpty
+                        ? RouteGeometryService.calculateBounds(
+                            RouteService.decodePolyline(
+                              draft.route!.encodedPolyline,
+                            )
+                                .map((pt) => LatLng(pt.latitude, pt.longitude))
+                                .toList(),
+                          )
+                        : null,
+                  ),
+                  // Tap to expand
+                  Positioned.fill(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          final pts = draft.route != null &&
+                                  draft.route!.encodedPolyline.isNotEmpty
+                              ? RouteService.decodePolyline(draft.route!.encodedPolyline)
+                                    .map((pt) => LatLng(pt.latitude, pt.longitude))
+                                    .toList()
+                              : const [];
+                          FullScreenRouteMapSheet.show(
+                            context: context,
+                            origin: draft.origin!,
+                            destination: draft.destination!,
+                            polylinePoints: pts,
+                            stopovers: draft.stopovers,
+                            corridorHighway: 'Highway Corridor Active',
+                            distanceKm: draft.route?.distanceMeters != null
+                                ? (draft.route!.distanceMeters / 1000.0)
+                                : null,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  // Expand Map Button
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Material(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(8),
+                      elevation: 2,
+                      child: InkWell(
+                        onTap: () {
+                          final pts = draft.route != null &&
+                                  draft.route!.encodedPolyline.isNotEmpty
+                              ? RouteService.decodePolyline(draft.route!.encodedPolyline)
+                                    .map((pt) => LatLng(pt.latitude, pt.longitude))
+                                    .toList()
+                              : const [];
+                          FullScreenRouteMapSheet.show(
+                            context: context,
+                            origin: draft.origin!,
+                            destination: draft.destination!,
+                            polylinePoints: pts,
+                            stopovers: draft.stopovers,
+                            corridorHighway: 'Highway Corridor Active',
+                            distanceKm: draft.route?.distanceMeters != null
+                                ? (draft.route!.distanceMeters / 1000.0)
+                                : null,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.border,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.open_in_full_rounded,
+                                size: 12,
+                                color: AppColors.primaryForest,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Expand Map ⤢',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryForest,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

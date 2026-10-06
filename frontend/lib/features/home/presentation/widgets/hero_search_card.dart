@@ -17,6 +17,8 @@ class HeroSearchCard extends StatefulWidget {
   final ValueChanged<int> onSeatsChanged;
   final VoidCallback onSearch;
   final List<Map<String, dynamic>> popularCorridors;
+  final VoidCallback? onTapPickup;
+  final VoidCallback? onTapDestination;
 
   const HeroSearchCard({
     super.key,
@@ -36,6 +38,8 @@ class HeroSearchCard extends StatefulWidget {
       {'from': 'Baroda', 'to': 'Ahmedabad', 'price': 180},
       {'from': 'Morbi', 'to': 'Rajkot', 'price': 120},
     ],
+    this.onTapPickup,
+    this.onTapDestination,
   });
 
   @override
@@ -137,28 +141,38 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
 
           const SizedBox(height: 16),
 
-          // ─── B. Unified Route Rail Container ─────────────────────────────
+          // ─── B. Integrated Continuous Route Capsule ─────────────────────────────
           Container(
             decoration: BoxDecoration(
-              color: const Color(0xFFF8FAF8),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: SahyanColors.border,
                 width: 0.8,
               ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0A14241C),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
+              ],
             ),
             child: Stack(
               alignment: Alignment.centerRight,
               children: [
-                Column(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Origin Row
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 52, 0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                    // Left Transit Track
+                    SizedBox(
+                      width: 44,
+                      height: 108,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Solid pine dot
+                          const SizedBox(height: 22),
+                          // Top Origin Dot (Solid Deep Pine, 8dp)
                           Container(
                             width: 8,
                             height: 8,
@@ -167,108 +181,147 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(height: 4),
+                          // Vertical Path (Clean 2dp dashed line, #2EC486)
                           Expanded(
-                            child: TextField(
-                              controller: widget.originController,
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: SahyanColors.textMain,
+                            child: CustomPaint(
+                              painter: const _DashedVerticalTrackPainter(
+                                color: SahyanColors.primaryMint,
+                                strokeWidth: 2.0,
+                                dashHeight: 3.5,
+                                dashGap: 2.5,
                               ),
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                hintText: 'Pickup origin…',
-                                hintStyle: TextStyle(
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  color: SahyanColors.textDisabled,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                              size: const Size(2, double.infinity),
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          // Bottom Destination Pin (Mint Location Icon, 14dp)
+                          const Icon(
+                            Icons.location_on_rounded,
+                            size: 14,
+                            color: SahyanColors.primaryMint,
+                          ),
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),
 
-                    // Hairline divider
-                    const Divider(
-                      height: 1,
-                      thickness: 0.8,
-                      indent: 32,
-                      endIndent: 52,
-                      color: SahyanColors.border,
-                    ),
-
-                    // Destination Row
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 0, 52, 0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Mint location pin
-                          const Icon(
-                            Icons.location_on_rounded,
-                            size: 16,
-                            color: SahyanColors.primaryMint,
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: TextField(
-                              controller: widget.destinationController,
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: SahyanColors.textMain,
+                    // Right Input Fields
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 50),
+                        child: Column(
+                          children: [
+                            // Pickup Row
+                            InkWell(
+                              onTap: widget.onTapPickup,
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(22),
                               ),
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                hintText: 'Where to?',
-                                hintStyle: TextStyle(
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  color: SahyanColors.textDisabled,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                              child: SizedBox(
+                                height: 53.6,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextField(
+                                    controller: widget.originController,
+                                    onTap: widget.onTapPickup,
+                                    readOnly: widget.onTapPickup != null,
+                                    style: const TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: SahyanColors.textMain,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      hintText: 'Pickup origin (tap to search)…',
+                                      hintStyle: TextStyle(
+                                        fontFamily: 'Plus Jakarta Sans',
+                                        color: SahyanColors.textDisabled,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+
+                            // Subtle Hairline Divider
+                            const Divider(
+                              height: 0.8,
+                              thickness: 0.8,
+                              color: SahyanColors.border,
+                            ),
+
+                            // Drop Row
+                            InkWell(
+                              onTap: widget.onTapDestination,
+                              borderRadius: const BorderRadius.only(
+                                bottomRight: Radius.circular(22),
+                              ),
+                              child: SizedBox(
+                                height: 53.6,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: TextField(
+                                    controller: widget.destinationController,
+                                    onTap: widget.onTapDestination,
+                                    readOnly: widget.onTapDestination != null,
+                                    style: const TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: SahyanColors.textMain,
+                                    ),
+                                    decoration: const InputDecoration(
+                                      isDense: true,
+                                      border: InputBorder.none,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        vertical: 14,
+                                      ),
+                                      hintText: 'Where to? (Destination)…',
+                                      hintStyle: TextStyle(
+                                        fontFamily: 'Plus Jakarta Sans',
+                                        color: SahyanColors.textDisabled,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
 
-                // Swap button — vertically centered, right-anchored
+                // Centered Swap Button: 34x34dp, #FFFFFF, border #E2E8E4, 180° rotation
                 Positioned(
-                  right: 10,
+                  right: 12,
                   child: Material(
-                    color: SahyanColors.surface,
+                    color: const Color(0xFFFFFFFF),
                     shape: const CircleBorder(
                       side: BorderSide(
                         color: SahyanColors.border,
                         width: 0.8,
                       ),
                     ),
-                    shadowColor: const Color(0x1414241C),
-                    elevation: 2,
+                    elevation: 2.5,
+                    shadowColor: const Color(0x1814241C),
                     child: InkWell(
                       onTap: _handleSwap,
                       customBorder: const CircleBorder(),
                       child: SizedBox(
-                        width: 32,
-                        height: 32,
+                        width: 34,
+                        height: 34,
                         child: Center(
                           child: AnimatedRotation(
                             turns: _swapTurns,
@@ -276,7 +329,7 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                             curve: Curves.easeOutCubic,
                             child: const Icon(
                               Icons.swap_vert_rounded,
-                              size: 17,
+                              size: 18,
                               color: SahyanColors.primaryDark,
                             ),
                           ),
@@ -612,5 +665,45 @@ class _ParamsBarState extends State<_ParamsBar> {
         ],
       ),
     );
+  }
+}
+
+/// Custom painter for the 2dp dashed vertical transit line connecting Origin to Destination.
+class _DashedVerticalTrackPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double dashHeight;
+  final double dashGap;
+
+  const _DashedVerticalTrackPainter({
+    required this.color,
+    this.strokeWidth = 2.0,
+    this.dashHeight = 3.5,
+    this.dashGap = 2.5,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final x = size.width / 2;
+    double y = 0.0;
+    while (y < size.height) {
+      final endY = (y + dashHeight).clamp(0.0, size.height);
+      canvas.drawLine(Offset(x, y), Offset(x, endY), paint);
+      y += dashHeight + dashGap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedVerticalTrackPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.dashHeight != dashHeight ||
+        oldDelegate.dashGap != dashGap;
   }
 }

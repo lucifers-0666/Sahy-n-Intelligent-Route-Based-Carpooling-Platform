@@ -8,6 +8,7 @@ import '../../../../shared/widgets/bento/bento_widgets.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
+import '../../../rides/presentation/widgets/location_search_bottom_sheet.dart';
 import '../widgets/hero_search_card.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -142,6 +143,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     });
   }
 
+  Future<void> _selectPickupLocation() async {
+    final result = await LocationSearchBottomSheet.show(
+      context: context,
+      title: 'Select Pickup Hub',
+      initialQuery: _originController.text,
+      isPickup: true,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _originController.text = result.name;
+        _originLocation = result;
+      });
+    }
+  }
+
+  Future<void> _selectDestinationLocation() async {
+    final result = await LocationSearchBottomSheet.show(
+      context: context,
+      title: 'Select Destination Hub',
+      initialQuery: _destinationController.text,
+      isPickup: false,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _destinationController.text = result.name;
+        _destinationLocation = result;
+      });
+    }
+  }
+
   Future<void> _pickDateTime() async {
     final pickedDate = await showDatePicker(
       context: context,
@@ -230,6 +261,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final user = ref.watch(authProvider).user;
     final unreadNotifs = ref.watch(notificationsProvider).unreadCount;
     final displayName = user?.name.split(' ').first ?? 'Arjun';
+    final corridorsAsync = ref.watch(corridorsProvider);
+    final quickCorridors = corridorsAsync.value ?? _quickCorridors;
 
     return Scaffold(
       backgroundColor: SahyanColors.canvas,
@@ -492,7 +525,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   selectedSeats: _selectedSeats,
                   onSeatsChanged: (val) => setState(() => _selectedSeats = val),
                   onSearch: _handleSearch,
-                  popularCorridors: _quickCorridors,
+                  popularCorridors: quickCorridors,
+                  onTapPickup: _selectPickupLocation,
+                  onTapDestination: _selectDestinationLocation,
                 ),
               ),
             ),
@@ -533,40 +568,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 delegate: SliverChildListDelegate([
                   // Corridor Card 1: Ahmedabad -> Rajkot Express
                   _CorridorBentoCard(
-                    routeName: 'Ahmedabad -> Rajkot Express',
-                    speedLabel: '94 km/h avg',
-                    driverInfo: '12 verified drivers ready · Next in 8 mins',
-                    badges: const ['via NH47', 'EV Fastlane'],
+                    routeName: '${quickCorridors.isNotEmpty ? quickCorridors[0]['from'] : 'Ahmedabad'} → ${quickCorridors.isNotEmpty ? quickCorridors[0]['to'] : 'Rajkot'} Express',
+                    speedLabel: '${quickCorridors.isNotEmpty ? quickCorridors[0]['avgSpeedKmh'] ?? 94 : 94} km/h avg',
+                    driverInfo: '${quickCorridors.isNotEmpty ? quickCorridors[0]['activeDriversCount'] ?? 12 : 12} verified drivers ready · Next in 8 mins',
+                    badges: [
+                      'via ${quickCorridors.isNotEmpty ? quickCorridors[0]['viaHighway'] ?? 'NH47' : 'NH47'}',
+                      'EV Fastlane'
+                    ],
                     badgeVariants: const [
                       PillTagVariant.neutral,
                       PillTagVariant.mint,
                     ],
                     badgeIcons: const [null, Icons.bolt_rounded],
-                    price: '₹320 / seat',
+                    price: '₹${quickCorridors.isNotEmpty ? quickCorridors[0]['price'] : 320} / seat',
                     onTap: () {
-                      _originController.text = 'Ahmedabad SG Highway';
-                      _destinationController.text = 'Rajkot Trikon Baug';
+                      _originController.text = quickCorridors.isNotEmpty ? quickCorridors[0]['from'] : 'Ahmedabad';
+                      _destinationController.text = quickCorridors.isNotEmpty ? quickCorridors[0]['to'] : 'Rajkot';
                       _handleSearch();
                     },
                   ),
 
                   const SizedBox(height: 12),
 
-                  // Corridor Card 2: Surat -> Vadodara
+                  // Corridor Card 2: Surat -> Vadodara Expressway
                   _CorridorBentoCard(
-                    routeName: 'Surat -> Vadodara Expressway',
-                    speedLabel: '88 km/h avg',
-                    driverInfo: '8 verified drivers ready · Next in 14 mins',
-                    badges: const ['via NH48', 'Zero Toll'],
+                    routeName: '${quickCorridors.length > 1 ? quickCorridors[1]['from'] : 'Surat'} → ${quickCorridors.length > 1 ? quickCorridors[1]['to'] : 'Vadodara'} Expressway',
+                    speedLabel: '${quickCorridors.length > 1 ? quickCorridors[1]['avgSpeedKmh'] ?? 88 : 88} km/h avg',
+                    driverInfo: '${quickCorridors.length > 1 ? quickCorridors[1]['activeDriversCount'] ?? 8 : 8} verified drivers ready · Next in 14 mins',
+                    badges: [
+                      'via ${quickCorridors.length > 1 ? quickCorridors[1]['viaHighway'] ?? 'NH48' : 'NH48'}',
+                      'Zero Toll'
+                    ],
                     badgeVariants: const [
                       PillTagVariant.neutral,
                       PillTagVariant.mint,
                     ],
                     badgeIcons: const [null, Icons.check_circle_outline_rounded],
-                    price: '₹210 / seat',
+                    price: '₹${quickCorridors.length > 1 ? quickCorridors[1]['price'] : 210} / seat',
                     onTap: () {
-                      _originController.text = 'Surat';
-                      _destinationController.text = 'Vadodara';
+                      _originController.text = quickCorridors.length > 1 ? quickCorridors[1]['from'] : 'Surat';
+                      _destinationController.text = quickCorridors.length > 1 ? quickCorridors[1]['to'] : 'Vadodara';
                       _handleSearch();
                     },
                   ),

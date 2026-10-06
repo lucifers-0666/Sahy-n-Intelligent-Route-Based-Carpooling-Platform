@@ -131,6 +131,55 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Authenticate using stored session credentials after hardware biometric confirmation
+  Future<bool> loginWithBiometrics() async {
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      final token = await storageService.getToken();
+      final storedUser = await storageService.getUser();
+
+      if (token != null && token.isNotEmpty) {
+        apiClient.setAuthToken(token);
+        UserModel? user;
+        try {
+          user = await repository.getProfile();
+          await storageService.saveUser(user);
+        } catch (_) {
+          user = storedUser;
+        }
+
+        if (user != null) {
+          state = state.copyWith(
+            status: AuthStatus.authenticated,
+            token: token,
+            user: user,
+          );
+          return true;
+        }
+      }
+
+      if (storedUser != null) {
+        state = state.copyWith(
+          status: AuthStatus.authenticated,
+          user: storedUser,
+        );
+        return true;
+      }
+
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        errorMessage: 'No saved credentials found. Please sign in with password first.',
+      );
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        errorMessage: 'Biometric authentication failed.',
+      );
+      return false;
+    }
+  }
+
   Future<bool> register({
     required String name,
     required String email,

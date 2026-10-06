@@ -348,11 +348,11 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
   Widget build(BuildContext context) {
     final driver = widget.driverName ??
         widget.booking?.ride?.driverName ??
-        'Rohit Patel';
+        'Verified Driver';
     final vehicle = widget.vehicleInfo ??
         (widget.booking?.ride != null
             ? '${widget.booking!.ride!.vehicle.make} ${widget.booking!.ride!.vehicle.model} \u2022 ${widget.booking!.ride!.vehicle.registrationNumber}'
-            : 'Hyundai Creta \u2022 GJ-01-AB-1234');
+            : 'Vehicle Confirmed');
     final rating = widget.driverRating ??
         widget.booking?.ride?.driverRating ??
         4.92;

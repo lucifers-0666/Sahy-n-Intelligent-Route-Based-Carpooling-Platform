@@ -129,20 +129,26 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Column(
                   children: [
-                    _buildLiveTelematicsBadge(
-                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
-                    ),
-                    const SizedBox(height: 14),
-                    _buildDigitalBoardingPass(
-                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
-                    ),
-                    const SizedBox(height: 14),
-                    _buildActionDock(
-                      driverName: activeBookings.isNotEmpty
-                          ? (activeBookings.first.ride?.driverName ?? 'Rohit Patel')
-                          : 'Rohit Patel',
-                      booking: activeBookings.isNotEmpty ? activeBookings.first : null,
-                    ),
+                    if (activeBookings.isNotEmpty) ...[
+                      ...activeBookings.map((b) => Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildLiveTelematicsBadge(booking: b),
+                              const SizedBox(height: 14),
+                              _buildDigitalBoardingPass(booking: b),
+                              const SizedBox(height: 14),
+                              _buildActionDock(
+                                driverName: b.ride?.driverName.isNotEmpty == true
+                                    ? b.ride!.driverName
+                                    : 'Verified Driver',
+                                booking: b,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          )),
+                    ] else ...[
+                      _buildEmptyActivePassesCard(),
+                    ],
                     const SizedBox(height: 14),
                     _buildEcoImpactCard(),
                     const SizedBox(height: 24),
@@ -167,7 +173,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                     if (pendingBookings.isNotEmpty) ...[
                       ...pendingBookings.map((b) => _buildLivePendingCard(b)),
                     ] else ...[
-                      _buildUpcomingRequestsBento(),
+                      _buildEmptyPendingRequestsCard(),
                     ],
                     const SizedBox(height: 14),
                     _buildEcoImpactCard(),
@@ -193,7 +199,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                     if (historyBookings.isNotEmpty) ...[
                       ...historyBookings.map((b) => _buildLiveHistoryCard(b)),
                     ] else ...[
-                      _buildHistorySection(),
+                      _buildEmptyHistoryCard(),
                     ],
                     const SizedBox(height: 14),
                     _buildEcoImpactCard(),
@@ -313,28 +319,36 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
 
 
   Widget _buildDigitalBoardingPass({BookingModel? booking}) {
-    final driverName = booking?.ride?.driverName ?? 'Rohit Patel';
+    final driverName = booking?.ride?.driverName.isNotEmpty == true
+        ? booking!.ride!.driverName
+        : 'Verified Driver';
     final initials = driverName
         .split(' ')
         .where((s) => s.isNotEmpty)
         .map((s) => s[0])
         .take(2)
-        .join();
+        .join()
+        .toUpperCase();
     final driverRating = booking?.ride != null
         ? booking!.ride!.driverRating.toStringAsFixed(2)
-        : '4.92';
-    final vehicleModel = booking?.ride != null
-        ? '${booking!.ride!.vehicle.make} ${booking.ride!.vehicle.model}'
-        : 'Honda City';
-    final vehiclePlate =
-        booking?.ride?.vehicle.registrationNumber ?? 'GJ 01 AB 1234';
+        : '4.95';
+    final vehicleModel = booking?.ride != null && booking!.ride!.vehicle.make.isNotEmpty
+        ? '${booking.ride!.vehicle.make} ${booking.ride!.vehicle.model}'
+        : 'Vehicle Assigned';
+    final vehiclePlate = booking?.ride?.vehicle.registrationNumber.isNotEmpty == true
+        ? booking!.ride!.vehicle.registrationNumber
+        : 'GJ-XX-XXXX';
     final pinCode = booking?.securityPin ?? '4821';
     final pickupName = booking != null && booking.pickup.address.isNotEmpty
         ? booking.pickup.address
-        : 'AMD · Iscon Cross';
+        : (booking?.ride?.origin.address.isNotEmpty == true
+            ? booking!.ride!.origin.address
+            : 'Pickup Location');
     final dropName = booking != null && booking.drop.address.isNotEmpty
         ? booking.drop.address
-        : 'RAJ · Kalawad Rd';
+        : (booking?.ride?.destination.address.isNotEmpty == true
+            ? booking!.ride!.destination.address
+            : 'Destination Location');
 
     return BentoContainer(
       padding: EdgeInsets.zero,
@@ -718,7 +732,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildActionDock({String driverName = 'Rohit Patel', BookingModel? booking}) {
+  Widget _buildActionDock({String driverName = 'Verified Driver', BookingModel? booking}) {
     final bookingId = booking?.id ?? 'conv-1';
     return BentoContainer(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
@@ -1149,156 +1163,64 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildUpcomingRequestsBento() {
+  Widget _buildEmptyActivePassesCard() {
     return BentoContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Text(
-                  'Approval Pending',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: SahyanColors.textMain,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: SahyanColors.goldStar.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Text(
-                  'Under Review',
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: SahyanColors.goldStar,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: SahyanColors.canvas,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: SahyanColors.border, width: 0.8),
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(
+              color: SahyanColors.primaryLight,
+              shape: BoxShape.circle,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: SahyanColors.primaryLight,
-                      child: Text(
-                        'PS',
-                        style: TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
-                          color: SahyanColors.primaryDark,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Dr. Priya Sharma',
-                            style: TextStyle(
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: SahyanColors.textMain,
-                            ),
-                          ),
-                          Text(
-                            'Ahmedabad → Surat · Tomorrow 07:00 AM',
-                            style: TextStyle(
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontSize: 11,
-                              color: SahyanColors.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                const Divider(
-                  color: SahyanColors.border,
-                  height: 1,
-                  thickness: 0.8,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        '2 Seats Requested · ₹520 total',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: SahyanColors.textMain,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    OutlinedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Request details viewed'),
-                          ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: SahyanColors.primaryDark,
-                        side: const BorderSide(
-                          color: SahyanColors.primaryDark,
-                          width: 0.8,
-                        ),
-                        minimumSize: const Size(90, 32),
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: const Text(
-                        'View Details',
-                        style: TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            child: const Icon(
+              Icons.confirmation_number_outlined,
+              size: 32,
+              color: SahyanColors.primaryDark,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No Active Boarding Passes',
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: SahyanColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'When your seat reservation is confirmed, your live boarding pass, departure PIN, and driver telematics will be displayed here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 13,
+              color: SahyanColors.textMuted,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => context.go('/rides'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SahyanColors.primaryDark,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Find Matching Rides →',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -1306,70 +1228,89 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildHistorySection() {
+  Widget _buildEmptyPendingRequestsCard() {
     return BentoContainer(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: SahyanColors.goldStar.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.hourglass_top_rounded,
+              size: 30,
+              color: SahyanColors.goldStar,
+            ),
+          ),
+          const SizedBox(height: 16),
           const Text(
-            'Completed Journeys',
+            'No Pending Requests',
             style: TextStyle(
               fontFamily: 'Plus Jakarta Sans',
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
               color: SahyanColors.textMain,
             ),
           ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: SahyanColors.canvas,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: SahyanColors.border, width: 0.8),
+          const SizedBox(height: 8),
+          const Text(
+            'You do not have any pending booking requests awaiting driver approval at this moment.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 13,
+              color: SahyanColors.textMuted,
+              height: 1.4,
             ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Rajkot → Ahmedabad',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: SahyanColors.textMain,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      '₹350',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: SahyanColors.textMain,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Yesterday · 219 km · Driver: Jay Patel',
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 11,
-                    color: SahyanColors.textMuted,
-                  ),
-                ),
-              ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyHistoryCard() {
+    return BentoContainer(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(
+              color: SahyanColors.canvas,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.history_rounded,
+              size: 32,
+              color: SahyanColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No Ride History Yet',
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: SahyanColors.textMain,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Completed and previous journeys across Gujarat highway corridors will appear here once finished.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Plus Jakarta Sans',
+              fontSize: 13,
+              color: SahyanColors.textMuted,
+              height: 1.4,
             ),
           ),
         ],

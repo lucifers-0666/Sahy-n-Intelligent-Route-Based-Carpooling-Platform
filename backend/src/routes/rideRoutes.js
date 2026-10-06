@@ -14,7 +14,11 @@ const {
   calculateRoute,
   autocompletePlaces,
   searchRides,
+  getCorridors,
 } = require('../controllers/rideController');
+
+// Gujarat Highway Corridors & dynamic pricing
+router.get('/corridors', optionalAuth, getCorridors);
 
 // Route calculation & Places Autocomplete
 router.post('/calculate-route', optionalAuth, calculateRoute);

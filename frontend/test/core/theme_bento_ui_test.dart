@@ -194,26 +194,23 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Initially on Active tab
-        expect(find.text('Rohit Patel'), findsOneWidget);
-        expect(find.text('4821'), findsOneWidget);
-        expect(find.text('Track Live on Map'), findsOneWidget);
+        // Initially on Active tab (dynamic empty state when no active bookings)
+        expect(find.text('No Active Boarding Passes'), findsOneWidget);
+        expect(find.text('Find Matching Rides →'), findsOneWidget);
 
         // Tap 'Pending' tab in the sliding pill bar
         await tester.tap(find.text('Pending'));
         await tester.pumpAndSettle();
 
-        // Verify switched to Pending view with Dr. Priya Sharma
-        expect(find.text('Dr. Priya Sharma'), findsOneWidget);
-        expect(find.text('Under Review'), findsOneWidget);
+        // Verify switched to Pending view with dynamic empty state
+        expect(find.text('No Pending Requests'), findsOneWidget);
 
         // Tap 'History' tab
         await tester.tap(find.text('History'));
         await tester.pumpAndSettle();
 
-        // Verify switched to Completed Journeys
-        expect(find.text('Completed Journeys'), findsOneWidget);
-        expect(find.text('Rajkot → Ahmedabad'), findsOneWidget);
+        // Verify switched to Completed/History view with dynamic empty state
+        expect(find.text('No Ride History Yet'), findsOneWidget);
       },
     );
 

@@ -3,6 +3,7 @@ const {
   decodePolyline,
   minDistanceToPolylineKm,
   calculateRouteOverlap,
+  calculateRouteLengthKm,
 } = require('../utils/polylineUtils');
 
 /**
@@ -75,6 +76,31 @@ function calculatePickupScore(distanceKm) {
     return Math.round(60 - ((distanceKm - 5.0) / 5.0) * 35);
   }
   return Math.max(0, Math.round(25 - (distanceKm - 10.0) * 2.5));
+}
+
+/**
+ * Calculate detour score (0-100) based on additional detour percentage
+ * <= 5% detour   -> 95 - 100
+ * 5% - 15%       -> 80 - 95
+ * 15% - 30%      -> 50 - 80
+ * 30% - 50%      -> 20 - 50
+ * > 50%          -> 0 - 20
+ */
+function calculateDetourScore(detourPercentage) {
+  if (detourPercentage <= 0) return 100;
+  if (detourPercentage <= 5.0) {
+    return Math.round(100 - detourPercentage);
+  }
+  if (detourPercentage <= 15.0) {
+    return Math.round(95 - ((detourPercentage - 5.0) / 10.0) * 15);
+  }
+  if (detourPercentage <= 30.0) {
+    return Math.round(80 - ((detourPercentage - 15.0) / 15.0) * 30);
+  }
+  if (detourPercentage <= 50.0) {
+    return Math.round(50 - ((detourPercentage - 30.0) / 20.0) * 30);
+  }
+  return Math.max(0, Math.round(20 - (detourPercentage - 50.0) * 0.5));
 }
 
 /**
@@ -247,6 +273,22 @@ function generateExplainableReasons({ factors, metrics, ride }) {
     });
   }
 
+  // Direction compatibility
+  if (metrics.isDirectionCompatible === false) {
+    candidates.push({
+      priority: 100,
+      text: 'Route travels in opposite direction to travel path',
+    });
+  }
+
+  // Detour explanation
+  if (metrics.detourPercentage !== undefined && metrics.detourPercentage <= 5.0 && metrics.isDirectionCompatible !== false) {
+    candidates.push({
+      priority: 88,
+      text: `Minimal detour (${metrics.detourPercentage}% of route)`,
+    });
+  }
+
   // Seat availability
   if (ride.availableSeats >= 3) {
     candidates.push({
@@ -300,8 +342,9 @@ function evaluateRideMatch({
     driverPoints = decodePolyline(candidateRide.route.encodedPolyline);
   }
 
-  // Fallback: If no polyline, synthesize minimal 2-point line from origin to destination
-  if (driverPoints.length === 0 && candidateRide.origin && candidateRide.destination) {
+  // Fallback: If no polyline, or mock polyline, synthesize minimal 2-point line from origin to destination
+  const isMockPolyline = typeof candidateRide.route?.encodedPolyline === 'string' && candidateRide.route.encodedPolyline.startsWith('mock_');
+  if ((driverPoints.length <= 1 || isMockPolyline) && candidateRide.origin && candidateRide.destination) {
     driverPoints = [
       {
         latitude: candidateRide.origin.latitude,
@@ -316,9 +359,10 @@ function evaluateRideMatch({
 
   // 2. Measure Pickup Deviation
   let pickupDistanceKm = 0;
+  let pickupMatch = null;
   if (passengerOrigin && passengerOrigin.latitude !== undefined && passengerOrigin.longitude !== undefined) {
     if (driverPoints.length > 0) {
-      const pickupMatch = minDistanceToPolylineKm(
+      pickupMatch = minDistanceToPolylineKm(
         { latitude: passengerOrigin.latitude, longitude: passengerOrigin.longitude },
         driverPoints
       );
@@ -338,13 +382,14 @@ function evaluateRideMatch({
 
   // 3. Measure Destination Deviation
   let destinationDistanceKm = 0;
+  let destMatch = null;
   if (
     passengerDestination &&
     passengerDestination.latitude !== undefined &&
     passengerDestination.longitude !== undefined
   ) {
     if (driverPoints.length > 0) {
-      const destMatch = minDistanceToPolylineKm(
+      destMatch = minDistanceToPolylineKm(
         { latitude: passengerDestination.latitude, longitude: passengerDestination.longitude },
         driverPoints
       );
@@ -374,7 +419,15 @@ function evaluateRideMatch({
   }
   const destScore = calculateDestinationScore(destinationDistanceKm);
 
-  // 4. Measure Route Overlap
+  // 4. Measure Route Overlap & Direction Compatibility
+  let isDirectionCompatible = true;
+  if (pickupMatch && destMatch && driverPoints.length > 1) {
+    // Passenger pickup must occur before drop along the driver's one-way route
+    if (destMatch.fractionalProgress < pickupMatch.fractionalProgress - 0.05) {
+      isDirectionCompatible = false;
+    }
+  }
+
   let routeOverlapPercentage = 0;
   if (Array.isArray(passengerPoints) && passengerPoints.length > 0 && driverPoints.length > 0) {
     const overlapResult = calculateRouteOverlap({
@@ -406,7 +459,30 @@ function evaluateRideMatch({
   // 7. Measure Seat Availability
   const seatScore = calculateSeatScore(candidateRide.availableSeats, requestedSeats);
 
-  // 8. Calculate Final Deterministic Weighted Score
+  // 8. Measure Detour Cost
+  let driverRouteKm = 0;
+  if (candidateRide.route && candidateRide.route.distanceMeters) {
+    driverRouteKm = candidateRide.route.distanceMeters / 1000;
+  } else if (driverPoints.length > 1) {
+    driverRouteKm = calculateRouteLengthKm(driverPoints);
+  } else if (candidateRide.origin && candidateRide.destination) {
+    driverRouteKm = calculateDistanceKm(
+      candidateRide.origin.latitude,
+      candidateRide.origin.longitude,
+      candidateRide.destination.latitude,
+      candidateRide.destination.longitude
+    );
+  }
+
+  const additionalDistanceKm = pickupDistanceKm + destinationDistanceKm;
+  const detourPercentage =
+    driverRouteKm > 0
+      ? Number(((additionalDistanceKm / driverRouteKm) * 100).toFixed(1))
+      : 0;
+
+  const detourScore = calculateDetourScore(detourPercentage);
+
+  // 9. Calculate Final Deterministic Weighted Score with Sanctions
   const rawWeightedScore =
     routeOverlapScore * WEIGHTS.routeOverlap +
     pickupScore * WEIGHTS.pickupDeviation +
@@ -415,7 +491,19 @@ function evaluateRideMatch({
     reliabilityScore * WEIGHTS.driverReliability +
     seatScore * WEIGHTS.seatAvailability;
 
-  const finalScore = Math.max(0, Math.min(100, Math.round(rawWeightedScore)));
+  let finalScore = Math.max(0, Math.min(100, Math.round(rawWeightedScore)));
+
+  // Sanction 1: Opposite direction travel (reverse corridor)
+  if (!isDirectionCompatible) {
+    finalScore = Math.min(finalScore, 20);
+  }
+
+  // Sanction 2: Excessive detour (> 40% of planned route)
+  if (detourPercentage > 40) {
+    const penalty = Math.min(30, Math.round((detourPercentage - 40) * 0.75));
+    finalScore = Math.max(0, finalScore - penalty);
+  }
+
   const matchGrade = getMatchGrade(finalScore);
 
   const factors = {
@@ -425,6 +513,7 @@ function evaluateRideMatch({
     timeCompatibility: timeScore,
     driverReliability: reliabilityScore,
     seatAvailability: seatScore,
+    detourCost: detourScore,
   };
 
   const metrics = {
@@ -432,6 +521,8 @@ function evaluateRideMatch({
     pickupDistanceKm,
     destinationDistanceKm,
     departureDifferenceMinutes,
+    detourPercentage,
+    isDirectionCompatible,
   };
 
   const reasons = generateExplainableReasons({
@@ -534,6 +625,7 @@ module.exports = {
   calculateTimeScore,
   calculateReliabilityScore,
   calculateSeatScore,
+  calculateDetourScore,
   generateExplainableReasons,
   evaluateRideMatch,
   evaluateAndRankCandidates,

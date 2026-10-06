@@ -300,7 +300,7 @@ class _RideSearchResultsScreenState
         ? '${ride.route!.formattedDuration} nonstop'
         : '3h 15m nonstop';
 
-    final driverName = ride.driverName.isNotEmpty ? ride.driverName : 'Rohit Patel';
+    final driverName = ride.driverName.isNotEmpty ? ride.driverName : 'Verified Driver';
     final ratingVal = ride.driverRating > 0 ? ride.driverRating : 4.9;
     const ridesCount = 184;
     final vehicleDesc = '${ride.vehicle.make} ${ride.vehicle.model} · ${ride.vehicle.color} · Quiet Cabin';

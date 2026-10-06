@@ -9,6 +9,7 @@ import 'package:sahyan/app/providers/user_mode_provider.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
 import 'package:sahyan/core/widgets/app_text_field.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
+import 'package:sahyan/core/services/biometric_service.dart';
 import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 enum _LoginMethod { password, otp }
@@ -254,27 +255,42 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  void _handleBiometricPass() {
-    HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: SahyanColors.primaryDark,
-        content: const Row(
-          children: [
-            Icon(Icons.fingerprint_rounded, color: SahyanColors.primaryMint, size: 20),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Biometric Express Pass ready. Touch sensor or glance at camera.',
-                style: TextStyle(color: Colors.white, fontSize: 13),
-              ),
-            ),
-          ],
-        ),
-      ),
+  void _handleBiometricPass() async {
+    HapticFeedback.selectionClick();
+    final biometricService = ref.read(biometricServiceProvider);
+    final didAuth = await biometricService.authenticate(
+      localizedReason: 'Scan fingerprint or face to authenticate instantly',
     );
+
+    if (!mounted) return;
+
+    if (didAuth) {
+      HapticFeedback.mediumImpact();
+      final success = await ref.read(authProvider.notifier).loginWithBiometrics();
+      if (!mounted) return;
+      if (success) {
+        final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
+        ref.read(userModeProvider.notifier).setAuthenticatedMode();
+        ref.read(userModeProvider.notifier).clearPendingIntent();
+        if (pendingIntent != null && pendingIntent.isNotEmpty) {
+          context.go(pendingIntent);
+        } else {
+          context.go('/home');
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            backgroundColor: SahyanColors.urgentCoral,
+            content: const Text(
+              'No saved session found. Please sign in once with password to enable biometrics.',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   @override

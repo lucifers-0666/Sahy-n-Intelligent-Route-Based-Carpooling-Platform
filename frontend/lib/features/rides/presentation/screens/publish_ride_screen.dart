@@ -9,6 +9,7 @@ import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
 import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class PublishRideScreen extends ConsumerStatefulWidget {
@@ -334,6 +335,34 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
                         )
                         .toList(),
                   ),
+                  // Tap map preview to open full-screen interactive route map
+                  Positioned.fill(
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          FullScreenRouteMapSheet.show(
+                            context: context,
+                            origin: _originLocation,
+                            destination: _destinationLocation,
+                            polylinePoints: _routeGeometry?.polylinePoints ?? const [],
+                            bounds: _routeGeometry?.bounds,
+                            corridorHighway: 'NH47 Corridor Active',
+                            distanceKm: _routeGeometry?.distanceKm,
+                            stopovers: _stopovers
+                                .map(
+                                  (s) => LocationModel.fromCoordinates(
+                                    name: s,
+                                    latitude: 22.5645,
+                                    longitude: 71.8080,
+                                  ),
+                                )
+                                .toList(),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
                   Positioned(
                     top: 10,
                     left: 12,
@@ -370,6 +399,71 @@ class _PublishRideScreenState extends ConsumerState<PublishRideScreen> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  // Expand Map Button at top-right
+                  Positioned(
+                    top: 10,
+                    right: 12,
+                    child: Material(
+                      color: SahyanColors.surface.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(8),
+                      elevation: 1,
+                      child: InkWell(
+                        onTap: () {
+                          FullScreenRouteMapSheet.show(
+                            context: context,
+                            origin: _originLocation,
+                            destination: _destinationLocation,
+                            polylinePoints: _routeGeometry?.polylinePoints ?? const [],
+                            bounds: _routeGeometry?.bounds,
+                            corridorHighway: 'NH47 Corridor Active',
+                            distanceKm: _routeGeometry?.distanceKm,
+                            stopovers: _stopovers
+                                .map(
+                                  (s) => LocationModel.fromCoordinates(
+                                    name: s,
+                                    latitude: 22.5645,
+                                    longitude: 71.8080,
+                                  ),
+                                )
+                                .toList(),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: SahyanColors.border,
+                              width: 0.8,
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.open_in_full_rounded,
+                                size: 12,
+                                color: SahyanColors.primaryDark,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Expand Map ⤢',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: SahyanColors.primaryDark,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
