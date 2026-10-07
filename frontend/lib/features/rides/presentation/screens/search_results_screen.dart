@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-export 'ride_search_results_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_radii.dart';
@@ -16,11 +15,19 @@ import '../rides_provider.dart';
 
 /// Redesigned Search Results screen matching the Sahyān Stitch & Figma mobile UI concept.
 /// Incorporates live search query tags, quick filter sheet, empty/error state widgets, and floating nav clearance.
-class SearchResultsScreen extends ConsumerWidget {
+class SearchResultsScreen extends ConsumerStatefulWidget {
   const SearchResultsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SearchResultsScreen> createState() =>
+      _SearchResultsScreenState();
+}
+
+class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
+  String _selectedQuickFilter = 'All';
+
+  @override
+  Widget build(BuildContext context) {
     final query = ref.watch(rideSearchQueryProvider);
     final searchResultsAsync = ref.watch(searchRidesProvider);
     final formattedDate = DateFormat('dd MMM yyyy').format(query.date);
@@ -94,7 +101,7 @@ class SearchResultsScreen extends ConsumerWidget {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 12),
             child: Material(
               color: AppColors.softForest,
               shape: const CircleBorder(),
@@ -125,6 +132,19 @@ class SearchResultsScreen extends ConsumerWidget {
       ),
       body: searchResultsAsync.when(
         data: (results) {
+          // In-memory quick filter application
+          final filteredResults = results.where((r) {
+            if (_selectedQuickFilter == 'Direct Only') {
+              return r.pickupDistanceKm <= 2.0;
+            }
+            if (_selectedQuickFilter == 'High Match') {
+              return (r.match?.score ?? 0) >= 80;
+            }
+            if (_selectedQuickFilter == 'Under ₹350') {
+              return r.ride.contributionPerSeat <= 350;
+            }
+            return true;
+          }).toList();
           if (results.isEmpty) {
             return SingleChildScrollView(
               padding: const EdgeInsets.only(
@@ -185,12 +205,61 @@ class SearchResultsScreen extends ConsumerWidget {
               padding: const EdgeInsets.only(
                 left: AppSpacing.containerMargin,
                 right: AppSpacing.containerMargin,
-                top: AppSpacing.md,
+                top: AppSpacing.sm,
                 bottom: 110.0, // Floating bottom nav clearance
               ),
-              itemCount: results.length,
+              itemCount: filteredResults.length + 1,
               itemBuilder: (context, index) {
-                final result = results[index];
+                if (index == 0) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      child: Row(
+                        children: [
+                          'All',
+                          'Direct Only',
+                          'High Match',
+                          'Under ₹350',
+                        ].map((filterLabel) {
+                          final isSelected = _selectedQuickFilter == filterLabel;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(filterLabel),
+                              selected: isSelected,
+                              selectedColor: AppColors.primaryForest,
+                              backgroundColor: AppColors.white,
+                              labelStyle: AppTypography.caption.copyWith(
+                                color: isSelected
+                                    ? AppColors.white
+                                    : AppColors.textPrimary,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                              ),
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primaryForest
+                                    : AppColors.border,
+                                width: 0.8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppRadii.full),
+                              ),
+                              onSelected: (_) {
+                                setState(() => _selectedQuickFilter = filterLabel);
+                              },
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  );
+                }
+                final result = filteredResults[index - 1];
                 return RideCard(
                   ride: result.ride,
                   searchResult: result,

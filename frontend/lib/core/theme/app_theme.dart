@@ -1,26 +1,27 @@
 import 'package:flutter/material.dart';
+import '../../app/theme/app_colors.dart';
 
 class SahyanColors {
   // Brand Greens
-  static const Color primaryDark = Color(0xFF1B4D3E); // Deep Luxury Pine
-  static const Color primaryMint = Color(0xFF2EC486); // Energetic Mint Accent
-  static const Color primaryLight = Color(0xFFE8F5EF); // Soft Mint Surface Tint
+  static const Color primaryDark = AppColors.primaryDark; // #084C3A
+  static const Color primaryMint = AppColors.primaryMint; // #A7E8D2
+  static const Color primaryLight = AppColors.primaryLight; // Soft Mint Surface Tint
 
   // Canvas & Surfaces
-  static const Color canvas = Color(0xFFF6F8F6); // Warm Organic Luxury Canvas
-  static const Color surface = Color(0xFFFFFFFF); // Elevated Bento Surface
-  static const Color border = Color(0xFFE2E8E4); // 0.8px Hairline Divider
-  static const Color chipBackground = Color(0xFFEEF2EF); // Inactive Tag Fill
+  static const Color canvas = AppColors.canvas; // #F2F7F4
+  static const Color surface = AppColors.surface; // #FFFFFF
+  static const Color border = AppColors.border; // #E2E8E4
+  static const Color chipBackground = AppColors.chipBackground; // #EEF2EF
 
   // Typography Tokens
-  static const Color textMain = Color(0xFF14241C); // High-contrast Forest Charcoal
-  static const Color textMuted = Color(0xFF5C6E64); // Slate Sage Gray
-  static const Color textDisabled = Color(0xFF9EABA3);
+  static const Color textMain = AppColors.textMain; // #12352E
+  static const Color textMuted = AppColors.textMuted; // #6B7F78
+  static const Color textDisabled = AppColors.textDisabled;
 
   // Status & Highlights
-  static const Color goldStar = Color(0xFFE5A93C); // Ratings & Tier Gold
-  static const Color urgentCoral = Color(0xFFE05638); // SOS & Critical Alerts
-  static const Color bluePolyline = Color(0xFF2563EB); // Live GPS Path
+  static const Color goldStar = AppColors.goldStar; // #C9A96E
+  static const Color urgentCoral = AppColors.urgentCoral; // #E05638
+  static const Color bluePolyline = AppColors.bluePolyline; // #2563EB
 }
 
 class SahyanTheme {

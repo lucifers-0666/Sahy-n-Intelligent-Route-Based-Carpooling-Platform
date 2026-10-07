@@ -22,7 +22,7 @@ import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_sheet.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
-import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import '../rides_provider.dart';
 

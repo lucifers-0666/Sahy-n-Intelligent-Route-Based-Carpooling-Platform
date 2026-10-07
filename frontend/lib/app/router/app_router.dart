@@ -295,13 +295,6 @@ final appRouter = GoRouter(
       builder: (context, state) => const HelpSupportScreen(),
     ),
     GoRoute(
-      path: '/journey-completed',
-      builder: (context, state) {
-        final booking = state.extra as BookingModel?;
-        return JourneyCompletedScreen(booking: booking);
-      },
-    ),
-    GoRoute(
       path: '/system-states',
       builder: (context, state) => const SystemStatesScreen(),
     ),
