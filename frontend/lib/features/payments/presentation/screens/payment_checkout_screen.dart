@@ -59,7 +59,8 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
         '/payments/verify',
         body: {
           'transactionId': transactionId,
-          'gatewayReference': 'sayan_pay_${DateTime.now().millisecondsSinceEpoch}',
+          'gatewayReference':
+              'sahyan_pay_${DateTime.now().millisecondsSinceEpoch}',
           'method': _selectedMethod,
         },
       );
@@ -106,7 +107,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  '₹${_totalAmount.toStringAsFixed(0)} placed securely in escrow. Funds will only be released to the driver upon successful trip completion.',
+                  '₹${_totalAmount.toStringAsFixed(0)} placed securely in simulated escrow. Funds will only be released to the driver upon successful trip completion.',
                   textAlign: TextAlign.center,
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,
@@ -143,20 +144,95 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
       backgroundColor: AppColors.warmBackground,
       appBar: const SahyanAppBar(
         title: 'Trip Payment & Escrow',
-        subtitle: 'Secure Contribution Checkout',
+        subtitle: 'Sandbox Simulation Checkout',
         showBackButton: true,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.containerMargin,
+            vertical: AppSpacing.base,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Prominent Sandbox Simulation Notice
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.softBrass,
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  border: Border.all(
+                    color: AppColors.mutedBrass.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.science_rounded,
+                      color: AppColors.mutedBrass,
+                      size: 24,
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Simulated Escrow Sandbox',
+                                style: AppTypography.cardTitle.copyWith(
+                                  fontSize: 13,
+                                  color: AppColors.mutedBrass,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.mutedBrass.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'TEST MODE',
+                                  style: AppTypography.caption.copyWith(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.mutedBrass,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'This transaction runs in sandbox prototype mode. No actual currency or bank account will be debited.',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.base),
+
               // Security Shield Guarantee
               Container(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryForest.withValues(alpha: 0.08),
+                  color: AppColors.softForest,
                   borderRadius: BorderRadius.circular(AppRadii.md),
                   border: Border.all(
                     color: AppColors.primaryForest.withValues(alpha: 0.25),
@@ -167,7 +243,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                     const Icon(
                       Icons.verified_user_rounded,
                       color: AppColors.primaryForest,
-                      size: 28,
+                      size: 26,
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
@@ -177,7 +253,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                           Text(
                             'Sahyān Escrow Protection',
                             style: AppTypography.cardTitle.copyWith(
-                              fontSize: 14,
+                              fontSize: 13,
                               color: AppColors.primaryForest,
                               fontWeight: FontWeight.bold,
                             ),
@@ -200,7 +276,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
 
               // Fare Breakdown Card
               SahyanCard(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: const EdgeInsets.all(AppSpacing.base),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -226,7 +302,10 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                       'Toll & FASTag Pool Split',
                       '₹${_tollSplit.toStringAsFixed(0)}',
                     ),
-                    const Divider(height: AppSpacing.xl, color: AppColors.border),
+                    const Divider(
+                      height: AppSpacing.xl,
+                      color: AppColors.border,
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -263,21 +342,21 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
               _buildPaymentOption(
                 id: 'upi',
                 title: 'UPI Instant (GPay / PhonePe / Paytm)',
-                subtitle: 'Zero fee direct escrow transfer',
+                subtitle: 'Zero fee direct simulated escrow transfer',
                 icon: Icons.qr_code_2_rounded,
               ),
               const SizedBox(height: AppSpacing.sm),
               _buildPaymentOption(
                 id: 'card',
                 title: 'Credit / Debit Card',
-                subtitle: 'Visa, MasterCard, RuPay with 3D Secure',
+                subtitle: 'Visa, MasterCard, RuPay with 3D Secure sandbox',
                 icon: Icons.credit_card_rounded,
               ),
               const SizedBox(height: AppSpacing.sm),
               _buildPaymentOption(
                 id: 'netbanking',
                 title: 'Net Banking',
-                subtitle: 'All major Indian scheduled banks',
+                subtitle: 'Simulated major Indian scheduled banks',
                 icon: Icons.account_balance_rounded,
               ),
 

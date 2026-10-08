@@ -13,7 +13,7 @@ import 'package:sahyan/features/rides/domain/services/route_geometry_service.dar
 import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/trip/presentation/widgets/sos_action_bottom_sheet.dart';
 import 'package:sahyan/shared/models/location_model.dart';
-import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 
 class LiveRideTrackingScreen extends StatefulWidget {
   final String? originName;
@@ -380,7 +380,7 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
           children: [
             // Full Screen Map View
             Positioned.fill(
-              child: SayanRouteMap(
+              child: SahyanRouteMap(
                 origin: _origin,
                 destination: _destination,
                 polylinePoints: _polylinePoints,

@@ -447,7 +447,117 @@ In strict compliance with **Section 3** and **Section 74**:
     - Driver credentials, vehicle specs, pickup policy, ride amenities, and sticky seat contribution booking footer with guest auth gating (`AuthGateDialog`).
   - Validation: `flutter analyze` (0 issues), 9/9 search & ride details tests passed, 77/77 responsive layout tests passed.
 
+### Batch 4: Seat Selection, Booking Review, Payment Sandbox, Confirmation, Booking Details
+- **Status:** Completed
+- **Changes Delivered:**
+  - Upgraded `SeatSelector`:
+    - Clean cabin contour layout with windshield/front cabin orientation marker.
+    - Driver steering cue (`Icons.drive_eta_rounded`) indicating occupied driver seat.
+    - Responsive animated passenger seat selection states with micro-shadows and position labels (`Front Passenger`, `Rear Left`, `Rear Center`, `Rear Right`).
+  - Upgraded `SeatSelectionScreen`:
+    - Added transit corridor overview capsule (`origin → destination`, departure time, driver name).
+    - Upgraded vehicle specs bento card with full vehicle name, vehicle type, registration number, and open seat capacity.
+    - Added transparent contribution calculation breakdown (`₹X per seat x Y seats = ₹Z total`).
+    - Sticky bottom container with seat count, total contribution, and `Review Request` CTA.
+  - Upgraded `ConfirmPayScreen`:
+    - Replaced raw `AppBar` with canonical `SahyanAppBar`.
+    - Added transit corridor track capsule with origin/destination dots.
+    - Integrated driver summary, requested seats pill, and departure timestamp.
+    - Strictly preserved cost-sharing contribution terminology (`Contribution Details`, `Seat Contribution`, `Total Contribution`, `Pending Driver Approval`) and 100% test compatibility.
+  - Upgraded `PaymentCheckoutScreen`:
+    - Fulfills Sections 17 & 21: Added prominent `Simulated Escrow Sandbox` warning banner explicitly identifying prototype test mode.
+    - Fixed legacy reference to `sahyan_pay_${timestamp}`.
+    - Retained exact test assertions for escrow protection and gateway options (`UPI Instant`, `Credit / Debit Card`, `Net Banking`).
+  - Upgraded `BookingConfirmationScreen`:
+    - Transformed card into digital reservation voucher / boarding slip aesthetic (`SAHYĀN RESERVATION VOUCHER`).
+    - Guaranteed zero overflow under 1.5x font scale across all phone viewports.
+    - Clean primary and secondary navigation CTAs: `Track Booking Request`, `View My Bookings`, `Back to Home`.
+  - Upgraded `BookingDetailsScreen`:
+    - Added vertical corridor transit connector track linking pickup and drop points.
+    - Refined status badges, driver rating, vehicle specs, and conditional lifecycle CTAs (`Pay in Sandbox Escrow`, `View Active Journey`, `Message Driver`, `Cancel Request`).
+  - Validation: `flutter analyze` (0 issues), 30/30 booking flow tests passed, 70/70 screen coverage tests passed, all 367/367 frontend tests passed, zero emojis.
+
 ---
-*Next Step: Batch 4 (Seat Selection, Booking Review, Payment Sandbox, Confirmation, Booking Details).*
+
+### Batch 5: Offer/Publish Ride Flow, Driver Rides Dashboard & Driver Request Details
+- **Status:** Completed
+- **Changes Delivered:**
+  - Upgraded `OfferRideScreen` / `PublishRideScreen`:
+    - Replaced legacy `sayan_route_map.dart` import with canonical `sahyan_route_map.dart`.
+    - Integrated interactive route corridor minimap (`SahyanRouteMap`) with OSRM polyline rendering, waypoints, and full-screen route map inspection sheet trigger (`FullScreenRouteMapSheet`).
+    - Standardized `PublishRideScreen` as a direct wrapper around `OfferRideScreen` and updated `app_router.dart` routes `/offer-ride` and `/publish-ride` to point directly to `OfferRideScreen`.
+    - Retained 100% of tested assertions for the 3-step wizard: `Vehicle & Route`, `Schedule & Seats`, `Review & Publish`, vehicle selection dropdown, Gujarat corridor hub action chips, departure date/time pickers, seat capacity steppers, and fare contribution controls.
+    - Cleaned unicode arrow characters from button labels in favor of standard icon tokens.
+  - Upgraded `DriverRidesScreen`:
+    - Structured with `SahyanAppBar`, status filter pills (`All Requests`, `Pending Approval`, `Accepted`, `Rejected`), and pending request alert banner.
+    - Preserved authentication gate for guest/unauthenticated users with dedicated card and login action.
+    - Offered ride cards display route arrow, vehicle badges, scheduled dates, and real-time pending request count.
+    - Passenger request cards display passenger avatar, ratings, seats requested, total cost-sharing contribution, passenger note, and tactile `Accept` and `Reject` dialog confirmation actions.
+  - Upgraded `DriverRequestDetailsScreen`:
+    - Upgraded journey overview with signature Sahyān corridor transit track (origin node circle, vertical connecting track line, and destination pin).
+    - Preserved all status cards, passenger profile cards, seats/contribution breakdown, and accept/decline dialog workflows.
+  - Validation:
+    - `flutter analyze`: 0 issues found.
+    - 20/20 Batch 5 unit & responsive tests passed (`offer_ride_test.dart` and `driver_requests_test.dart`).
+    - Full frontend test suite: 367 / 367 tests passed.
+    - Full backend test suite: 203 / 203 tests passed.
+    - Zero emojis verified across all modified files.
+
+---
+
+### Batch 6: Boarding Validation, Driver Active Ride Screen & Journey Completed Screen
+- **Status:** Completed
+- **Changes Delivered:**
+  - Upgraded `DriverActiveRideScreen`:
+    - Refactored PIN verification input to eliminate artificial 38px height constraints on `TextField`, ensuring complete immunity to 1.5x accessibility font scale and small viewports.
+    - Preserved real-time Socket.IO telematics broadcasting via `DriverLocationService`.
+    - Turn Guidance HUD card with distance, route indicator, and audio navigation feedback.
+    - Telemetry bento card grid displaying speed, estimated arrival, and remaining corridor distance.
+    - Integrated passenger manifest with boarding status indicators (`Boarded` / `Pending PIN`), PIN verification dialog, and live escrow accumulator banner.
+    - Passed ride extra model when completing trip to supply live telemetry to completion summary.
+  - Upgraded `JourneyCompletedScreen`:
+    - Expanded architecture to support both `BookingModel` (passenger view) and `RideModel` (driver view) seamlessly.
+    - Passenger experience: route traveled (`pickup → drop`), driver name, reserved seats, shared contribution, green impact badge (`Saved ~X kg CO2 emissions by carpooling`), and review trigger (`RateTripSheet`).
+    - Driver experience: highway corridor traversed (`origin → destination`), registered vehicle details, filled passenger seat count, released escrow earnings, and quick navigation to `Driver Rides`.
+    - Updated `app_router.dart` route `/journey-completed` to handle both `BookingModel` and `RideModel` payload types.
+  - Validation:
+    - `flutter analyze`: 0 issues found.
+    - 82 / 82 trip lifecycle & screens coverage tests passed (`trip_lifecycle_test.dart` and `screens_coverage_test.dart`).
+    - Full frontend test suite: 367 / 367 tests passed.
+    - Full backend test suite: 203 / 203 tests passed.
+    - Zero emojis verified across all modified files.
+
+---
+
+### Batch 7: Active Journey Screen, Live Ride Tracking Screen, Safety Center Screen & SOS Bottom Sheet
+- **Status:** Completed
+- **Changes Delivered:**
+  - Upgraded `LiveRideTrackingScreen`:
+    - Replaced legacy `sayan_route_map.dart` import and `SayanRouteMap` component with canonical `sahyan_route_map.dart` (`SahyanRouteMap`).
+    - Top floating glass telemetry card with verified driver profile, rating pill, vehicle type illustration, live speed badge, and GPS telemetry connection health indicator (`Live GPS`, `Simulated Preview`, `Degraded`, `Stale`).
+    - Bottom contact action dock with route corridor track and four responsive tactile quick actions: `Call`, `Chat`, `Share`, and `SOS`.
+    - Fully resilient against small viewports and high font scaling.
+  - Upgraded `ActiveJourneyScreen`:
+    - High-contrast boarding PIN container (`AppColors.deepForest` / `AppColors.softForest`) with large letter-spaced 4-digit code and direct tap-to-copy button with clipboard feedback.
+    - Integrated corridor route timeline with pickup dot, vertical route connector track, and drop-off dot.
+    - Driver & vehicle card with verified status badge, avatar, and quick contact actions (`Call Driver`, `Chat`).
+    - Gated CTAs: Escrow Sandbox checkout CTA when unpaid, Live Route Map (`/live-tracking`), Safety Center (`/trip-safety`), and Completion preview (`/journey-completed`).
+  - Audited & Elevated `SafetyCenterScreen`:
+    - Level 3 Trust Score Bento card displaying DigiLocker authenticated ID, tokenized phone/email, and RC/insurance verification.
+    - Dedicated Emergency Assistance section (`EMERGENCY ASSISTANCE`) with 24x7 Safety Response Command and `Emergency SOS` action.
+    - Active Trip Safety Tools for trusted contacts, live corridor sharing, and confidential safety concern reporting dialog.
+    - Zero-tolerance community standards advisory.
+  - Upgraded `SosActionBottomSheet`:
+    - Fast-response emergency drawer featuring National Emergency (112), Sahyān Safety Command (1800-SAHYAN), primary emergency contact 1-tap call, and encrypted live corridor link copy.
+  - Validation:
+    - `flutter analyze`: 0 issues found.
+    - 105 / 105 Batch 7 unit and integration tests passed across `route_geometry_test.dart`, `search_rides_test.dart`, `chat_messaging_test.dart`, `trip_lifecycle_test.dart`, and `screens_coverage_test.dart`.
+    - Full frontend test suite: 367 / 367 tests passed.
+    - Full backend test suite: 203 / 203 tests passed.
+    - Zero emojis verified across all modified files.
+
+---
+*Next Step: Batch 8 (Profile Screen, Edit Profile Screen, Personal Details Screen & Emergency Contacts Screen).*
+
 
 

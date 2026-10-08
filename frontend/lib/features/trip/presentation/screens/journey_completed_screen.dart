@@ -1,25 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/widgets/design_system.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_spacing.dart';
+import '../../../../app/theme/app_typography.dart';
+import '../../../../core/widgets/sahyan_app_bar.dart';
+import '../../../../core/widgets/sahyan_button.dart';
+import '../../../../core/widgets/sahyan_card.dart';
 import '../../../bookings/domain/booking_model.dart';
+import '../../../../shared/models/ride_model.dart';
 import '../widgets/rate_trip_sheet.dart';
 
 class JourneyCompletedScreen extends StatelessWidget {
   final BookingModel? booking;
+  final RideModel? ride;
 
-  const JourneyCompletedScreen({super.key, this.booking});
+  const JourneyCompletedScreen({
+    super.key,
+    this.booking,
+    this.ride,
+  });
+
+  bool get isDriver => ride != null;
 
   @override
   Widget build(BuildContext context) {
-    final origin = booking?.pickup.name.isNotEmpty == true
-        ? booking!.pickup.name
-        : (booking?.ride?.origin.name ?? 'Ahmedabad');
-    final destination = booking?.drop.name.isNotEmpty == true
-        ? booking!.drop.name
-        : (booking?.ride?.destination.name ?? 'Vadodara');
-    final driverName = booking?.ride?.driverName ?? 'Karan Patel';
-    final amount = booking?.totalContribution ?? 250.0;
-    final seats = booking?.requestedSeats ?? 1;
+    final String origin;
+    final String destination;
+    final String personOrVehicleLabel;
+    final String personOrVehicleValue;
+    final String seatsLabel;
+    final String seatsValue;
+    final String contributionLabel;
+    final double amount;
+    final double co2SavedKg;
+
+    if (ride != null) {
+      origin = ride!.origin.name.isNotEmpty
+          ? ride!.origin.name
+          : ride!.origin.city;
+      destination = ride!.destination.name.isNotEmpty
+          ? ride!.destination.name
+          : ride!.destination.city;
+      personOrVehicleLabel = 'Vehicle';
+      personOrVehicleValue = ride!.vehicle.fullName.isNotEmpty
+          ? '${ride!.vehicle.fullName} (${ride!.vehicle.registrationNumber})'
+          : ride!.vehicle.registrationNumber;
+      final filledSeats = (ride!.totalSeats - ride!.availableSeats).clamp(1, ride!.totalSeats);
+      seatsLabel = 'Seats Shared';
+      seatsValue = '$filledSeats of ${ride!.totalSeats} Seats';
+      contributionLabel = 'Escrow Earnings';
+      amount = filledSeats * ride!.contributionPerSeat;
+      co2SavedKg = filledSeats * 3.2;
+    } else {
+      origin = booking?.pickup.name.isNotEmpty == true
+          ? booking!.pickup.name
+          : (booking?.ride?.origin.name ?? 'Ahmedabad');
+      destination = booking?.drop.name.isNotEmpty == true
+          ? booking!.drop.name
+          : (booking?.ride?.destination.name ?? 'Vadodara');
+      personOrVehicleLabel = 'Driver';
+      personOrVehicleValue = booking?.ride?.driverName ?? 'Karan Patel';
+      final seats = booking?.requestedSeats ?? 1;
+      seatsLabel = 'Seats Reserved';
+      seatsValue = '$seats Seat${seats > 1 ? 's' : ''}';
+      contributionLabel = 'Shared Contribution';
+      amount = booking?.totalContribution ?? 250.0;
+      co2SavedKg = seats * 3.2;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
@@ -43,7 +90,7 @@ class JourneyCompletedScreen extends StatelessWidget {
                   color: AppColors.softForest,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: AppColors.primaryForest.withValues(alpha: 0.2),
+                    color: AppColors.primaryForest.withValues(alpha: 0.25),
                     width: 2,
                   ),
                 ),
@@ -64,7 +111,9 @@ class JourneyCompletedScreen extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Thank you for traveling responsibly with Sahyān.',
+                isDriver
+                    ? 'All passengers have safely completed their journey.'
+                    : 'Thank you for traveling responsibly with Sahyān.',
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -88,11 +137,17 @@ class JourneyCompletedScreen extends StatelessWidget {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Text(
-                          '$origin → $destination',
-                          style: AppTypography.cardTitle.copyWith(
-                            fontSize: 14,
-                            color: AppColors.textPrimary,
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            '$origin → $destination',
+                            style: AppTypography.cardTitle.copyWith(
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.end,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -105,17 +160,23 @@ class JourneyCompletedScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Driver',
+                          personOrVehicleLabel,
                           style: AppTypography.caption.copyWith(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Text(
-                          driverName,
-                          style: AppTypography.cardTitle.copyWith(
-                            fontSize: 14,
-                            color: AppColors.textPrimary,
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            personOrVehicleValue,
+                            style: AppTypography.cardTitle.copyWith(
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.end,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -128,17 +189,23 @@ class JourneyCompletedScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Seats Reserved',
+                          seatsLabel,
                           style: AppTypography.caption.copyWith(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Text(
-                          '$seats Seat${seats > 1 ? 's' : ''}',
-                          style: AppTypography.cardTitle.copyWith(
-                            fontSize: 14,
-                            color: AppColors.textPrimary,
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            seatsValue,
+                            style: AppTypography.cardTitle.copyWith(
+                              fontSize: 14,
+                              color: AppColors.textPrimary,
+                            ),
+                            textAlign: TextAlign.end,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -151,12 +218,13 @@ class JourneyCompletedScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Shared Contribution',
+                          contributionLabel,
                           style: AppTypography.caption.copyWith(
                             color: AppColors.textSecondary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        const SizedBox(width: AppSpacing.sm),
                         Text(
                           '₹${amount.toStringAsFixed(0)}',
                           style: AppTypography.screenTitle.copyWith(
@@ -205,7 +273,7 @@ class JourneyCompletedScreen extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Saved ~3.2 kg CO2 emissions by carpooling.',
+                            'Saved ~${co2SavedKg.toStringAsFixed(1)} kg CO2 emissions by carpooling.',
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.deepForest,
                               fontWeight: FontWeight.w500,
@@ -221,18 +289,29 @@ class JourneyCompletedScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.xl),
 
               // Navigation Actions
-              SahyanButton(
-                text: 'Rate & Review Driver',
-                icon: Icons.star_outline_rounded,
-                variant: SahyanButtonVariant.outline,
-                isFullWidth: true,
-                onPressed: () => RateTripSheet.show(
-                  context,
-                  booking: booking,
-                  driverName: driverName,
+              if (isDriver) ...[
+                SahyanButton(
+                  text: 'View Driver Rides',
+                  icon: Icons.list_alt_rounded,
+                  variant: SahyanButtonVariant.outline,
+                  isFullWidth: true,
+                  onPressed: () => context.go('/driver/rides'),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.sm),
+              ] else ...[
+                SahyanButton(
+                  text: 'Rate & Review Driver',
+                  icon: Icons.star_outline_rounded,
+                  variant: SahyanButtonVariant.outline,
+                  isFullWidth: true,
+                  onPressed: () => RateTripSheet.show(
+                    context,
+                    booking: booking,
+                    driverName: personOrVehicleValue,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
               SahyanButton(
                 text: 'Return to Home',
                 icon: Icons.home_outlined,

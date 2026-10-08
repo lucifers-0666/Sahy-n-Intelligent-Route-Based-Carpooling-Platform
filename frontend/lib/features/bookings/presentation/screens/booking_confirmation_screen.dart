@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radii.dart';
 import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -88,12 +89,55 @@ class BookingConfirmationScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
-              // Comprehensive Details Card
+              // Comprehensive Details Card (Boarding Pass Voucher Style)
               if (booking != null)
                 SahyanCard(
-                  padding: AppSpacing.paddingCardLarge,
+                  padding: const EdgeInsets.all(AppSpacing.base),
                   child: Column(
                     children: [
+                      // Boarding Voucher Header
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs + 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                          border: Border.all(
+                            color: AppColors.border.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'SAHYĀN RESERVATION VOUCHER',
+                                style: AppTypography.caption.copyWith(
+                                  letterSpacing: 0.8,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryForest,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'PASSENGER SLIP',
+                              style: AppTypography.caption.copyWith(
+                                letterSpacing: 0.8,
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
                       _buildDetailRow(
                         'Route',
                         '$routeOrigin \u2192 $routeDest',

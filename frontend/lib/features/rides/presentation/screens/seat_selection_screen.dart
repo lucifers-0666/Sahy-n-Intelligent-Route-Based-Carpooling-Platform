@@ -32,21 +32,78 @@ class SeatSelectionScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: const SahyanAppBar(title: 'Select Vehicle Seats'),
+      appBar: const SahyanAppBar(
+        title: 'Select Vehicle Seats',
+        showBackButton: true,
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.containerMargin),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.containerMargin,
+          vertical: AppSpacing.base,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Vehicle Info Card with VehicleIcon
-            SahyanCard(
-              padding: AppSpacing.paddingCard,
+            // Corridor Header Pill
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                border: Border.all(color: AppColors.border),
+              ),
               child: Row(
                 children: [
                   Container(
-                    width: 72,
-                    height: 48,
-                    padding: const EdgeInsets.all(4),
+                    width: 36,
+                    height: 36,
+                    decoration: const BoxDecoration(
+                      color: AppColors.softForest,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.navigation_rounded,
+                      color: AppColors.primaryForest,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${ride.origin.city} \u2192 ${ride.destination.city}',
+                          style: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.deepForest,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Departure: ${ride.departureTime} \u2022 Driver: ${ride.driverName}',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.md),
+
+            // Vehicle Info Card with VehicleIcon
+            SahyanCard(
+              padding: const EdgeInsets.all(AppSpacing.base),
+              child: Row(
+                children: [
+                  Container(
+                    width: 76,
+                    height: 52,
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(AppRadii.md),
@@ -58,7 +115,7 @@ class SeatSelectionScreen extends ConsumerWidget {
                       height: 40,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,6 +124,7 @@ class SeatSelectionScreen extends ConsumerWidget {
                           ride.vehicle.fullName,
                           style: AppTypography.bodyLarge.copyWith(
                             fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -74,6 +132,17 @@ class SeatSelectionScreen extends ConsumerWidget {
                           '${ride.vehicle.type.displayName} \u2022 Open: ${ride.availableSeats} of ${ride.totalSeats} seats',
                           style: AppTypography.secondary,
                         ),
+                        if (ride.vehicle.registrationNumber.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            ride.vehicle.registrationNumber,
+                            style: AppTypography.caption.copyWith(
+                              letterSpacing: 0.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -81,7 +150,7 @@ class SeatSelectionScreen extends ConsumerWidget {
               ),
             ),
 
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.base),
 
             // Interactive Seat Selector
             SeatSelector(
@@ -93,16 +162,19 @@ class SeatSelectionScreen extends ConsumerWidget {
               },
             ),
 
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
 
             // Legend
             SahyanCard(
-              padding: AppSpacing.paddingCard,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildLegendItem(
-                    AppColors.warmBackground,
+                    AppColors.white,
                     AppColors.border,
                     'Available',
                   ),
@@ -112,9 +184,59 @@ class SeatSelectionScreen extends ConsumerWidget {
                     'Selected',
                   ),
                   _buildLegendItem(
-                    AppColors.border.withValues(alpha: 0.4),
-                    AppColors.border,
+                    AppColors.surfaceContainerLow.withValues(alpha: 0.8),
+                    AppColors.border.withValues(alpha: 0.6),
                     'Occupied',
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: AppSpacing.base),
+
+            // Contribution Summary Bento Card
+            SahyanCard(
+              padding: const EdgeInsets.all(AppSpacing.base),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Contribution Calculation',
+                    style: AppTypography.sectionHeader.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _buildPricingRow(
+                    'Contribution Per Seat',
+                    '\u20B9${ride.contributionPerSeat.toStringAsFixed(0)}',
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  _buildPricingRow(
+                    'Seats Selected',
+                    selectedSeats.isNotEmpty
+                        ? '${selectedSeats.length} (${selectedSeats.join(', ')})'
+                        : '0 seats',
+                  ),
+                  const Divider(height: AppSpacing.lg, color: AppColors.border),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total Contribution',
+                        style: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.deepForest,
+                        ),
+                      ),
+                      Text(
+                        '\u20B9${totalAmount.toStringAsFixed(0)}',
+                        style: AppTypography.sectionHeader.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primaryForest,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -168,16 +290,32 @@ class SeatSelectionScreen extends ConsumerWidget {
     return Row(
       children: [
         Container(
-          width: 16,
-          height: 16,
+          width: 14,
+          height: 14,
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(3),
             border: Border.all(color: border),
           ),
         ),
         const SizedBox(width: 6),
         Text(label, style: AppTypography.caption),
+      ],
+    );
+  }
+
+  Widget _buildPricingRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: AppTypography.secondary),
+        Text(
+          value,
+          style: AppTypography.bodyMedium.copyWith(
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
       ],
     );
   }

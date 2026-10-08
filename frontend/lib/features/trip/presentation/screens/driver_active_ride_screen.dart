@@ -156,7 +156,7 @@ class _DriverActiveRideScreenState
       ),
     );
 
-    context.go('/journey-completed');
+    context.go('/journey-completed', extra: _ride);
   }
 
   @override
@@ -658,26 +658,26 @@ class _DriverActiveRideScreenState
                       Row(
                         children: [
                           Expanded(
-                            child: SizedBox(
-                              height: 38,
-                              child: TextField(
-                                controller: _pinController,
-                                keyboardType: TextInputType.number,
-                                maxLength: 4,
-                                decoration: InputDecoration(
-                                  counterText: '',
-                                  hintText: 'Enter 4-digit PIN (Try 4821)',
-                                  hintStyle: AppTypography.caption,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.sm,
+                            child: TextField(
+                              controller: _pinController,
+                              keyboardType: TextInputType.number,
+                              maxLength: 4,
+                              style: AppTypography.bodyMedium,
+                              decoration: InputDecoration(
+                                isDense: true,
+                                counterText: '',
+                                hintText: 'Enter 4-digit PIN (Try 4821)',
+                                hintStyle: AppTypography.caption,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm,
+                                  vertical: 10,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadii.sm,
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadii.sm,
-                                    ),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.border,
-                                    ),
+                                  borderSide: const BorderSide(
+                                    color: AppColors.border,
                                   ),
                                 ),
                               ),
@@ -687,7 +687,7 @@ class _DriverActiveRideScreenState
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryForest,
-                              minimumSize: const Size(80, 38),
+                              minimumSize: const Size(80, 42),
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(

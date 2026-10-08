@@ -9,7 +9,7 @@ import 'package:sahyan/features/rides/domain/ride_search_result.dart';
 import 'package:sahyan/features/rides/presentation/rides_provider.dart';
 import 'package:sahyan/features/rides/presentation/screens/ride_details_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/search_results_screen.dart';
-import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';

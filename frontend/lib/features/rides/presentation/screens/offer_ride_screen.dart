@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-export 'publish_ride_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
@@ -17,7 +16,7 @@ import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
-import 'package:sahyan/shared/widgets/sayan_route_map.dart';
+import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 
 class OfferRideScreen extends ConsumerStatefulWidget {
@@ -26,6 +25,9 @@ class OfferRideScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<OfferRideScreen> createState() => _OfferRideScreenState();
 }
+
+/// Backwards compatibility alias for [OfferRideScreen].
+typedef PublishRideScreen = OfferRideScreen;
 
 class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
   int _currentStep = 0;
@@ -785,7 +787,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               width: double.infinity,
               child: Stack(
                 children: [
-                  SayanRouteMap(
+                  SahyanRouteMap(
                     origin: draft.origin!,
                     destination: draft.destination!,
                     polylinePoints:
@@ -886,7 +888,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                               ),
                               SizedBox(width: 4),
                               Text(
-                                'Expand Map ⤢',
+                                'Expand Map',
                                 style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,

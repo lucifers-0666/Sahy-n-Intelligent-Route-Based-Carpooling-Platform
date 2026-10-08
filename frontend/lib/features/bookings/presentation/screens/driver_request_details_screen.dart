@@ -349,60 +349,72 @@ class _DriverRequestDetailsScreenState
                       ),
                       const Divider(height: 24, color: AppColors.border),
 
-                      // Pickup
+                      // Route Corridor: Pickup & Drop
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.trip_origin_rounded,
-                            size: 18,
-                            color: AppColors.primaryForest,
+                          Column(
+                            children: [
+                              const SizedBox(height: 2),
+                              Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.primaryForest,
+                                    width: 3.5,
+                                  ),
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Container(
+                                width: 2,
+                                height: 38,
+                                color: AppColors.primaryForest.withValues(alpha: 0.3),
+                              ),
+                              const Icon(
+                                Icons.place_rounded,
+                                size: 16,
+                                color: AppColors.mutedRust,
+                              ),
+                            ],
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Requested Pickup',
-                                  style: AppTypography.caption,
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Requested Pickup',
+                                      style: AppTypography.caption,
+                                    ),
+                                    Text(
+                                      _request.pickup.name,
+                                      style: AppTypography.bodyMedium.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  _request.pickup.name,
-                                  style: AppTypography.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-
-                      // Drop
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.place_rounded,
-                            size: 18,
-                            color: AppColors.mutedRust,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Requested Drop-off',
-                                  style: AppTypography.caption,
-                                ),
-                                Text(
-                                  _request.drop.name,
-                                  style: AppTypography.bodyMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                const SizedBox(height: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Requested Drop-off',
+                                      style: AppTypography.caption,
+                                    ),
+                                    Text(
+                                      _request.drop.name,
+                                      style: AppTypography.bodyMedium.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

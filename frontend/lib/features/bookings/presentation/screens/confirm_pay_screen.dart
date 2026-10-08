@@ -12,6 +12,8 @@ import '../../../auth/presentation/auth_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
 import '../bookings_provider.dart';
 
+import '../../../../core/widgets/sahyan_app_bar.dart';
+
 class ConfirmPayScreen extends ConsumerStatefulWidget {
   const ConfirmPayScreen({super.key});
 
@@ -92,9 +94,9 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
     final selectedSeats = ref.watch(selectedSeatsProvider);
 
     if (ride == null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('No ride selected')),
+      return const Scaffold(
+        appBar: SahyanAppBar(title: 'Booking Request Summary'),
+        body: Center(child: Text('No ride selected')),
       );
     }
 
@@ -102,55 +104,71 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'Booking Request Summary',
-          style: AppTypography.sectionHeader,
-        ),
+      appBar: const SahyanAppBar(
+        title: 'Booking Request Summary',
+        showBackButton: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.containerMargin),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.containerMargin,
+          vertical: AppSpacing.base,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Journey Overview
             SahyanCard(
-              padding: AppSpacing.paddingCardLarge,
+              padding: const EdgeInsets.all(AppSpacing.base),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Journey Details', style: AppTypography.sectionHeader),
+                  Text(
+                    'Journey Details',
+                    style: AppTypography.sectionHeader.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.directions_car_filled,
-                        color: AppColors.primaryForest,
+                      Container(
+                        width: 38,
+                        height: 38,
+                        decoration: const BoxDecoration(
+                          color: AppColors.softForest,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.directions_car_filled,
+                          color: AppColors.primaryForest,
+                          size: 20,
+                        ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           '${ride.origin.city} → ${ride.destination.city}',
                           style: AppTypography.bodyLarge.copyWith(
                             fontWeight: FontWeight.bold,
+                            color: AppColors.deepForest,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: AppColors.border),
+                  const SizedBox(height: 12),
                   Text(
                     'Driver: ${ride.driverName} (${ride.vehicle.fullName})',
                     style: AppTypography.secondary,
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     'Seats Requested: ${selectedSeats.length} (${selectedSeats.join(', ')})',
                     style: AppTypography.secondary,
                   ),
+                  const SizedBox(height: 4),
                   Text(
                     'Departure: ${ride.departureTime}',
                     style: AppTypography.secondary,
@@ -163,13 +181,15 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
 
             // Contribution Breakdown Card
             SahyanCard(
-              padding: AppSpacing.paddingCardLarge,
+              padding: const EdgeInsets.all(AppSpacing.base),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Contribution Details',
-                    style: AppTypography.sectionHeader,
+                    style: AppTypography.sectionHeader.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   _buildContributionRow(
@@ -198,15 +218,16 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
                 color: AppColors.softForest,
                 borderRadius: BorderRadius.circular(AppRadii.md),
                 border: Border.all(
-                  color: AppColors.primaryForest.withValues(alpha: 0.2),
+                  color: AppColors.primaryForest.withValues(alpha: 0.25),
                 ),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Icon(
                     Icons.info_outline_rounded,
                     color: AppColors.primaryForest,
-                    size: 28,
+                    size: 24,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -220,10 +241,12 @@ class _ConfirmPayScreenState extends ConsumerState<ConfirmPayScreen> {
                             color: AppColors.primaryForest,
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
                           'Your request will be sent to the driver for approval. Cost-sharing contribution is shared directly for fuel expenses.',
-                          style: AppTypography.caption,
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ],
                     ),

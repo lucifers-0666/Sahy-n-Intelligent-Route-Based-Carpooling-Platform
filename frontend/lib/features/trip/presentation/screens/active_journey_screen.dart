@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/design_system.dart';
@@ -177,31 +178,72 @@ class ActiveJourneyScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.md,
-                          vertical: 8,
+                          vertical: 10,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                          borderRadius: BorderRadius.circular(AppRadii.md),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            width: 0.8,
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'BOARDING PIN',
-                              style: AppTypography.caption.copyWith(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.0,
-                              ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'BOARDING PIN',
+                                  style: AppTypography.caption.copyWith(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Show to driver',
+                                  style: AppTypography.caption.copyWith(
+                                    color: Colors.white54,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              activeBooking.securityPin.split('').join(' '),
-                              style: AppTypography.screenTitle.copyWith(
-                                color: AppColors.softForest,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 4.0,
-                                fontSize: 20,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  activeBooking.securityPin.split('').join(' '),
+                                  style: AppTypography.screenTitle.copyWith(
+                                    color: AppColors.softForest,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 4.0,
+                                    fontSize: 22,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.copy_rounded,
+                                    color: Colors.white70,
+                                    size: 18,
+                                  ),
+                                  tooltip: 'Copy PIN',
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () {
+                                    Clipboard.setData(ClipboardData(text: activeBooking.securityPin));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Boarding PIN copied to clipboard'),
+                                        backgroundColor: AppColors.deepForest,
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -257,7 +299,7 @@ class ActiveJourneyScreen extends ConsumerWidget {
                             ),
                             Container(
                               width: 2,
-                              height: 42,
+                              height: 48,
                               color: AppColors.border,
                             ),
                             Container(
@@ -327,10 +369,14 @@ class ActiveJourneyScreen extends ConsumerWidget {
                             children: [
                               Row(
                                 children: [
-                                  Text(
-                                    driverName,
-                                    style: AppTypography.cardTitle.copyWith(
-                                      fontSize: 16,
+                                  Flexible(
+                                    child: Text(
+                                      driverName,
+                                      style: AppTypography.cardTitle.copyWith(
+                                        fontSize: 16,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   const SizedBox(width: 4),
@@ -349,6 +395,8 @@ class ActiveJourneyScreen extends ConsumerWidget {
                                 style: AppTypography.caption.copyWith(
                                   color: AppColors.textSecondary,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),

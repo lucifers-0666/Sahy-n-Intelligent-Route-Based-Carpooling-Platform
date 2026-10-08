@@ -370,7 +370,15 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.md),
+                      // Corridor transit connector
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: Container(
+                          width: 2,
+                          height: 16,
+                          color: AppColors.primaryForest.withValues(alpha: 0.3),
+                        ),
+                      ),
 
                       // Drop
                       Row(

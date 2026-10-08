@@ -196,8 +196,12 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/journey-completed',
       builder: (context, state) {
-        final booking = state.extra as BookingModel?;
-        return JourneyCompletedScreen(booking: booking);
+        if (state.extra is BookingModel) {
+          return JourneyCompletedScreen(booking: state.extra as BookingModel);
+        } else if (state.extra is RideModel) {
+          return JourneyCompletedScreen(ride: state.extra as RideModel);
+        }
+        return const JourneyCompletedScreen();
       },
     ),
     GoRoute(
@@ -336,11 +340,11 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/offer-ride',
-              builder: (context, state) => const PublishRideScreen(),
+              builder: (context, state) => const OfferRideScreen(),
             ),
             GoRoute(
               path: '/publish-ride',
-              builder: (context, state) => const PublishRideScreen(),
+              builder: (context, state) => const OfferRideScreen(),
             ),
           ],
         ),
