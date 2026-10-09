@@ -355,10 +355,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 icon: Icons.logout_rounded,
                 variant: SahyanButtonVariant.destructive,
                 isFullWidth: true,
-                onPressed: () {
-                  ref.read(authProvider.notifier).logout();
-                  context.go('/auth-entry');
-                },
+                onPressed: () => _confirmSignOut(context),
               ),
               const SizedBox(height: AppSpacing.xl),
 
@@ -391,6 +388,50 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
         ),
+      ),
+    );
+  }
+
+  void _confirmSignOut(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg),
+        ),
+        title: Text('Sign Out', style: AppTypography.cardTitle),
+        content: Text(
+          'Are you sure you want to sign out of your Sahyān account?',
+          style: AppTypography.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'Cancel',
+              style: AppTypography.button.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.mutedRust,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.read(authProvider.notifier).logout();
+              context.go('/auth-entry');
+            },
+            child: Text(
+              'Sign Out',
+              style: AppTypography.button.copyWith(color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }

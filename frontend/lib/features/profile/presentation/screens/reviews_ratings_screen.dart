@@ -119,94 +119,125 @@ class _ReviewsRatingsScreenState extends ConsumerState<ReviewsRatingsScreen> {
               // Segmented Tabs
               Row(
                 children: [
-                  _buildTab('All Reviews (3)', 0),
+                  _buildTab('All (${_sampleReviews.length})', 0),
                   const SizedBox(width: AppSpacing.sm),
-                  _buildTab('Passenger (2)', 1),
+                  _buildTab(
+                    'Passenger (${_sampleReviews.where((r) => r['role'] == 'Co-passenger').length})',
+                    1,
+                  ),
                   const SizedBox(width: AppSpacing.sm),
-                  _buildTab('Driver (1)', 2),
+                  _buildTab(
+                    'Driver (${_sampleReviews.where((r) => r['role'] == 'Driver').length})',
+                    2,
+                  ),
                 ],
               ),
 
               const SizedBox(height: AppSpacing.md),
 
               // Reviews List
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _sampleReviews.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (context, index) {
-                  final review = _sampleReviews[index];
-                  return SahyanCard(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+              Builder(
+                builder: (context) {
+                  final filteredReviews = _selectedTab == 0
+                      ? _sampleReviews
+                      : _selectedTab == 1
+                          ? _sampleReviews
+                              .where((r) => r['role'] == 'Co-passenger')
+                              .toList()
+                          : _sampleReviews
+                              .where((r) => r['role'] == 'Driver')
+                              .toList();
+
+                  if (filteredReviews.isEmpty) {
+                    return Center(
+                      child: SahyanEmptyState(
+                        title: 'No reviews found',
+                        description:
+                            'No community reviews found for the selected category.',
+                        icon: Icons.rate_review_outlined,
+                      ),
+                    );
+                  }
+
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filteredReviews.length,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(height: AppSpacing.sm),
+                    itemBuilder: (context, index) {
+                      final review = filteredReviews[index];
+                      return SahyanCard(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SahyanAvatar(
-                              name: review['name'] as String,
-                              radius: 20,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
+                            Row(
+                              children: [
+                                SahyanAvatar(
+                                  name: review['name'] as String,
+                                  radius: 20,
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        review['name'] as String,
-                                        style: AppTypography.cardTitle.copyWith(
-                                          fontSize: 14,
-                                        ),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            review['name'] as String,
+                                            style: AppTypography.cardTitle.copyWith(
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          Text(
+                                            review['date'] as String,
+                                            style: AppTypography.caption.copyWith(
+                                              color: AppColors.textSecondary,
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       Text(
-                                        review['date'] as String,
+                                        '${review['role']} • ${review['corridor']}',
                                         style: AppTypography.caption.copyWith(
-                                          color: AppColors.textSecondary,
+                                          color: AppColors.primaryForest,
                                           fontSize: 11,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  Text(
-                                    '${review['role']} • ${review['corridor']}',
-                                    style: AppTypography.caption.copyWith(
-                                      color: AppColors.primaryForest,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Row(
+                              children: List.generate(
+                                review['rating'] as int,
+                                (i) => const Icon(
+                                  Icons.star_rounded,
+                                  color: AppColors.mutedBrass,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              review['comment'] as String,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textPrimary,
+                                height: 1.4,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Row(
-                          children: List.generate(
-                            review['rating'] as int,
-                            (i) => const Icon(
-                              Icons.star_rounded,
-                              color: AppColors.mutedBrass,
-                              size: 16,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          review['comment'] as String,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textPrimary,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
               ),
