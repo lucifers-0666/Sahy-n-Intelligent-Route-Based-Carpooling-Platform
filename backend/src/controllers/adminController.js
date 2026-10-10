@@ -27,7 +27,7 @@ exports.getAdminStats = async (req, res, next) => {
       User.countDocuments({ role: { $ne: 'admin' } }),
       User.countDocuments({ isVerified: true, 'capabilities.canDrive': true }),
       User.countDocuments({ 'driverProfile.onboardingStatus': 'submitted' }),
-      Ride.countDocuments({ status: { $in: ['boarding', 'in_progress'] } }),
+      Ride.countDocuments({ status: { $in: ['boarding', 'active', 'in_progress'] } }),
       Ride.countDocuments({ status: 'scheduled' }),
       Ride.countDocuments({ status: 'completed' }),
       Booking.countDocuments({ status: 'completed' }),
@@ -405,3 +405,53 @@ exports.resolveReport = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc Get paginated list of bookings for cancellation & dispute investigation
+ * @route GET /api/v1/admin/bookings
+ * @access Private (Admin only)
+ */
+exports.getBookings = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 50, status = 'all', paymentStatus } = req.query;
+    const filter = {};
+
+    if (status !== 'all') {
+      filter.status = status;
+    }
+    if (paymentStatus && paymentStatus !== 'all') {
+      filter.paymentStatus = paymentStatus;
+    }
+
+    const skip = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+    const [bookings, total] = await Promise.all([
+      Booking.find(filter)
+        .populate('passenger', 'name phone email')
+        .populate({
+          path: 'ride',
+          select: 'origin destination departureTime driver status contributionPerSeat',
+          populate: { path: 'driver', select: 'name phone email rating' },
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit, 10)),
+      Booking.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        bookings,
+        pagination: {
+          total,
+          page: parseInt(page, 10),
+          pages: Math.ceil(total / parseInt(limit, 10)),
+          limit: parseInt(limit, 10),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

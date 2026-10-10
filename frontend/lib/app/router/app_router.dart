@@ -56,7 +56,6 @@ import 'package:sahyan/features/trip/presentation/screens/driver_active_ride_scr
 import 'package:sahyan/features/trip/presentation/screens/safety_center_screen.dart';
 import 'package:sahyan/features/settings/presentation/screens/help_support_screen.dart';
 import 'package:sahyan/features/home/presentation/screens/system_states_screen.dart';
-import 'package:sahyan/features/admin/presentation/screens/admin_dashboard_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:sahyan/features/trip/presentation/screens/gps_diagnostic_screen.dart';
 import 'package:sahyan/shared/widgets/app_shell.dart';
@@ -305,10 +304,6 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/gps-diagnostics',
       builder: (context, state) => const GpsDiagnosticScreen(),
-    ),
-    GoRoute(
-      path: '/admin',
-      builder: (context, state) => const AdminDashboardScreen(),
     ),
 
     // Bottom Navigation Shell
