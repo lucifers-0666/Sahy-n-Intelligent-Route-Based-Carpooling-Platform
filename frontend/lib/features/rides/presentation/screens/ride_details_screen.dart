@@ -261,7 +261,7 @@ class RideDetailsScreen extends ConsumerWidget {
                                         ),
                                         SizedBox(width: 4),
                                         Text(
-                                          'Expand Map ⤢',
+                                          'Expand Map',
                                           style: TextStyle(
                                             fontSize: 10.5,
                                             fontWeight: FontWeight.w700,
