@@ -57,16 +57,37 @@ import 'package:sahyan/features/trip/presentation/screens/safety_center_screen.d
 import 'package:sahyan/features/settings/presentation/screens/help_support_screen.dart';
 import 'package:sahyan/features/home/presentation/screens/system_states_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:sahyan/features/auth/presentation/screens/account_suspended_screen.dart';
 import 'package:sahyan/features/trip/presentation/screens/gps_diagnostic_screen.dart';
 import 'package:sahyan/shared/widgets/app_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+void navigateToSuspendedScreen(String reason, [String? suspendedAt]) {
+  appRouter.go(
+    '/account-suspended',
+    extra: {'reason': reason, 'suspendedAt': suspendedAt},
+  );
+}
 
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
   routes: [
     GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
+    GoRoute(
+      path: '/account-suspended',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final reason =
+            extra?['reason'] as String? ?? 'Account suspended by administration.';
+        final suspendedAt = extra?['suspendedAt'] as String?;
+        return AccountSuspendedScreen(
+          reason: reason,
+          suspendedAt: suspendedAt,
+        );
+      },
+    ),
     GoRoute(
       path: '/onboarding',
       builder: (context, state) => const OnboardingScreen(),

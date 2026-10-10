@@ -8,8 +8,17 @@ import 'package:sahyan/core/network/api_config.dart';
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
+  final String? errorCode;
+  final String? suspensionReason;
+  final String? suspendedAt;
 
-  ApiException(this.message, {this.statusCode});
+  ApiException(
+    this.message, {
+    this.statusCode,
+    this.errorCode,
+    this.suspensionReason,
+    this.suspendedAt,
+  });
 
   @override
   String toString() => message;
@@ -20,11 +29,16 @@ class ApiClient {
   final http.Client _client;
   String? _authToken;
   void Function()? onUnauthorized;
+  void Function(String reason, String? suspendedAt)? onAccountSuspended;
   static String? _resolvedBaseUrl;
 
-  ApiClient({String? baseUrl, http.Client? client, this.onUnauthorized})
-    : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl,
-      _client = client ?? http.Client();
+  ApiClient({
+    String? baseUrl,
+    http.Client? client,
+    this.onUnauthorized,
+    this.onAccountSuspended,
+  })  : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl,
+        _client = client ?? http.Client();
 
   /// Probes candidate hosts concurrently on Android to establish the fastest working connection
   Future<String> _resolveEffectiveBaseUrl() async {
@@ -175,12 +189,38 @@ class ApiClient {
       onUnauthorized?.call();
     }
 
+    final errorCode =
+        jsonResponseBody is Map && jsonResponseBody.containsKey('errorCode')
+            ? jsonResponseBody['errorCode'] as String?
+            : null;
+    final suspensionReason =
+        jsonResponseBody is Map && jsonResponseBody.containsKey('suspensionReason')
+            ? jsonResponseBody['suspensionReason'] as String?
+            : null;
+    final suspendedAt =
+        jsonResponseBody is Map && jsonResponseBody.containsKey('suspendedAt')
+            ? jsonResponseBody['suspendedAt']?.toString()
+            : null;
+
+    if (response.statusCode == 403 && errorCode == 'ACCOUNT_SUSPENDED') {
+      onAccountSuspended?.call(
+        suspensionReason ?? 'Account suspended by administrator.',
+        suspendedAt,
+      );
+    }
+
     final message =
         jsonResponseBody is Map && jsonResponseBody.containsKey('message')
         ? jsonResponseBody['message']
         : 'Request failed with status ${response.statusCode}';
 
-    throw ApiException(message, statusCode: response.statusCode);
+    throw ApiException(
+      message,
+      statusCode: response.statusCode,
+      errorCode: errorCode,
+      suspensionReason: suspensionReason,
+      suspendedAt: suspendedAt,
+    );
   }
 
   Exception _handleError(dynamic error) {

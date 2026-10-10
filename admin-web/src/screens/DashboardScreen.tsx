@@ -8,6 +8,9 @@ import { BookingsTab } from '../components/tabs/BookingsTab';
 import { ReportsTab } from '../components/tabs/ReportsTab';
 import { UsersTab } from '../components/tabs/UsersTab';
 import { SettingsTab } from '../components/tabs/SettingsTab';
+import { MonetizationTab } from '../components/tabs/MonetizationTab';
+import { AuditLogsTab } from '../components/tabs/AuditLogsTab';
+import { PlatformSettingsTab } from '../components/tabs/PlatformSettingsTab';
 import { AdminStats } from '../types/admin';
 import { adminApi } from '../services/api';
 
@@ -25,7 +28,6 @@ export const DashboardScreen: React.FC = () => {
       const isConnected = data.systemHealth?.database === 'connected' || data.databaseConnected === true;
       setDbConnected(isConnected);
     } catch {
-      // In case stats call fails, fallback to neutral stats
       setDbConnected(false);
     } finally {
       setRefreshing(false);
@@ -34,7 +36,6 @@ export const DashboardScreen: React.FC = () => {
 
   useEffect(() => {
     fetchStats();
-    // 30s auto-refresh
     const timer = setInterval(fetchStats, 30000);
     return () => clearInterval(timer);
   }, []);
@@ -65,6 +66,9 @@ export const DashboardScreen: React.FC = () => {
             {activeTab === 'bookings' && <BookingsTab />}
             {activeTab === 'reports' && <ReportsTab />}
             {activeTab === 'users' && <UsersTab />}
+            {activeTab === 'monetization' && <MonetizationTab />}
+            {activeTab === 'audit' && <AuditLogsTab />}
+            {activeTab === 'platform' && <PlatformSettingsTab />}
             {activeTab === 'settings' && <SettingsTab dbConnected={dbConnected} />}
           </div>
         </main>

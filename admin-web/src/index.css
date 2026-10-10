@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,6 +7,16 @@
 :root {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   color-scheme: light;
+  --color-forest: #0B5D4B;
+  --color-forest-dark: #084C3A;
+  --color-forest-mint: #A7E8D2;
+  --color-surface: #F2F7F4;
+  --color-text-main: #12352E;
+  --color-text-muted: #6B7F78;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -13,20 +25,127 @@ body {
   background-color: #F2F7F4;
   color: #12352E;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom scrollbars */
+/* ── Scrollbar system ─────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #F2F7F4;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: #CBD5E1;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94A3B8;
+}
+
+/* ── Component layer ──────────────────────────────── */
+@layer components {
+  /* Cards */
+  .card {
+    @apply bg-white rounded-2xl border border-surface-subtle shadow-card p-5;
+  }
+  .card-sm {
+    @apply bg-white rounded-xl border border-surface-subtle shadow-xs p-4;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide;
+  }
+  .badge-green  { @apply bg-emerald-50 text-emerald-800 border border-emerald-200; }
+  .badge-red    { @apply bg-rose-50 text-rose-800 border border-rose-200; }
+  .badge-amber  { @apply bg-amber-50 text-amber-800 border border-amber-200; }
+  .badge-blue   { @apply bg-blue-50 text-blue-800 border border-blue-200; }
+  .badge-purple { @apply bg-purple-50 text-purple-800 border border-purple-200; }
+  .badge-gray   { @apply bg-gray-100 text-gray-700 border border-gray-200; }
+
+  /* Buttons */
+  .btn-primary {
+    @apply px-4 py-2 rounded-xl bg-forest text-white font-semibold text-sm hover:bg-forest-dark transition-colors cursor-pointer shadow-xs;
+  }
+  .btn-secondary {
+    @apply px-4 py-2 rounded-xl bg-surface border border-surface-subtle text-textMain font-semibold text-sm hover:bg-surface-subtle transition-colors cursor-pointer;
+  }
+  .btn-danger {
+    @apply px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold text-sm hover:bg-rose-700 transition-colors cursor-pointer;
+  }
+  .btn-ghost {
+    @apply px-3 py-1.5 rounded-lg text-textMuted font-medium text-xs hover:bg-surface-subtle hover:text-textMain transition-colors cursor-pointer;
+  }
+
+  /* Inputs */
+  .input {
+    @apply w-full px-3.5 py-2.5 rounded-xl border border-surface-subtle bg-white text-sm text-textMain placeholder-textLight focus:outline-none focus:ring-2 focus:ring-forest/20 focus:border-forest transition-all;
+  }
+  .select {
+    @apply px-3 py-2 rounded-xl border border-surface-subtle bg-white text-xs font-semibold text-textMain focus:outline-none focus:ring-2 focus:ring-forest/20 focus:border-forest cursor-pointer transition-all;
+  }
+
+  /* Section headers */
+  .section-title {
+    @apply text-xl font-extrabold text-textMain tracking-tight;
+  }
+  .section-subtitle {
+    @apply text-xs text-textMuted font-medium mt-0.5;
+  }
+
+  /* Table rows */
+  .table-row {
+    @apply border-b border-surface-subtle hover:bg-surface/60 transition-colors;
+  }
+  .table-header {
+    @apply px-4 py-3 text-left text-[11px] font-bold text-textMuted uppercase tracking-wider;
+  }
+  .table-cell {
+    @apply px-4 py-3.5 text-sm text-textMain;
+  }
+
+  /* Status dots */
+  .status-dot-green  { @apply w-2 h-2 rounded-full bg-emerald-500 animate-pulse; }
+  .status-dot-red    { @apply w-2 h-2 rounded-full bg-rose-500; }
+  .status-dot-amber  { @apply w-2 h-2 rounded-full bg-amber-500 animate-pulse; }
+  .status-dot-gray   { @apply w-2 h-2 rounded-full bg-gray-400; }
+
+  /* Modal backdrop */
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4;
+  }
+  .modal-box {
+    @apply bg-white rounded-3xl w-full max-w-lg shadow-modal animate-slide-up;
+  }
+
+  /* Empty state */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 text-center;
+  }
+  .empty-state-icon {
+    @apply w-14 h-14 rounded-2xl bg-surface flex items-center justify-center mb-4 text-textMuted;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply bg-surface-subtle rounded-lg animate-pulse;
+  }
+}
+
+/* ── Utility overrides ────────────────────────────── */
+@layer utilities {
+  .text-xxs { font-size: 0.65rem; line-height: 1rem; }
+  .animate-fade-in { animation: fadeIn 0.2s ease-out; }
+  .animate-slide-up { animation: slideUp 0.25s ease-out; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

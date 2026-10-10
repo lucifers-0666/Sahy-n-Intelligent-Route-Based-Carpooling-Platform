@@ -64,6 +64,11 @@ export interface UserItem {
   totalRides?: number;
   vehicle?: VehicleInfo | null;
   driverProfile?: DriverProfile;
+  accountStatus?: 'active' | 'suspended';
+  suspensionReason?: string;
+  suspendedAt?: string;
+  suspendedBy?: { _id?: string; name?: string; email?: string } | string | null;
+  suspensionUpdatedAt?: string;
   createdAt: string;
 }
 
@@ -167,6 +172,59 @@ export interface BookingItem {
   pickup?: { name: string };
   drop?: { name: string };
   createdAt: string;
+}
+
+export interface AuditLogItem {
+  _id: string;
+  action: string;
+  admin?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  targetUser?: {
+    _id: string;
+    name: string;
+    email: string;
+    phone?: string;
+  } | null;
+  reason: string;
+  metadata?: Record<string, any>;
+  createdAt: string;
+}
+
+export interface RevenueStats {
+  totalFuelShared: number;
+  monthlyFuelShared: number;
+  weeklyFuelShared: number;
+  totalBookings: number;
+  completedBookings: number;
+  recentBookings: number;
+  weeklyBookings: number;
+  completionRate: number;
+  co2SavedKg: number;
+  totalUsers: number;
+  newUsersMonth: number;
+  totalRides: number;
+  completedRides: number;
+  monthlyTrend: Array<{
+    _id: { year: number; month: number };
+    bookings: number;
+    fuelShared: number;
+  }>;
+}
+
+export interface PlatformConfig {
+  maxSeatsPerRide: number;
+  maxContributionPerSeat: number;
+  verificationRequired: boolean;
+  safetyReportAutoEscalateHours: number;
+  maxRideDistanceKm: number;
+  defaultCarpoolCity: string;
+  maintenanceMode: boolean;
+  socketTelematicsEnabled: boolean;
+  pushNotificationsEnabled: boolean;
+  co2SavedKgPerBooking: number;
 }
 
 export interface AuthState {

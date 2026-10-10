@@ -3,8 +3,9 @@ import 'package:sahyan/core/network/api_client.dart';
 import 'package:sahyan/core/storage/secure_storage_service.dart';
 import 'package:sahyan/shared/models/user_model.dart';
 import 'package:sahyan/features/auth/data/auth_repository.dart';
+import 'package:sahyan/app/router/app_router.dart';
 
-enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
+enum AuthStatus { initial, loading, authenticated, unauthenticated, error, suspended }
 
 class AuthState {
   final AuthStatus status;
@@ -12,6 +13,8 @@ class AuthState {
   final String? token;
   final String? errorMessage;
   final String? otpSentToPhone;
+  final String? suspensionReason;
+  final String? suspendedAt;
 
   const AuthState({
     this.status = AuthStatus.initial,
@@ -19,9 +22,12 @@ class AuthState {
     this.token,
     this.errorMessage,
     this.otpSentToPhone,
+    this.suspensionReason,
+    this.suspendedAt,
   });
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
+  bool get isSuspended => status == AuthStatus.suspended;
   bool get isGuest => !isAuthenticated || user == null;
   bool get isLoading => status == AuthStatus.loading;
 
@@ -31,6 +37,8 @@ class AuthState {
     String? token,
     String? errorMessage,
     String? otpSentToPhone,
+    String? suspensionReason,
+    String? suspendedAt,
   }) {
     return AuthState(
       status: status ?? this.status,
@@ -38,6 +46,8 @@ class AuthState {
       token: token ?? this.token,
       errorMessage: errorMessage,
       otpSentToPhone: otpSentToPhone ?? this.otpSentToPhone,
+      suspensionReason: suspensionReason ?? this.suspensionReason,
+      suspendedAt: suspendedAt ?? this.suspendedAt,
     );
   }
 }
@@ -55,7 +65,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     apiClient.onUnauthorized = () {
       logout();
     };
+    apiClient.onAccountSuspended = (reason, suspendedAt) {
+      handleSuspension(reason, suspendedAt);
+    };
     checkAuthStatus();
+  }
+
+  Future<void> handleSuspension(String reason, [String? suspendedAt]) async {
+    await storageService.clearSession();
+    apiClient.setAuthToken(null);
+    state = AuthState(
+      status: AuthStatus.suspended,
+      suspensionReason: reason,
+      suspendedAt: suspendedAt,
+      errorMessage: reason,
+    );
+    try {
+      navigateToSuspendedScreen(reason, suspendedAt);
+    } catch (_) {}
   }
 
   /// On App Startup: Check secure storage and restore session
@@ -72,6 +99,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
           user = await repository.getProfile();
           await storageService.saveUser(user);
         } catch (e) {
+          if (e is ApiException && e.errorCode == 'ACCOUNT_SUSPENDED') {
+            await handleSuspension(
+              e.suspensionReason ?? e.message,
+              e.suspendedAt,
+            );
+            return;
+          }
           if (e is ApiException && e.statusCode == 401) {
             await storageService.clearSession();
             apiClient.setAuthToken(null);
@@ -123,6 +157,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } catch (e) {
+      if (e is ApiException && e.errorCode == 'ACCOUNT_SUSPENDED') {
+        await handleSuspension(
+          e.suspensionReason ?? e.message,
+          e.suspendedAt,
+        );
+        return false;
+      }
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: e.toString(),

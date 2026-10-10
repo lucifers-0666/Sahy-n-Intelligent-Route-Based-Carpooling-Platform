@@ -158,6 +158,16 @@ const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
+    if (user.accountStatus === 'suspended') {
+      return res.status(403).json({
+        success: false,
+        errorCode: 'ACCOUNT_SUSPENDED',
+        message: 'Your account has been suspended by the Sahyān administration team.',
+        suspensionReason: user.suspensionReason || 'Account suspended by administration.',
+        suspendedAt: user.suspendedAt,
+      });
+    }
+
     // Block unverified accounts from logging in via password
     if (!user.isVerified) {
       return res.status(403).json({

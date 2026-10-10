@@ -7,9 +7,22 @@ import {
   AlertTriangle,
   Users,
   Settings,
+  IndianRupee,
+  ScrollText,
+  SlidersHorizontal,
 } from 'lucide-react';
 
-export type TabKey = 'overview' | 'verifications' | 'rides' | 'bookings' | 'reports' | 'users' | 'settings';
+export type TabKey =
+  | 'overview'
+  | 'verifications'
+  | 'rides'
+  | 'bookings'
+  | 'reports'
+  | 'users'
+  | 'monetization'
+  | 'audit'
+  | 'platform'
+  | 'settings';
 
 interface SidebarProps {
   activeTab: TabKey;
@@ -18,88 +31,133 @@ interface SidebarProps {
   pendingReportsCount?: number;
 }
 
+interface NavItem {
+  key: TabKey;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number | null;
+  badgeColor?: string;
+  group: 'ops' | 'biz' | 'admin';
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({
   activeTab,
   onSelectTab,
   pendingVerificationsCount = 0,
   pendingReportsCount = 0,
 }) => {
-  const navItems = [
+  const navItems: NavItem[] = [
+    // Operations group
     {
-      key: 'overview' as TabKey,
-      label: 'Overview & Metrics',
+      key: 'overview',
+      label: 'Overview',
       icon: LayoutDashboard,
       badge: null,
+      group: 'ops',
     },
     {
-      key: 'verifications' as TabKey,
+      key: 'verifications',
       label: 'Driver Verifications',
       icon: FileCheck,
       badge: pendingVerificationsCount > 0 ? pendingVerificationsCount : null,
       badgeColor: 'bg-amber-100 text-amber-800',
+      group: 'ops',
     },
     {
-      key: 'rides' as TabKey,
+      key: 'rides',
       label: 'Ride Moderation',
       icon: Car,
       badge: null,
+      group: 'ops',
     },
     {
-      key: 'bookings' as TabKey,
+      key: 'bookings',
       label: 'Bookings & Disputes',
       icon: Bookmark,
       badge: null,
+      group: 'ops',
     },
     {
-      key: 'reports' as TabKey,
+      key: 'reports',
       label: 'Safety Incidents',
       icon: AlertTriangle,
       badge: pendingReportsCount > 0 ? pendingReportsCount : null,
       badgeColor: 'bg-rose-100 text-rose-800',
+      group: 'ops',
     },
     {
-      key: 'users' as TabKey,
+      key: 'users',
       label: 'User Directory',
       icon: Users,
       badge: null,
+      group: 'ops',
+    },
+
+    // Business group
+    {
+      key: 'monetization',
+      label: 'Revenue & Activity',
+      icon: IndianRupee,
+      badge: null,
+      group: 'biz',
+    },
+
+    // Admin group
+    {
+      key: 'audit',
+      label: 'Audit Logs',
+      icon: ScrollText,
+      badge: null,
+      group: 'admin',
     },
     {
-      key: 'settings' as TabKey,
+      key: 'platform',
+      label: 'Platform Settings',
+      icon: SlidersHorizontal,
+      badge: null,
+      group: 'admin',
+    },
+    {
+      key: 'settings',
       label: 'System Health',
       icon: Settings,
       badge: null,
+      group: 'admin',
     },
   ];
 
-  return (
-    <aside className="w-64 bg-white border-r border-surface-subtle flex flex-col shrink-0 min-h-[calc(100vh-4rem)]">
-      <div className="p-4 space-y-1">
-        <div className="px-3 py-2 text-[11px] font-bold text-textMuted uppercase tracking-wider">
-          Management & Audits
+  const renderGroup = (groupKey: 'ops' | 'biz' | 'admin', label: string) => {
+    const items = navItems.filter((i) => i.group === groupKey);
+    return (
+      <div className="space-y-0.5">
+        <div className="px-3 py-2 text-[10px] font-bold text-textLight uppercase tracking-widest">
+          {label}
         </div>
-
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.key;
-
           return (
             <button
               key={item.key}
               onClick={() => onSelectTab(item.key)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-forest text-white shadow-sm shadow-forest/20'
+                  ? 'bg-forest text-white shadow-xs shadow-forest/20'
                   : 'text-textMain hover:bg-surface hover:text-forest'
               }`}
             >
-              <div className="flex items-center space-x-3">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-forest-mint' : 'text-textMuted'}`} />
-                <span>{item.label}</span>
+              <div className="flex items-center space-x-2.5">
+                <Icon
+                  className={`w-4 h-4 shrink-0 ${
+                    isActive ? 'text-forest-mint' : 'text-textMuted'
+                  }`}
+                />
+                <span className="truncate">{item.label}</span>
               </div>
 
-              {item.badge !== null && (
+              {item.badge != null && (
                 <span
-                  className={`text-xs px-2 py-0.5 rounded-full font-bold ${
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
                     isActive ? 'bg-white/20 text-white' : item.badgeColor
                   }`}
                 >
@@ -110,15 +168,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
           );
         })}
       </div>
+    );
+  };
 
-      <div className="mt-auto p-4 border-t border-surface-subtle">
+  return (
+    <aside className="w-60 bg-white border-r border-surface-subtle flex flex-col shrink-0 min-h-[calc(100vh-4rem)] overflow-y-auto">
+      <div className="p-3 space-y-4 flex-1">
+        {renderGroup('ops', 'Operations')}
+        {renderGroup('biz', 'Business')}
+        {renderGroup('admin', 'Admin Tools')}
+      </div>
+
+      <div className="p-3 border-t border-surface-subtle shrink-0">
         <div className="p-3 bg-surface rounded-xl">
           <div className="text-xs font-bold text-forest">Sahyān Architecture</div>
-          <div className="text-[11px] text-textMuted mt-0.5">
-            Peer Cost-Sharing · Free OpenStreetMap · Deterministic Matching
+          <div className="text-[10px] text-textMuted mt-0.5">
+            Peer Cost-Sharing · Free OSM · Deterministic Match
           </div>
-          <div className="mt-2 text-[10px] text-textMuted font-mono">
-            Environment: Production Node/Mongo
+          <div className="mt-1.5 text-[10px] text-textMuted font-mono">
+            Production · Node/Mongo
           </div>
         </div>
       </div>

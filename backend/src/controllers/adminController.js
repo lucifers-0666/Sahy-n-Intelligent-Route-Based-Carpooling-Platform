@@ -5,6 +5,8 @@ const Booking = require('../models/Booking');
 const Vehicle = require('../models/Vehicle');
 const Report = require('../models/Report');
 const Notification = require('../models/Notification');
+const AuditLog = require('../models/AuditLog');
+const socketService = require('../services/socketService');
 
 /**
  * @desc Get aggregated platform statistics for admin dashboard
@@ -455,3 +457,298 @@ exports.getBookings = async (req, res, next) => {
   }
 };
 
+/**
+ * @desc Suspend an eligible driver account
+ * @route PATCH /api/v1/admin/users/:id/suspend
+ * @access Private (Admin only)
+ */
+exports.suspendDriver = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    // Reject suspending administrators
+    if (targetUser.role === 'admin') {
+      return res.status(403).json({ success: false, message: 'Cannot suspend an administrator account.' });
+    }
+
+    // Reject self-suspension
+    if (req.user._id.toString() === targetUser._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Administrators cannot suspend their own account.' });
+    }
+
+    // Authoritative eligibility check: must be a driver
+    const hasRegisteredVehicle = await Vehicle.exists({ owner: targetUser._id });
+    const isEligibleDriver =
+      targetUser.capabilities?.canDrive === true ||
+      targetUser.driverProfile?.onboardingStatus === 'approved' ||
+      !!hasRegisteredVehicle;
+
+    if (!isEligibleDriver) {
+      return res.status(400).json({
+        success: false,
+        message: 'Target user is not an eligible driver account. Passenger-only accounts cannot be suspended via this endpoint.',
+      });
+    }
+
+    // Reason validation: trimmed, 5 to 500 characters
+    const { reason } = req.body;
+    if (!reason || typeof reason !== 'string' || reason.trim().length < 5 || reason.trim().length > 500) {
+      return res.status(400).json({
+        success: false,
+        message: 'A specific, non-empty suspension reason (between 5 and 500 characters) is required.',
+      });
+    }
+
+    if (targetUser.accountStatus === 'suspended') {
+      return res.status(400).json({ success: false, message: 'Driver account is already suspended.' });
+    }
+
+    // Persist new state
+    targetUser.accountStatus = 'suspended';
+    targetUser.suspensionReason = reason.trim();
+    targetUser.suspendedAt = new Date();
+    targetUser.suspendedBy = req.user._id;
+    targetUser.suspensionUpdatedAt = new Date();
+    await targetUser.save();
+
+    // Persist audit record
+    await AuditLog.create({
+      action: 'DRIVER_SUSPENDED',
+      admin: req.user._id,
+      targetUser: targetUser._id,
+      reason: reason.trim(),
+      metadata: {
+        targetName: targetUser.name,
+        targetEmail: targetUser.email,
+        targetPhone: targetUser.phone,
+      },
+    });
+
+    // Terminate any active Socket.IO telematics connection immediately
+    if (socketService.disconnectUserSockets) {
+      socketService.disconnectUserSockets(targetUser._id);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Driver account suspended successfully.',
+      data: { user: targetUser },
+      user: targetUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Reactivate a suspended driver account
+ * @route PATCH /api/v1/admin/users/:id/reactivate
+ * @access Private (Admin only)
+ */
+exports.reactivateDriver = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID format.' });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    if (targetUser.accountStatus !== 'suspended') {
+      return res.status(400).json({ success: false, message: 'Account is not currently suspended.' });
+    }
+
+    // Restore active state
+    targetUser.accountStatus = 'active';
+    targetUser.suspensionReason = '';
+    targetUser.suspendedAt = null;
+    targetUser.suspendedBy = null;
+    targetUser.suspensionUpdatedAt = new Date();
+    await targetUser.save();
+
+    // Persist audit record
+    await AuditLog.create({
+      action: 'DRIVER_REACTIVATED',
+      admin: req.user._id,
+      targetUser: targetUser._id,
+      reason: req.body && req.body.reason ? req.body.reason.trim() : 'Reactivated by administrator',
+      metadata: {
+        targetName: targetUser.name,
+        targetEmail: targetUser.email,
+        targetPhone: targetUser.phone,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Driver account reactivated successfully.',
+      data: { user: targetUser },
+      user: targetUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Get paginated admin audit log entries
+ * @route GET /api/v1/admin/audit-logs
+ * @access Private (Admin only)
+ */
+exports.getAuditLogs = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 50, action, adminId } = req.query;
+    const filter = {};
+    if (action && action !== 'all') filter.action = action;
+    if (adminId) filter.admin = adminId;
+
+    const total = await AuditLog.countDocuments(filter);
+    const logs = await AuditLog.find(filter)
+      .populate('admin', 'name email')
+      .populate('targetUser', 'name email phone')
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        logs,
+        total,
+        page: Number(page),
+        totalPages: Math.ceil(total / Number(limit)),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Get platform revenue and monetization statistics
+ * @route GET /api/v1/admin/revenue-stats
+ * @access Private (Admin only)
+ */
+exports.getRevenueStats = async (req, res, next) => {
+  try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalBookings,
+      completedBookings,
+      recentBookings,
+      weeklyBookings,
+      totalFuelAgg,
+      monthlyFuelAgg,
+      weeklyFuelAgg,
+      totalUsers,
+      newUsersMonth,
+      totalRides,
+      completedRides,
+    ] = await Promise.all([
+      Booking.countDocuments(),
+      Booking.countDocuments({ status: 'completed' }),
+      Booking.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      Booking.countDocuments({ createdAt: { $gte: sevenDaysAgo } }),
+      Booking.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$totalContribution' } } },
+      ]),
+      Booking.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: thirtyDaysAgo } } },
+        { $group: { _id: null, total: { $sum: '$totalContribution' } } },
+      ]),
+      Booking.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: sevenDaysAgo } } },
+        { $group: { _id: null, total: { $sum: '$totalContribution' } } },
+      ]),
+      User.countDocuments({ role: { $ne: 'admin' } }),
+      User.countDocuments({ role: { $ne: 'admin' }, createdAt: { $gte: thirtyDaysAgo } }),
+      Ride.countDocuments(),
+      Ride.countDocuments({ status: 'completed' }),
+    ]);
+
+    // Monthly breakdown for trend chart (last 6 months)
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const monthlyTrend = await Booking.aggregate([
+      { $match: { status: 'completed', createdAt: { $gte: sixMonthsAgo } } },
+      {
+        $group: {
+          _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
+          bookings: { $sum: 1 },
+          fuelShared: { $sum: '$totalContribution' },
+        },
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1 } },
+    ]);
+
+    const totalFuelShared = totalFuelAgg[0]?.total || 0;
+    const monthlyFuelShared = monthlyFuelAgg[0]?.total || 0;
+    const weeklyFuelShared = weeklyFuelAgg[0]?.total || 0;
+    const completionRate = totalBookings > 0 ? Math.round((completedBookings / totalBookings) * 100) : 0;
+    const co2SavedKg = Math.round(completedBookings * 4.2 * 10) / 10;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalFuelShared,
+        monthlyFuelShared,
+        weeklyFuelShared,
+        totalBookings,
+        completedBookings,
+        recentBookings,
+        weeklyBookings,
+        completionRate,
+        co2SavedKg,
+        totalUsers,
+        newUsersMonth,
+        totalRides,
+        completedRides,
+        monthlyTrend,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Get platform operational configuration
+ * @route GET /api/v1/admin/config
+ * @access Private (Admin only)
+ */
+exports.getPlatformConfig = async (req, res, next) => {
+  try {
+    // Return current runtime config (can be persisted to DB in future)
+    return res.status(200).json({
+      success: true,
+      data: {
+        maxSeatsPerRide: parseInt(process.env.MAX_SEATS_PER_RIDE || '6'),
+        maxContributionPerSeat: parseInt(process.env.MAX_CONTRIBUTION_PER_SEAT || '500'),
+        verificationRequired: process.env.DRIVER_VERIFICATION_REQUIRED !== 'false',
+        safetyReportAutoEscalateHours: parseInt(process.env.SAFETY_ESCALATE_HOURS || '24'),
+        maxRideDistanceKm: parseInt(process.env.MAX_RIDE_DISTANCE_KM || '500'),
+        defaultCarpoolCity: process.env.DEFAULT_CITY || 'Ahmedabad',
+        maintenanceMode: process.env.MAINTENANCE_MODE === 'true',
+        socketTelematicsEnabled: process.env.SOCKET_TELEMATICS !== 'false',
+        pushNotificationsEnabled: process.env.PUSH_NOTIFICATIONS !== 'false',
+        co2SavedKgPerBooking: parseFloat(process.env.CO2_PER_BOOKING || '4.2'),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -102,7 +102,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context.go('/home');
       }
     } else if (mounted) {
-      final errorMsg = ref.read(authProvider).errorMessage;
+      final authState = ref.read(authProvider);
+      if (authState.status == AuthStatus.suspended) {
+        context.go(
+          '/account-suspended',
+          extra: {
+            'reason': authState.suspensionReason ?? 'Account suspended by administration.',
+            'suspendedAt': authState.suspendedAt,
+          },
+        );
+        return;
+      }
+      final errorMsg = authState.errorMessage;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,

@@ -15,14 +15,35 @@ const Ride = require('../models/Ride');
 const Booking = require('../models/Booking');
 const LocationProcessor = require('./location/locationProcessor');
 
+let ioInstance = null;
+
+/**
+ * Disconnect all active sockets for a suspended user
+ * @param {string|mongoose.Types.ObjectId} userId
+ */
+function disconnectUserSockets(userId) {
+  if (!ioInstance) return;
+  const userStr = userId.toString();
+  for (const [_, socket] of ioInstance.sockets.sockets) {
+    if (socket.user && socket.user._id.toString() === userStr) {
+      socket.emit('account_suspended', {
+        errorCode: 'ACCOUNT_SUSPENDED',
+        message: 'Account has been suspended by administration.',
+      });
+      socket.disconnect(true);
+    }
+  }
+}
+
 /**
  * @param {import('socket.io').Server} io
  */
 function initSocketService(io) {
+  ioInstance = io;
   /** @type {Map<string, { rideId: string, role: string, userId: string }>} */
   const socketMeta = new Map();
 
-  // ── Fail-Closed JWT Handshake Authentication Middleware ─────────────────────
+  // Fail-Closed JWT Handshake Authentication Middleware
   io.use(async (socket, next) => {
     try {
       let token = socket.handshake.auth && socket.handshake.auth.token;
@@ -49,9 +70,22 @@ function initSocketService(io) {
         return next(err);
       }
 
+      if (user.accountStatus === 'suspended') {
+        const err = new Error('ACCOUNT_SUSPENDED');
+        err.data = {
+          code: 403,
+          errorCode: 'ACCOUNT_SUSPENDED',
+          message: 'Account has been suspended by administration.',
+          suspensionReason: user.suspensionReason || 'Account suspended by administration.',
+          suspendedAt: user.suspendedAt,
+        };
+        return next(err);
+      }
+
       socket.user = user;
       return next();
     } catch (err) {
+      if (err.message === 'ACCOUNT_SUSPENDED') return next(err);
       const authErr = new Error('INVALID_OR_EXPIRED_TOKEN');
       authErr.data = { code: 401, message: 'Invalid or expired access token.' };
       return next(authErr);
@@ -202,4 +236,7 @@ function initSocketService(io) {
   console.log('[Socket.IO] Fail-closed telematics event handlers registered.');
 }
 
+initSocketService.disconnectUserSockets = disconnectUserSockets;
+
 module.exports = initSocketService;
+

@@ -54,6 +54,29 @@ const userSchema = new mongoose.Schema(
       canRide: { type: Boolean, default: true },
       canDrive: { type: Boolean, default: false },
     },
+    accountStatus: {
+      type: String,
+      enum: ['active', 'suspended'],
+      default: 'active',
+      index: true,
+    },
+    suspensionReason: {
+      type: String,
+      default: '',
+    },
+    suspendedAt: {
+      type: Date,
+      default: null,
+    },
+    suspendedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    suspensionUpdatedAt: {
+      type: Date,
+      default: null,
+    },
     driverProfile: {
       onboardingStatus: {
         type: String,

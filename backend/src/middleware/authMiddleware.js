@@ -29,6 +29,16 @@ const authenticate = async (req, res, next) => {
       });
     }
 
+    if (user.accountStatus === 'suspended' && user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        errorCode: 'ACCOUNT_SUSPENDED',
+        message: 'Account has been suspended by administration.',
+        suspensionReason: user.suspensionReason || 'Account suspended by administration.',
+        suspendedAt: user.suspendedAt,
+      });
+    }
+
     req.user = user;
     next();
   } catch (error) {

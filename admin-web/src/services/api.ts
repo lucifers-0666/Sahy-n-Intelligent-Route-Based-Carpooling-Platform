@@ -1,4 +1,4 @@
-import { AdminStats, UserItem, RideItem, ReportItem, BookingItem } from '../types/admin';
+import { AdminStats, UserItem, RideItem, ReportItem, BookingItem, AuditLogItem, RevenueStats, PlatformConfig } from '../types/admin';
 
 const BASE_URL = '/api/v1';
 
@@ -86,6 +86,32 @@ export const adminApi = {
     return payload?.user || payload;
   },
 
+  async suspendDriver(userId: string, reason: string): Promise<UserItem> {
+    const res = await fetch(`${BASE_URL}/admin/users/${userId}/suspend`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ reason }),
+    });
+    const payload = await handleResponse<any>(res);
+    return payload?.data?.user || payload?.user || payload;
+  },
+
+  async reactivateDriver(userId: string, reason?: string): Promise<UserItem> {
+    const res = await fetch(`${BASE_URL}/admin/users/${userId}/reactivate`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ reason: reason || 'Reactivated by administrator' }),
+    });
+    const payload = await handleResponse<any>(res);
+    return payload?.data?.user || payload?.user || payload;
+  },
+
   async getRides(params?: { status?: string; search?: string }): Promise<RideItem[]> {
     const searchParams = new URLSearchParams();
     if (params?.status && params.status !== 'all') searchParams.set('status', params.status);
@@ -158,5 +184,32 @@ export const adminApi = {
     if (Array.isArray(payload)) return payload;
     if (payload && Array.isArray(payload.bookings)) return payload.bookings;
     return [];
+  },
+
+  async getAuditLogs(params?: { page?: number; limit?: number; action?: string }): Promise<{ logs: AuditLogItem[]; total: number; totalPages: number; page: number }> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+    if (params?.action && params.action !== 'all') searchParams.set('action', params.action);
+
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const res = await fetch(`${BASE_URL}/admin/audit-logs${query}`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<{ logs: AuditLogItem[]; total: number; totalPages: number; page: number }>(res);
+  },
+
+  async getRevenueStats(): Promise<RevenueStats> {
+    const res = await fetch(`${BASE_URL}/admin/revenue-stats`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<RevenueStats>(res);
+  },
+
+  async getPlatformConfig(): Promise<PlatformConfig> {
+    const res = await fetch(`${BASE_URL}/admin/config`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<PlatformConfig>(res);
   },
 };

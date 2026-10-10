@@ -27,12 +27,6 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
-  const handleQuickFill = () => {
-    setEmail('admin@sahyan.app');
-    setPassword('AdminPassword123!');
-    setError(null);
-  };
-
   return (
     <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl p-8 border border-surface-subtle shadow-md space-y-6">
@@ -106,18 +100,7 @@ export const LoginScreen: React.FC = () => {
           </button>
         </form>
 
-        {/* Demo Credentials Quick-Fill */}
-        <div className="pt-2 border-t border-surface-subtle">
-          <button
-            type="button"
-            onClick={handleQuickFill}
-            className="w-full py-2 px-3 rounded-xl border border-dashed border-gray-300 hover:border-forest text-textMuted hover:text-forest text-[11px] font-bold transition-colors cursor-pointer"
-          >
-            Fill Root Admin Credentials (admin@sahyan.app)
-          </button>
-        </div>
-
-        <div className="text-center text-[11px] text-textMuted">
+        <div className="pt-2 border-t border-surface-subtle text-center text-[11px] text-textMuted">
           Protected by SHA-256 JWT role validation and strict fail-closed authorization.
         </div>
       </div>
