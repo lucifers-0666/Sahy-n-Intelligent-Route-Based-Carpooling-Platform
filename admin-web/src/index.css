@@ -48,10 +48,14 @@ body {
 @layer components {
   /* Cards */
   .card {
-    @apply bg-white rounded-2xl border border-surface-subtle shadow-card p-5;
+    @apply bg-white rounded-2xl p-5;
+    border: 1px solid #E8F0EC;
+    box-shadow: 0 1px 3px 0 rgba(11, 93, 75, 0.08), 0 1px 2px -1px rgba(11, 93, 75, 0.08);
   }
   .card-sm {
-    @apply bg-white rounded-xl border border-surface-subtle shadow-xs p-4;
+    @apply bg-white rounded-xl p-4;
+    border: 1px solid #E8F0EC;
+    box-shadow: 0 1px 2px 0 rgba(11, 93, 75, 0.05);
   }
 
   /* Badges */
@@ -67,43 +71,81 @@ body {
 
   /* Buttons */
   .btn-primary {
-    @apply px-4 py-2 rounded-xl bg-forest text-white font-semibold text-sm hover:bg-forest-dark transition-colors cursor-pointer shadow-xs;
+    @apply px-4 py-2 rounded-xl text-white font-semibold text-sm transition-colors cursor-pointer shadow-sm;
+    background-color: #0B5D4B;
+  }
+  .btn-primary:hover {
+    background-color: #084C3A;
   }
   .btn-secondary {
-    @apply px-4 py-2 rounded-xl bg-surface border border-surface-subtle text-textMain font-semibold text-sm hover:bg-surface-subtle transition-colors cursor-pointer;
+    @apply px-4 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer;
+    background-color: #F2F7F4;
+    border: 1px solid #E8F0EC;
+    color: #12352E;
+  }
+  .btn-secondary:hover {
+    background-color: #E8F0EC;
   }
   .btn-danger {
     @apply px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold text-sm hover:bg-rose-700 transition-colors cursor-pointer;
   }
   .btn-ghost {
-    @apply px-3 py-1.5 rounded-lg text-textMuted font-medium text-xs hover:bg-surface-subtle hover:text-textMain transition-colors cursor-pointer;
+    @apply px-3 py-1.5 rounded-lg font-medium text-xs transition-colors cursor-pointer;
+    color: #6B7F78;
+  }
+  .btn-ghost:hover {
+    background-color: #E8F0EC;
+    color: #12352E;
   }
 
   /* Inputs */
   .input {
-    @apply w-full px-3.5 py-2.5 rounded-xl border border-surface-subtle bg-white text-sm text-textMain placeholder-textLight focus:outline-none focus:ring-2 focus:ring-forest/20 focus:border-forest transition-all;
+    @apply w-full px-3.5 py-2.5 rounded-xl bg-white text-sm focus:outline-none transition-all;
+    border: 1px solid #E8F0EC;
+    color: #12352E;
+  }
+  .input::placeholder {
+    color: #9AADA7;
+  }
+  .input:focus {
+    border-color: #0B5D4B;
+    box-shadow: 0 0 0 3px rgba(11, 93, 75, 0.15);
   }
   .select {
-    @apply px-3 py-2 rounded-xl border border-surface-subtle bg-white text-xs font-semibold text-textMain focus:outline-none focus:ring-2 focus:ring-forest/20 focus:border-forest cursor-pointer transition-all;
+    @apply px-3 py-2 rounded-xl bg-white text-xs font-semibold cursor-pointer transition-all focus:outline-none;
+    border: 1px solid #E8F0EC;
+    color: #12352E;
+  }
+  .select:focus {
+    border-color: #0B5D4B;
+    box-shadow: 0 0 0 3px rgba(11, 93, 75, 0.15);
   }
 
   /* Section headers */
   .section-title {
-    @apply text-xl font-extrabold text-textMain tracking-tight;
+    @apply text-xl font-extrabold tracking-tight;
+    color: #12352E;
   }
   .section-subtitle {
-    @apply text-xs text-textMuted font-medium mt-0.5;
+    @apply text-xs font-medium mt-0.5;
+    color: #6B7F78;
   }
 
   /* Table rows */
   .table-row {
-    @apply border-b border-surface-subtle hover:bg-surface/60 transition-colors;
+    border-bottom: 1px solid #E8F0EC;
+    transition: background-color 0.15s ease;
+  }
+  .table-row:hover {
+    background-color: rgba(242, 247, 244, 0.7);
   }
   .table-header {
-    @apply px-4 py-3 text-left text-[11px] font-bold text-textMuted uppercase tracking-wider;
+    @apply px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider;
+    color: #6B7F78;
   }
   .table-cell {
-    @apply px-4 py-3.5 text-sm text-textMain;
+    @apply px-4 py-3.5 text-sm;
+    color: #12352E;
   }
 
   /* Status dots */
@@ -117,7 +159,8 @@ body {
     @apply fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4;
   }
   .modal-box {
-    @apply bg-white rounded-3xl w-full max-w-lg shadow-modal animate-slide-up;
+    @apply bg-white rounded-3xl w-full max-w-lg shadow-2xl;
+    animation: slideUp 0.25s ease-out;
   }
 
   /* Empty state */
@@ -125,12 +168,15 @@ body {
     @apply flex flex-col items-center justify-center py-16 text-center;
   }
   .empty-state-icon {
-    @apply w-14 h-14 rounded-2xl bg-surface flex items-center justify-center mb-4 text-textMuted;
+    @apply w-14 h-14 rounded-2xl flex items-center justify-center mb-4;
+    background-color: #F2F7F4;
+    color: #6B7F78;
   }
 
   /* Loading skeleton */
   .skeleton {
-    @apply bg-surface-subtle rounded-lg animate-pulse;
+    @apply rounded-lg animate-pulse;
+    background-color: #E8F0EC;
   }
 }
 
