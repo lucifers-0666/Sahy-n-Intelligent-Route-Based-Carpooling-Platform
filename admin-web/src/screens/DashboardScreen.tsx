@@ -17,8 +17,51 @@ import { AdminStats, SosIncident } from '../types/admin';
 import { adminApi } from '../services/api';
 import { ShieldAlert, X, Radio } from 'lucide-react';
 
+const VALID_TABS: TabKey[] = [
+  'overview',
+  'verifications',
+  'rides',
+  'bookings',
+  'reports',
+  'users',
+  'monetization',
+  'audit',
+  'platform',
+  'settings',
+];
+
+const getInitialTab = (): TabKey => {
+  if (typeof window !== 'undefined') {
+    const hash = window.location.hash.replace('#', '') as TabKey;
+    if (VALID_TABS.includes(hash)) return hash;
+    const saved = localStorage.getItem('sahyan_active_tab') as TabKey;
+    if (saved && VALID_TABS.includes(saved)) return saved;
+  }
+  return 'overview';
+};
+
 export const DashboardScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>('overview');
+  const [activeTab, setActiveTabState] = useState<TabKey>(getInitialTab);
+
+  const setActiveTab = (tab: TabKey) => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      window.location.hash = tab;
+      localStorage.setItem('sahyan_active_tab', tab);
+    }
+  };
+
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash.replace('#', '') as TabKey;
+      if (VALID_TABS.includes(hash)) {
+        setActiveTabState(hash);
+        localStorage.setItem('sahyan_active_tab', hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [dbConnected, setDbConnected] = useState(true);
@@ -123,16 +166,18 @@ export const DashboardScreen: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col font-sans">
-      <Header
-        dbConnected={dbConnected}
-        refreshing={refreshing}
-        onRefresh={fetchStats}
-      />
+    <div className="h-screen w-screen overflow-hidden bg-surface flex flex-col font-sans">
+      <div className="shrink-0 z-30">
+        <Header
+          dbConnected={dbConnected}
+          refreshing={refreshing}
+          onRefresh={fetchStats}
+        />
+      </div>
 
       {/* Real-Time Emergency SOS Alert Banner */}
       {unreadAlerts.length > 0 && (
-        <div className="bg-rose-700 text-white px-4 sm:px-6 py-2.5 flex items-center justify-between border-b border-rose-900 shadow-md animate-pulse">
+        <div className="shrink-0 bg-rose-700 text-white px-4 sm:px-6 py-2.5 flex items-center justify-between border-b border-rose-900 shadow-md animate-pulse z-20">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
               <ShieldAlert className="w-5 h-5 text-white" />
@@ -155,13 +200,13 @@ export const DashboardScreen: React.FC = () => {
                 setActiveIncident(unreadAlerts[0]);
                 setIncidentModalOpen(true);
               }}
-              className="px-3 py-1.5 bg-white text-rose-800 hover:bg-stone-100 rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-sm"
+              className="px-3 py-1.5 bg-white text-rose-800 hover:bg-stone-100 rounded-lg text-xs font-black uppercase tracking-wider transition-all shadow-sm cursor-pointer"
             >
               Open Safety Console
             </button>
             <button
               onClick={() => setUnreadAlerts([])}
-              className="text-white/80 hover:text-white p-1"
+              className="text-white/80 hover:text-white p-1 cursor-pointer"
               title="Dismiss banner"
             >
               <X className="w-4 h-4" />
@@ -170,7 +215,7 @@ export const DashboardScreen: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         <Sidebar
           activeTab={activeTab}
           onSelectTab={setActiveTab}
@@ -178,7 +223,7 @@ export const DashboardScreen: React.FC = () => {
           pendingReportsCount={stats?.safetyReports?.pending}
         />
 
-        <main className="flex-1 overflow-y-auto p-6 sm:p-8">
+        <main className="flex-1 overflow-y-auto p-6 sm:p-8 min-h-0 h-full">
           <div className="max-w-7xl mx-auto space-y-4">
             {/* Simulation pill for quick reviewer inspection */}
             <div className="flex justify-end">

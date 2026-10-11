@@ -29,9 +29,10 @@ export const ReportsTab: React.FC = () => {
       const data = await adminApi.getReports({
         status: statusFilter === 'all' ? undefined : statusFilter,
       });
-      setReports(data);
+      setReports(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load safety reports');
+      setReports([]);
     } finally {
       setLoading(false);
     }

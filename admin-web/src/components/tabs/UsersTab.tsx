@@ -55,31 +55,38 @@ export const UsersTab: React.FC = () => {
         search: search.trim() || undefined,
       });
 
-      let filtered = data;
+      const safeList: UserItem[] = Array.isArray(data)
+        ? data
+        : Array.isArray((data as any)?.users)
+        ? (data as any).users
+        : [];
+
+      let filtered = safeList;
       if (roleFilter === 'driver') {
-        filtered = data.filter(
+        filtered = safeList.filter(
           (u) =>
-            u.capabilities?.canDrive ||
-            u.driverProfile?.onboardingStatus === 'approved' ||
-            u.vehicle
+            u?.capabilities?.canDrive ||
+            u?.driverProfile?.onboardingStatus === 'approved' ||
+            !!u?.vehicle
         );
       } else if (roleFilter === 'passenger') {
-        filtered = data.filter(
+        filtered = safeList.filter(
           (u) =>
-            !u.capabilities?.canDrive &&
-            u.driverProfile?.onboardingStatus !== 'approved'
+            !u?.capabilities?.canDrive &&
+            u?.driverProfile?.onboardingStatus !== 'approved'
         );
       }
 
       if (statusFilter === 'active') {
-        filtered = filtered.filter((u) => u.accountStatus !== 'suspended');
+        filtered = filtered.filter((u) => u?.accountStatus !== 'suspended');
       } else if (statusFilter === 'suspended') {
-        filtered = filtered.filter((u) => u.accountStatus === 'suspended');
+        filtered = filtered.filter((u) => u?.accountStatus === 'suspended');
       }
 
       setUsers(filtered);
     } catch (err: any) {
       setError(err.message || 'Failed to load user accounts.');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -305,42 +312,45 @@ export const UsersTab: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y-2 divide-gray-200">
-                {users.map((u) => {
+                {(Array.isArray(users) ? users : []).map((u) => {
                   const isEligibleDriver =
-                    u.capabilities?.canDrive ||
-                    u.driverProfile?.onboardingStatus === 'approved' ||
-                    !!u.vehicle;
-                  const isSuspended = u.accountStatus === 'suspended';
+                    u?.capabilities?.canDrive ||
+                    u?.driverProfile?.onboardingStatus === 'approved' ||
+                    !!u?.vehicle;
+                  const isSuspended = u?.accountStatus === 'suspended';
                   const displayRating =
-                    typeof u.rating === 'number'
+                    typeof u?.rating === 'number'
                       ? u.rating.toFixed(1)
-                      : u.rating && typeof (u.rating as any).average === 'number'
+                      : u?.rating && typeof (u.rating as any).average === 'number'
                       ? (u.rating as any).average.toFixed(1)
                       : '4.9';
+                  const userIdStr = String(u?._id || '');
+                  const shortId = userIdStr ? userIdStr.slice(-6) : 'N/A';
 
                   return (
                     <tr
-                      key={u._id}
+                      key={userIdStr || Math.random()}
                       onClick={() => setInspectedUser(u)}
                       className="hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-gray-950 flex items-center space-x-1.5">
-                          <span>{u.name}</span>
-                          {u.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-gray-900" />}
+                          <span>{u?.name || 'Unnamed Member'}</span>
+                          {u?.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-gray-900" />}
                         </div>
-                        <div className="text-[11px] text-gray-500 font-mono">ID: {u._id.slice(-6)}</div>
+                        <div className="text-[11px] text-gray-500 font-mono">ID: {shortId}</div>
                       </td>
 
                       <td className="py-3.5 px-4 font-medium" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-between space-x-2">
                           <span className="text-gray-950 font-bold truncate max-w-[160px]">
-                            {unmaskedValues[`email_${u._id}`] || u.email}
+                            {unmaskedValues[`email_${userIdStr}`] || u?.email || 'N/A'}
                           </span>
-                          {!unmaskedValues[`email_${u._id}`] && (
+                          {!unmaskedValues[`email_${userIdStr}`] && userIdStr && (
                             <button
+                              type="button"
                               onClick={() => {
-                                setUnmaskTarget({ id: u._id, field: 'email', label: 'Email Address' });
+                                setUnmaskTarget({ id: userIdStr, field: 'email', label: 'Email Address' });
                                 setUnmaskOpen(true);
                               }}
                               className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
@@ -350,11 +360,12 @@ export const UsersTab: React.FC = () => {
                           )}
                         </div>
                         <div className="flex items-center justify-between space-x-2 text-[11px] text-gray-500 font-mono mt-0.5">
-                          <span>{unmaskedValues[`phone_${u._id}`] || u.phone}</span>
-                          {!unmaskedValues[`phone_${u._id}`] && (
+                          <span>{unmaskedValues[`phone_${userIdStr}`] || u?.phone || 'N/A'}</span>
+                          {!unmaskedValues[`phone_${userIdStr}`] && userIdStr && (
                             <button
+                              type="button"
                               onClick={() => {
-                                setUnmaskTarget({ id: u._id, field: 'phone', label: 'Phone Number' });
+                                setUnmaskTarget({ id: userIdStr, field: 'phone', label: 'Phone Number' });
                                 setUnmaskOpen(true);
                               }}
                               className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
@@ -375,9 +386,9 @@ export const UsersTab: React.FC = () => {
                         >
                           {isEligibleDriver ? 'Eligible Driver' : 'Passenger Only'}
                         </span>
-                        {u.vehicle && (
+                        {u?.vehicle && typeof u.vehicle === 'object' && (
                           <div className="text-[10px] text-gray-700 font-bold mt-1">
-                            {u.vehicle.make} {u.vehicle.model} ({u.vehicle.registrationNumber})
+                            {u.vehicle.make || ''} {u.vehicle.model || ''} {u.vehicle.registrationNumber ? `(${u.vehicle.registrationNumber})` : ''}
                           </div>
                         )}
                       </td>
@@ -461,10 +472,11 @@ export const UsersTab: React.FC = () => {
             <div className="flex items-center space-x-2">
               <Info className="w-4 h-4 text-gray-950" />
               <h2 className="text-sm font-black uppercase tracking-tight text-gray-950">
-                Account Inspection: {inspectedUser.name}
+                Account Inspection: {inspectedUser.name || 'Unnamed Member'}
               </h2>
             </div>
             <button
+              type="button"
               onClick={() => setInspectedUser(null)}
               className="p-1 border border-gray-900 hover:bg-gray-100 cursor-pointer"
             >
@@ -475,12 +487,12 @@ export const UsersTab: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
             <div className="p-3 bg-gray-50 border border-gray-900">
               <span className="text-gray-500 block uppercase text-[10px]">Account ID</span>
-              <span className="font-bold text-gray-950 select-all">{inspectedUser._id}</span>
+              <span className="font-bold text-gray-950 select-all">{inspectedUser._id || 'N/A'}</span>
             </div>
             <div className="p-3 bg-gray-50 border border-gray-900">
               <span className="text-gray-500 block uppercase text-[10px]">Email & Mobile</span>
-              <span className="font-bold text-gray-950 block">{inspectedUser.email}</span>
-              <span className="text-gray-600 block">{inspectedUser.phone}</span>
+              <span className="font-bold text-gray-950 block">{inspectedUser.email || 'N/A'}</span>
+              <span className="text-gray-600 block">{inspectedUser.phone || 'N/A'}</span>
             </div>
             <div className="p-3 bg-gray-50 border border-gray-900">
               <span className="text-gray-500 block uppercase text-[10px]">Access Status</span>
@@ -497,7 +509,9 @@ export const UsersTab: React.FC = () => {
             <div className="p-3 bg-gray-50 border border-gray-900">
               <span className="text-gray-500 block uppercase text-[10px]">Registration Date</span>
               <span className="font-bold text-gray-950">
-                {inspectedUser.createdAt ? new Date(inspectedUser.createdAt).toLocaleString() : 'N/A'}
+                {inspectedUser.createdAt && !isNaN(new Date(inspectedUser.createdAt).getTime())
+                  ? new Date(inspectedUser.createdAt).toLocaleString()
+                  : 'N/A'}
               </span>
             </div>
           </div>
@@ -512,7 +526,7 @@ export const UsersTab: React.FC = () => {
                 <span className="text-red-700">Reason: </span>
                 {inspectedUser.suspensionReason || 'No reason specified'}
               </div>
-              {inspectedUser.suspendedAt && (
+              {inspectedUser.suspendedAt && !isNaN(new Date(inspectedUser.suspendedAt).getTime()) && (
                 <div className="text-[11px] text-red-800">
                   <span className="text-red-700">Enforced At: </span>
                   {new Date(inspectedUser.suspendedAt).toLocaleString()}

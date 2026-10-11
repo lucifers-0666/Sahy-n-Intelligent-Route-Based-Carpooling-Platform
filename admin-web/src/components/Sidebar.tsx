@@ -138,6 +138,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           const isActive = activeTab === item.key;
           return (
             <button
+              type="button"
               key={item.key}
               onClick={() => onSelectTab(item.key)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
@@ -172,7 +173,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-60 bg-white border-r border-surface-subtle flex flex-col shrink-0 min-h-[calc(100vh-4rem)] overflow-y-auto">
+    <aside className="w-64 bg-white border-r border-surface-subtle flex flex-col shrink-0 h-full overflow-y-auto select-none">
       <div className="p-3 space-y-4 flex-1">
         {renderGroup('ops', 'Operations')}
         {renderGroup('biz', 'Business')}

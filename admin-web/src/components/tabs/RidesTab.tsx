@@ -29,9 +29,10 @@ export const RidesTab: React.FC = () => {
       const data = await adminApi.getRides({
         status: statusFilter === 'all' ? undefined : statusFilter,
       });
-      setRides(data);
+      setRides(Array.isArray(data) ? data : []);
     } catch (err: any) {
       setError(err.message || 'Failed to load rides');
+      setRides([]);
     } finally {
       setLoading(false);
     }

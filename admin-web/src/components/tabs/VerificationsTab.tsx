@@ -43,19 +43,20 @@ export const VerificationsTab: React.FC = () => {
         search: search.trim() || undefined,
       });
 
-      // Show applicants who applied for driver role or have vehicles
+      const safeData = Array.isArray(data) ? data : [];
       const applicants =
         filter === 'all'
-          ? data.filter(
+          ? safeData.filter(
               (u) =>
-                (u.driverProfile && u.driverProfile.onboardingStatus !== 'not_started') ||
-                u.capabilities?.canDrive ||
-                u.vehicle
+                (u?.driverProfile && u.driverProfile.onboardingStatus !== 'not_started') ||
+                u?.capabilities?.canDrive ||
+                u?.vehicle
             )
-          : data;
+          : safeData;
       setUsers(applicants);
     } catch (err: any) {
       setError(err.message || 'Failed to load driver verifications');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
