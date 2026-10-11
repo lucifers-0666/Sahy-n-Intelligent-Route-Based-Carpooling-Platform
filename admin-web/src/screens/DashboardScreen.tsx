@@ -51,8 +51,8 @@ export const DashboardScreen: React.FC = () => {
 
   // Connect to Socket.IO server & join admin_emergency_channel
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const s = io('http://localhost:5000', {
+    const token = localStorage.getItem('sahyan_admin_token');
+    const s = io('http://127.0.0.1:5000', {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,

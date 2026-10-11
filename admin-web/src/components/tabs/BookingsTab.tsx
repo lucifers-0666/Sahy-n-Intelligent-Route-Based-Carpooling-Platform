@@ -22,6 +22,9 @@ export const BookingsTab: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [selectedBooking, setSelectedBooking] = useState<BookingItem | null>(null);
+  const [refundReason, setRefundReason] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   const fetchBookings = async () => {
     setLoading(true);
@@ -36,6 +39,26 @@ export const BookingsTab: React.FC = () => {
       setError(err.message || 'Failed to load bookings');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForceRefund = async () => {
+    if (!selectedBooking) return;
+    if (!refundReason.trim()) {
+      alert('Please specify a valid dispute reason to authorize force refund.');
+      return;
+    }
+    setRefundLoading(true);
+    try {
+      await adminApi.forceRefundBooking(selectedBooking._id, refundReason.trim());
+      setActionFeedback('Disputed booking refunded successfully.');
+      setRefundReason('');
+      fetchBookings();
+      setTimeout(() => setSelectedBooking(null), 1200);
+    } catch (err: any) {
+      alert(`Force refund failed: ${err.message}`);
+    } finally {
+      setRefundLoading(false);
     }
   };
 
@@ -172,7 +195,7 @@ export const BookingsTab: React.FC = () => {
                               : 'bg-rose-50 text-rose-800 border border-rose-200'
                           }`}
                         >
-                          {b.status.toUpperCase()}
+                          {(b.status || 'pending').toUpperCase()}
                         </span>
                       </td>
 
@@ -188,7 +211,7 @@ export const BookingsTab: React.FC = () => {
                               : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {b.paymentStatus.replace('_', ' ')}
+                          {(b.paymentStatus || 'pending').replace('_', ' ')}
                         </span>
                       </td>
 
@@ -258,13 +281,21 @@ export const BookingsTab: React.FC = () => {
               </div>
               <div className="flex justify-between py-1 border-b border-surface-subtle">
                 <span className="text-textMuted">Payment Escrow:</span>
-                <span className="font-bold text-textMain capitalize">{selectedBooking.paymentStatus.replace('_', ' ')}</span>
+                <span className="font-bold text-textMain capitalize">
+                  {(selectedBooking.paymentStatus || 'pending').replace('_', ' ')}
+                </span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-textMuted">Booked On:</span>
                 <span className="text-textMuted">{new Date(selectedBooking.createdAt).toLocaleString()}</span>
               </div>
             </div>
+
+            {actionFeedback && (
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 font-bold">
+                {actionFeedback}
+              </div>
+            )}
 
             {selectedBooking.passengerNote && (
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs">
@@ -273,8 +304,37 @@ export const BookingsTab: React.FC = () => {
               </div>
             )}
 
+            {/* Dispute Resolution: Force Refund */}
+            {selectedBooking.paymentStatus !== 'refunded' && (
+              <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-200 space-y-2.5">
+                <div className="text-xs font-bold text-rose-900 flex items-center justify-between">
+                  <span>Dispute Resolution: Force Refund</span>
+                  <span className="text-[10px] text-rose-700 font-normal">SuperAdmin & Safety Officer</span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Mandatory dispute justification reason..."
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-white rounded-xl border border-rose-200 focus:outline-none focus:ring-1 focus:ring-rose-500 text-textMain"
+                />
+                <button
+                  type="button"
+                  disabled={refundLoading}
+                  onClick={handleForceRefund}
+                  className="w-full py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  {refundLoading ? 'Processing Refund...' : 'Authorize Force Refund to Passenger'}
+                </button>
+              </div>
+            )}
+
             <button
-              onClick={() => setSelectedBooking(null)}
+              onClick={() => {
+                setSelectedBooking(null);
+                setActionFeedback(null);
+                setRefundReason('');
+              }}
               className="w-full py-2.5 bg-forest hover:bg-forest-dark text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
             >
               Close Investigation
