@@ -212,6 +212,15 @@ class SocketClient {
     _socket?.emit('broadcast_trip_status', {'rideId': rideId, 'status': status});
   }
 
+  /// Broadcast high-priority Emergency SOS incident directly to admin emergency console
+  void emitSosIncident(Map<String, dynamic> payload) {
+    _ensureConnected();
+    if (_socket != null) {
+      _socket!.emit('trigger_emergency_sos', payload);
+      debugPrint('[SocketClient] Emergency SOS incident broadcasted to admin command: $payload');
+    }
+  }
+
   // ── Passenger Listeners ───────────────────────────────────────────────────
 
   Stream<DriverLocationPayload> onDriverLocation(String rideId) {

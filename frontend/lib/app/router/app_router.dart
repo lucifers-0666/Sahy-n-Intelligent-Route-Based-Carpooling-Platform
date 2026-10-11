@@ -59,6 +59,7 @@ import 'package:sahyan/features/home/presentation/screens/system_states_screen.d
 import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/account_suspended_screen.dart';
 import 'package:sahyan/features/trip/presentation/screens/gps_diagnostic_screen.dart';
+import 'package:sahyan/features/profile/presentation/screens/privacy_permissions_screen.dart';
 import 'package:sahyan/shared/widgets/app_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -277,6 +278,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/personal-details',
       builder: (context, state) => const PersonalDetailsScreen(),
+    ),
+    GoRoute(
+      path: '/privacy-permissions',
+      builder: (context, state) => const PrivacyPermissionsScreen(),
     ),
     GoRoute(
       path: '/filter-rides',

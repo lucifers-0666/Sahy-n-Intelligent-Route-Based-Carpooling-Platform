@@ -1,4 +1,10 @@
 const User = require('../models/User');
+const Report = require('../models/Report');
+const Ride = require('../models/Ride');
+const Booking = require('../models/Booking');
+const Vehicle = require('../models/Vehicle');
+const AuditLog = require('../models/AuditLog');
+const socketService = require('../services/socketService');
 
 const PHONE_REGEX = /^(?:\+91)?[6-9]\d{9}$/;
 
@@ -293,6 +299,199 @@ const deleteEmergencyContact = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/v1/users/safety/sos
+ * Trigger high-priority emergency SOS event
+ */
+const triggerEmergencySos = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { rideId, latitude, longitude, address, note } = req.body;
+
+    const user = await User.findById(userId);
+    let ride = null;
+    let driver = null;
+    if (rideId) {
+      ride = await Ride.findById(rideId).populate('driver', 'name phone profileImage vehicle');
+      if (ride) driver = ride.driver;
+    }
+
+    const report = await Report.create({
+      reporter: userId,
+      reportedUser: driver ? driver._id : null,
+      ride: ride ? ride._id : null,
+      type: 'sos_trigger',
+      severity: 'critical',
+      status: 'open',
+      title: `EMERGENCY SOS: ${user.name} reported distress`,
+      description:
+        note ||
+        `Passenger ${user.name} triggered high-priority emergency SOS along corridor. Coordinates: [${latitude || 23.0225}, ${longitude || 72.5714}]. Address: ${address || 'Ahmedabad Highway Corridor'}.`,
+    });
+
+    const incidentPayload = {
+      incidentId: report._id.toString(),
+      timestamp: new Date().toISOString(),
+      passenger: {
+        id: user._id.toString(),
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        emergencyContacts: user.emergencyContacts || [],
+      },
+      driver: driver
+        ? {
+            id: driver._id.toString(),
+            name: driver.name,
+            phone: driver.phone,
+          }
+        : null,
+      ride: ride
+        ? {
+            id: ride._id.toString(),
+            origin: ride.origin,
+            destination: ride.destination,
+            status: ride.status,
+          }
+        : null,
+      location: {
+        latitude: latitude || 23.0225,
+        longitude: longitude || 72.5714,
+        address: address || 'Ahmedabad Highway Corridor',
+      },
+      status: 'open',
+      severity: 'critical',
+    };
+
+    if (socketService.broadcastToAdmins) {
+      socketService.broadcastToAdmins('admin_emergency_alert', incidentPayload);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Sahyān Safety Command notified immediately. Emergency dispatch alerted.',
+      incident: incidentPayload,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/users/export-data
+ * GDPR / DPDP compliant user travel history & personal data export
+ */
+const exportUserData = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const [user, bookings, rides, vehicles] = await Promise.all([
+      User.findById(userId).select('-password'),
+      Booking.find({ passenger: userId }).populate('ride'),
+      Ride.find({ driver: userId }),
+      Vehicle.find({ owner: userId }),
+    ]);
+
+    const exportPayload = {
+      platform: 'Sahyān Peer-to-Peer Carpooling',
+      compliance: 'GDPR / Digital Personal Data Protection (DPDP) Act',
+      exportedAt: new Date().toISOString(),
+      accountProfile: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        city: user.city,
+        isVerified: user.isVerified,
+        rating: user.rating,
+        emergencyContacts: user.emergencyContacts,
+        createdAt: user.createdAt,
+      },
+      travelHistory: {
+        passengerBookingsCount: bookings.length,
+        bookings: bookings.map((b) => ({
+          bookingId: b._id,
+          rideId: b.ride ? b.ride._id : null,
+          origin: b.ride ? b.ride.origin : null,
+          destination: b.ride ? b.ride.destination : null,
+          seats: b.seats,
+          contributionPaid: b.totalContribution,
+          status: b.status,
+          bookedAt: b.createdAt,
+        })),
+        driverRidesCount: rides.length,
+        rides: rides.map((r) => ({
+          rideId: r._id,
+          origin: r.origin,
+          destination: r.destination,
+          departureTime: r.departureTime,
+          pricePerSeat: r.pricePerSeat,
+          status: r.status,
+        })),
+      },
+      registeredVehicles: vehicles.map((v) => ({
+        make: v.make,
+        model: v.model,
+        licensePlate: v.licensePlate,
+        seats: v.capacity,
+      })),
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: exportPayload,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/users/anonymize-data
+ * GDPR / DPDP Right to Erasure / Anonymization
+ */
+const anonymizeUserData = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { reason = 'User requested erasure' } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const originalEmail = user.email;
+    const originalPhone = user.phone;
+
+    user.name = `Anonymized User ${user._id.toString().slice(-4)}`;
+    user.email = `anonymized_${user._id.toString().slice(-6)}@sahyan.internal`;
+    user.phone = `+91 000000${user._id.toString().slice(-4)}`;
+    user.accountStatus = 'suspended';
+    user.suspensionReason = `Account anonymized upon user request: ${reason}`;
+    user.suspendedAt = new Date();
+    user.emergencyContacts = [];
+    user.profileImage = '';
+    await user.save();
+
+    await AuditLog.create({
+      action: 'USER_DELETED',
+      admin: userId,
+      targetUser: userId,
+      reason: `Self-service account & PII anonymization: ${reason}`,
+      metadata: {
+        originalEmailHash: originalEmail.slice(0, 3) + '***',
+        anonymizedAt: new Date(),
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Account personal data successfully anonymized and scrubbed in compliance with DPDP standards.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -301,4 +500,7 @@ module.exports = {
   addEmergencyContact,
   updateEmergencyContact,
   deleteEmergencyContact,
+  triggerEmergencySos,
+  exportUserData,
+  anonymizeUserData,
 };

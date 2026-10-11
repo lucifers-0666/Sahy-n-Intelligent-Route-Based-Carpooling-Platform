@@ -17,5 +17,12 @@ router.post('/emergency-contacts', authenticate, userController.addEmergencyCont
 router.put('/emergency-contacts/:id', authenticate, userController.updateEmergencyContact);
 router.delete('/emergency-contacts/:id', authenticate, userController.deleteEmergencyContact);
 
+// Real-Time Emergency SOS Endpoint
+router.post('/safety/sos', authenticate, userController.triggerEmergencySos);
+
+// GDPR / DPDP Privacy & Data Transparency Endpoints
+router.get('/export-data', authenticate, userController.exportUserData);
+router.post('/anonymize-data', authenticate, userController.anonymizeUserData);
+
 module.exports = router;
 

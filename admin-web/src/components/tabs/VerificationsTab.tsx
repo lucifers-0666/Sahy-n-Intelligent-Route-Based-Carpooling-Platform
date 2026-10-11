@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserItem } from '../../types/admin';
 import { adminApi } from '../../services/api';
+import { DriverKycDrawer } from '../DriverKycDrawer';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -70,34 +71,15 @@ export const VerificationsTab: React.FC = () => {
   };
 
   const handleApprove = async (userId: string) => {
-    setActionLoading(true);
-    try {
-      await adminApi.verifyDriver(userId, 'approve');
-      setSelectedUser(null);
-      fetchUsers();
-    } catch (err: any) {
-      alert(`Approval failed: ${err.message}`);
-    } finally {
-      setActionLoading(false);
-    }
+    await adminApi.verifyDriver(userId, 'approve');
+    setSelectedUser(null);
+    fetchUsers();
   };
 
-  const handleReject = async (userId: string) => {
-    if (!rejectReason.trim()) {
-      alert('Please provide a specific rejection reason for the applicant.');
-      return;
-    }
-    setActionLoading(true);
-    try {
-      await adminApi.verifyDriver(userId, 'reject', rejectReason.trim());
-      setSelectedUser(null);
-      setRejectReason('');
-      fetchUsers();
-    } catch (err: any) {
-      alert(`Rejection failed: ${err.message}`);
-    } finally {
-      setActionLoading(false);
-    }
+  const handleReject = async (userId: string, reason: string) => {
+    await adminApi.verifyDriver(userId, 'reject', reason);
+    setSelectedUser(null);
+    fetchUsers();
   };
 
   return (
@@ -243,113 +225,14 @@ export const VerificationsTab: React.FC = () => {
         </div>
       )}
 
-      {/* Review Documents Modal */}
-      {selectedUser && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl border border-surface-subtle space-y-5 animate-in fade-in duration-150">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs font-bold text-forest uppercase tracking-wider">
-                  Driver Document Verification
-                </span>
-                <h3 className="text-lg font-extrabold text-textMain mt-0.5">
-                  {selectedUser.name}
-                </h3>
-                <p className="text-xs text-textMuted">
-                  {selectedUser.email} · {selectedUser.phone}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="p-1 rounded-lg text-textMuted hover:bg-surface cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Document Details Card */}
-            <div className="space-y-3 bg-surface p-4 rounded-2xl border border-surface-subtle text-xs">
-              <div className="flex justify-between items-center pb-2 border-b border-surface-subtle">
-                <span className="text-textMuted font-medium">Driving License Number:</span>
-                <span className="font-mono font-bold text-textMain">
-                  {selectedUser.driverProfile?.licenseNumber || 'N/A'}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center pb-2 border-b border-surface-subtle">
-                <span className="text-textMuted font-medium">License Document:</span>
-                {selectedUser.driverProfile?.licenseDocUrl ? (
-                  <a
-                    href={selectedUser.driverProfile.licenseDocUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center space-x-1 text-forest font-bold hover:underline"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>View DL File</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                ) : (
-                  <span className="text-textMuted">Not Uploaded</span>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center">
-                <span className="text-textMuted font-medium">Vehicle RC Document:</span>
-                {selectedUser.driverProfile?.rcDocUrl ? (
-                  <a
-                    href={selectedUser.driverProfile.rcDocUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center space-x-1 text-forest font-bold hover:underline"
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                    <span>View RC File</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                ) : (
-                  <span className="text-textMuted">Not Uploaded</span>
-                )}
-              </div>
-            </div>
-
-            {/* Rejection Note field if rejecting */}
-            <div>
-              <label className="block text-xs font-bold text-textMain mb-1">
-                Rejection Reason (if rejecting application):
-              </label>
-              <textarea
-                placeholder="E.g., License photo expired, image blurred, or number does not match Parivahan registry..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={2}
-                className="w-full bg-white p-3 text-xs rounded-xl border border-surface-subtle focus:outline-none focus:border-forest text-textMain"
-              />
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => handleReject(selectedUser._id)}
-                disabled={actionLoading}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-rose-300 text-rose-700 bg-rose-50 hover:bg-rose-100 font-bold text-xs transition-colors cursor-pointer flex items-center justify-center space-x-1.5"
-              >
-                <ShieldAlert className="w-4 h-4" />
-                <span>{actionLoading ? 'Processing...' : 'Reject Driver'}</span>
-              </button>
-
-              <button
-                onClick={() => handleApprove(selectedUser._id)}
-                disabled={actionLoading}
-                className="flex-1 py-2.5 px-4 rounded-xl bg-forest hover:bg-forest-dark text-white font-bold text-xs transition-colors shadow-sm cursor-pointer flex items-center justify-center space-x-1.5"
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>{actionLoading ? 'Processing...' : 'Approve & Verify'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Driver KYC Inspection Drawer */}
+      <DriverKycDrawer
+        user={selectedUser}
+        isOpen={Boolean(selectedUser)}
+        onClose={() => setSelectedUser(null)}
+        onApprove={handleApprove}
+        onReject={handleReject}
+      />
     </div>
   );
 };

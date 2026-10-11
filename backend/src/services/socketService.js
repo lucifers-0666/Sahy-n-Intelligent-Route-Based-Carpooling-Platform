@@ -13,6 +13,8 @@ const { getJwtSecret } = require('../config/jwt');
 const User = require('../models/User');
 const Ride = require('../models/Ride');
 const Booking = require('../models/Booking');
+const Report = require('../models/Report');
+const AuditLog = require('../models/AuditLog');
 const LocationProcessor = require('./location/locationProcessor');
 
 let ioInstance = null;
@@ -33,6 +35,16 @@ function disconnectUserSockets(userId) {
       socket.disconnect(true);
     }
   }
+}
+
+/**
+ * Broadcast an event to all connected admin consoles
+ * @param {string} event
+ * @param {any} payload
+ */
+function broadcastToAdmins(event, payload) {
+  if (!ioInstance) return;
+  ioInstance.to('admin_emergency_channel').emit(event, payload);
 }
 
 /**
@@ -217,6 +229,145 @@ function initSocketService(io) {
       }
     });
 
+    // ── ADMIN CHANNEL ROOM JOIN ─────────────────────────────────────────────
+    const isPlatformAdmin =
+      socket.user &&
+      ['admin', 'super_admin', 'safety_officer', 'support_lead'].includes(socket.user.role);
+    if (isPlatformAdmin) {
+      socket.join('admin_emergency_channel');
+      console.log(`[Socket.IO] Admin ${socket.user.name} joined admin_emergency_channel`);
+    }
+
+    socket.on('join_admin_channel', () => {
+      if (
+        socket.user &&
+        ['admin', 'super_admin', 'safety_officer', 'support_lead'].includes(socket.user.role)
+      ) {
+        socket.join('admin_emergency_channel');
+        socket.emit('admin_channel_joined', { channel: 'admin_emergency_channel' });
+      }
+    });
+
+    // ── EMERGENCY SOS DISPATCH CONSOLE ───────────────────────────────────────
+    socket.on('trigger_emergency_sos', async (payload) => {
+      try {
+        const userId = socket.user ? socket.user._id : null;
+        if (!userId) {
+          socket.emit('error', { message: 'Authentication required for SOS broadcast.' });
+          return;
+        }
+
+        const user = await User.findById(userId);
+        const { rideId, latitude, longitude, address, note } = payload || {};
+
+        let ride = null;
+        let driver = null;
+        if (rideId) {
+          ride = await Ride.findById(rideId).populate('driver', 'name phone profileImage vehicle');
+          if (ride) driver = ride.driver;
+        }
+
+        // Persist critical report
+        const report = await Report.create({
+          reporter: userId,
+          reportedUser: driver ? driver._id : null,
+          ride: ride ? ride._id : null,
+          type: 'sos_trigger',
+          severity: 'critical',
+          status: 'open',
+          title: `EMERGENCY SOS: ${user.name} reported distress`,
+          description:
+            note ||
+            `Passenger ${user.name} triggered high-priority emergency SOS along corridor. Coordinates: [${latitude || 23.0225}, ${longitude || 72.5714}]. Address: ${address || 'Ahmedabad Highway Corridor'}.`,
+        });
+
+        const incidentPayload = {
+          incidentId: report._id.toString(),
+          timestamp: new Date().toISOString(),
+          passenger: {
+            id: user._id.toString(),
+            name: user.name,
+            phone: user.phone,
+            email: user.email,
+            emergencyContacts: user.emergencyContacts || [],
+          },
+          driver: driver
+            ? {
+                id: driver._id.toString(),
+                name: driver.name,
+                phone: driver.phone,
+              }
+            : null,
+          ride: ride
+            ? {
+                id: ride._id.toString(),
+                origin: ride.origin,
+                destination: ride.destination,
+                status: ride.status,
+              }
+            : null,
+          location: {
+            latitude: latitude || 23.0225,
+            longitude: longitude || 72.5714,
+            address: address || 'Ahmedabad Highway Corridor',
+          },
+          status: 'open',
+          severity: 'critical',
+        };
+
+        // Broadcast to all active admin emergency consoles
+        io.to('admin_emergency_channel').emit('admin_emergency_alert', incidentPayload);
+
+        // Acknowledge reporting mobile user
+        socket.emit('sos_acknowledged', {
+          success: true,
+          incidentId: report._id,
+          message: 'Sahyān Emergency Safety Command alerted. Dispatching support.',
+        });
+      } catch (err) {
+        console.error('[Socket.IO] Error triggering emergency SOS:', err);
+        socket.emit('error', { message: 'Failed to broadcast SOS incident.' });
+      }
+    });
+
+    // ── ADMIN LOG POLICE CALL (112) ──────────────────────────────────────────
+    socket.on('log_police_call', async ({ incidentId, notes }) => {
+      try {
+        if (
+          !socket.user ||
+          !['admin', 'super_admin', 'safety_officer'].includes(socket.user.role)
+        ) {
+          socket.emit('error', { message: 'Unauthorized: Safety officer or admin privilege required.' });
+          return;
+        }
+
+        const report = await Report.findById(incidentId);
+        if (report) {
+          report.status = 'investigating';
+          report.resolutionNotes =
+            (report.resolutionNotes ? report.resolutionNotes + '\n' : '') +
+            `[112 Police Call Logged by ${socket.user.name} at ${new Date().toISOString()}]: ${notes || 'National emergency services notified.'}`;
+          await report.save();
+
+          await AuditLog.create({
+            action: 'POLICE_CALLED',
+            admin: socket.user._id,
+            targetUser: report.reporter,
+            reason: notes || '112 Police call logged via Admin SOS console',
+            metadata: { incidentId: report._id },
+          });
+
+          io.to('admin_emergency_channel').emit('incident_updated', {
+            incidentId: report._id.toString(),
+            status: report.status,
+            resolutionNotes: report.resolutionNotes,
+          });
+        }
+      } catch (err) {
+        console.error('[Socket.IO] Error logging police call:', err);
+      }
+    });
+
     // ── DISCONNECT ──────────────────────────────────────────────────────────
     socket.on('disconnect', (reason) => {
       const meta = socketMeta.get(socket.id);
@@ -237,6 +388,7 @@ function initSocketService(io) {
 }
 
 initSocketService.disconnectUserSockets = disconnectUserSockets;
+initSocketService.broadcastToAdmins = broadcastToAdmins;
 
 module.exports = initSocketService;
 

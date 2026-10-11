@@ -75,8 +75,10 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
+const ADMIN_ROLES = ['admin', 'super_admin', 'safety_officer', 'support_lead'];
+
 const adminAuth = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
+  if (!req.user || !ADMIN_ROLES.includes(req.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Access denied. Administrative privileges required.',
@@ -85,5 +87,33 @@ const adminAuth = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate, protect: authenticate, optionalAuth, adminAuth };
+const requireRole = (allowedRoles = []) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required.',
+      });
+    }
+
+    const userRole = req.user.role;
+    if (userRole === 'super_admin' || userRole === 'admin' || allowedRoles.includes(userRole)) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: `Access denied. Operation requires role: ${allowedRoles.join(', ')}.`,
+    });
+  };
+};
+
+module.exports = {
+  authenticate,
+  protect: authenticate,
+  optionalAuth,
+  adminAuth,
+  requireRole,
+  ADMIN_ROLES,
+};
 

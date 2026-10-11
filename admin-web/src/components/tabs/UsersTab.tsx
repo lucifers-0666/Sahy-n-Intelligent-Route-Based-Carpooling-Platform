@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserItem } from '../../types/admin';
 import { adminApi } from '../../services/api';
+import { UnmaskModal } from '../UnmaskModal';
 import {
   Users,
   Search,
@@ -12,6 +13,7 @@ import {
   AlertTriangle,
   RotateCcw,
   Info,
+  Eye,
 } from 'lucide-react';
 
 export const UsersTab: React.FC = () => {
@@ -22,6 +24,11 @@ export const UsersTab: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<'all' | 'driver' | 'passenger'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [search, setSearch] = useState('');
+
+  // PII Unmasking state
+  const [unmaskOpen, setUnmaskOpen] = useState(false);
+  const [unmaskTarget, setUnmaskTarget] = useState<{ id: string; field: string; label: string } | null>(null);
+  const [unmaskedValues, setUnmaskedValues] = useState<Record<string, string>>({});
 
   // Suspension modal state
   const [suspendingUser, setSuspendingUser] = useState<UserItem | null>(null);
@@ -325,9 +332,37 @@ export const UsersTab: React.FC = () => {
                         <div className="text-[11px] text-gray-500 font-mono">ID: {u._id.slice(-6)}</div>
                       </td>
 
-                      <td className="py-3.5 px-4 font-medium">
-                        <div className="text-gray-950">{u.email}</div>
-                        <div className="text-[11px] text-gray-500">{u.phone}</div>
+                      <td className="py-3.5 px-4 font-medium" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-between space-x-2">
+                          <span className="text-gray-950 font-bold truncate max-w-[160px]">
+                            {unmaskedValues[`email_${u._id}`] || u.email}
+                          </span>
+                          {!unmaskedValues[`email_${u._id}`] && (
+                            <button
+                              onClick={() => {
+                                setUnmaskTarget({ id: u._id, field: 'email', label: 'Email Address' });
+                                setUnmaskOpen(true);
+                              }}
+                              className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
+                            >
+                              Unmask
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between space-x-2 text-[11px] text-gray-500 font-mono mt-0.5">
+                          <span>{unmaskedValues[`phone_${u._id}`] || u.phone}</span>
+                          {!unmaskedValues[`phone_${u._id}`] && (
+                            <button
+                              onClick={() => {
+                                setUnmaskTarget({ id: u._id, field: 'phone', label: 'Phone Number' });
+                                setUnmaskOpen(true);
+                              }}
+                              className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
+                            >
+                              Unmask
+                            </button>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -672,6 +707,23 @@ export const UsersTab: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Unmask PII Modal */}
+      {unmaskTarget && (
+        <UnmaskModal
+          isOpen={unmaskOpen}
+          onClose={() => setUnmaskOpen(false)}
+          resourceId={unmaskTarget.id}
+          fieldName={unmaskTarget.field}
+          fieldLabel={unmaskTarget.label}
+          onSuccess={(unmaskedVal) => {
+            setUnmaskedValues((prev) => ({
+              ...prev,
+              [`${unmaskTarget.field}_${unmaskTarget.id}`]: String(unmaskedVal),
+            }));
+          }}
+        />
       )}
     </div>
   );

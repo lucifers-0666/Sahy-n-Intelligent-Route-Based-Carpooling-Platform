@@ -193,10 +193,58 @@ export interface AuditLogItem {
   createdAt: string;
 }
 
+export interface EmergencyContact {
+  name: string;
+  phone: string;
+  relationship?: string;
+  isPrimary?: boolean;
+}
+
+export interface SosIncident {
+  incidentId: string;
+  timestamp: string;
+  passenger: {
+    id: string;
+    name: string;
+    phone: string;
+    email?: string;
+    emergencyContacts?: EmergencyContact[];
+  };
+  driver?: {
+    id: string;
+    name: string;
+    phone: string;
+  } | null;
+  ride?: {
+    id: string;
+    origin?: { name: string };
+    destination?: { name: string };
+    status?: string;
+  } | null;
+  location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+  };
+  status: 'open' | 'investigating' | 'resolved' | 'dismissed';
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  resolutionNotes?: string;
+}
+
 export interface RevenueStats {
   totalFuelShared: number;
   monthlyFuelShared: number;
   weeklyFuelShared: number;
+  escrowBalance?: number;
+  settledToDrivers?: number;
+  safetyFeePool?: number;
+  gatewayStatus?: {
+    razorpayWebhook?: string;
+    bankPayoutApi?: string;
+    latencyMs?: number;
+    status?: string;
+    lastPing?: string;
+  };
   totalBookings: number;
   completedBookings: number;
   recentBookings: number;

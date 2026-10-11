@@ -212,4 +212,28 @@ export const adminApi = {
     });
     return handleResponse<PlatformConfig>(res);
   },
+
+  async unmaskPii(resourceId: string, fieldName: string, reason: string): Promise<{ resourceId: string; fieldName: string; unmaskedValue: any }> {
+    const res = await fetch(`${BASE_URL}/admin/audit/unmask-pii`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ resourceId, fieldName, reason }),
+    });
+    return handleResponse<{ resourceId: string; fieldName: string; unmaskedValue: any }>(res);
+  },
+
+  async forceRefundBooking(bookingId: string, reason: string): Promise<any> {
+    const res = await fetch(`${BASE_URL}/admin/bookings/${bookingId}/force-refund`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ reason }),
+    });
+    return handleResponse<any>(res);
+  },
 };

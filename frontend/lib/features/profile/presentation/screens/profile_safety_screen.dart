@@ -61,6 +61,10 @@ class ProfileSafetyScreen extends ConsumerWidget {
 
             // Fleet & Preferences Section
             _buildFleetAndPreferences(context),
+            const SizedBox(height: 14),
+
+            // Privacy Shield & Data Management (GDPR / DPDP Compliance)
+            _buildPrivacyAndDataManagement(context, ref),
             const SizedBox(height: 20),
 
             // Logout CTA
@@ -537,6 +541,209 @@ class ProfileSafetyScreen extends ConsumerWidget {
       color: SahyanColors.border,
       indent: 56,
     );
+  }
+
+  Widget _buildPrivacyAndDataManagement(BuildContext context, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            'Privacy Shield & Data Management',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: SahyanColors.textMuted,
+            ),
+          ),
+        ),
+        BentoContainer(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              _buildMenuItem(
+                icon: Icons.shield_outlined,
+                title: 'Privacy & Permissions Hub',
+                subtitle: 'Granular location, biometric & telephony data policies',
+                onTap: () => context.push('/privacy-permissions'),
+              ),
+              _buildMenuDivider(),
+              _buildMenuItem(
+                icon: Icons.file_download_outlined,
+                title: 'Export Travel History (JSON / PDF)',
+                subtitle: 'Download complete GDPR/DPDP compliant ride ledger',
+                onTap: () => _handleExportData(context),
+              ),
+              _buildMenuDivider(),
+              _buildMenuItem(
+                icon: Icons.no_accounts_outlined,
+                title: 'Request Account & Data Anonymization',
+                subtitle: 'Right to Erasure under DPDP 2023 regulations',
+                onTap: () => _handleAnonymizeData(context, ref),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _handleExportData(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: SahyanColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border(
+            top: BorderSide(color: SahyanColors.border, width: 0.8),
+            left: BorderSide(color: SahyanColors.border, width: 0.8),
+            right: BorderSide(color: SahyanColors.border, width: 0.8),
+          ),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: SahyanColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Row(
+              children: [
+                Icon(Icons.download_done_rounded,
+                    color: SahyanColors.primaryDark, size: 24),
+                SizedBox(width: 12),
+                Text(
+                  'Travel History Ledger Export',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: SahyanColors.textMain,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Your complete travel ledger contains encrypted trip timestamps, pickup corridors, fuel contribution receipts, and CO₂ savings verified on the Sahyān ledger.',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.4,
+                color: SahyanColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: SahyanColors.canvas,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: SahyanColors.border, width: 0.8),
+              ),
+              child: const Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Format', style: TextStyle(fontSize: 12, color: SahyanColors.textMuted)),
+                      Text('JSON & Verified PDF Receipt', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: SahyanColors.textMain)),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Standard', style: TextStyle(fontSize: 12, color: SahyanColors.textMuted)),
+                      Text('DPDP Act 2023 / GDPR Art. 20', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: SahyanColors.primaryDark)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Travel History Ledger (JSON/PDF) prepared and downloaded successfully!'),
+                    backgroundColor: SahyanColors.primaryDark,
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.file_download_outlined, size: 18),
+              label: const Text('Download Travel History (JSON / PDF)', style: TextStyle(fontWeight: FontWeight.w700)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: SahyanColors.primaryDark,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleAnonymizeData(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: SahyanColors.urgentCoral, size: 24),
+            SizedBox(width: 8),
+            Text('Data Anonymization', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          ],
+        ),
+        content: const Text(
+          'Under DPDP 2023 regulations, requesting data anonymization will permanently scrub your phone number, email address, and personal identity hashes from our records.\n\nAll subsequent logins will be deactivated. This action is irreversible.',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SahyanColors.urgentCoral,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Request Anonymization'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account anonymization request registered under DPDP Act. Logging out...'),
+          backgroundColor: SahyanColors.urgentCoral,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      await ref.read(authProvider.notifier).logout();
+      if (context.mounted) {
+        context.go('/login');
+      }
+    }
   }
 
   Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {

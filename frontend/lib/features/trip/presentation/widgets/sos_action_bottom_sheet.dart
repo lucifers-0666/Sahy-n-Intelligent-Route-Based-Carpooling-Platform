@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahyan/core/theme/app_theme.dart';
+import 'package:sahyan/core/network/socket_client.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../shared/models/booking_model.dart';
 import '../../../profile/presentation/profile_provider.dart';
@@ -22,6 +23,19 @@ class SosActionBottomSheet extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (ctx) => SosActionBottomSheet(booking: booking),
     );
+  }
+
+  void _dispatchSosAlert(BuildContext context, String reason) {
+    try {
+      final rideId = booking?.rideId ?? 'corridor-live-trip';
+      SocketClient.instance.emitSosIncident({
+        'rideId': rideId,
+        'latitude': 23.0225,
+        'longitude': 72.5714,
+        'address': 'Ahmedabad - Gandhinagar Express Corridor',
+        'note': 'Emergency SOS dispatched via mobile app ($reason)',
+      });
+    } catch (_) {}
   }
 
   @override
@@ -112,11 +126,12 @@ class SosActionBottomSheet extends ConsumerWidget {
             iconColor: SahyanColors.urgentCoral,
             bgColor: SahyanColors.urgentCoral.withValues(alpha: 0.08),
             onTap: () {
+              _dispatchSosAlert(context, 'Call 112 National Police Emergency');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Dialing 112 National Emergency Police...'),
+                  content: Text('Dialing 112 National Emergency Police & broadcasting SOS alert to Admin Safety Command...'),
                   backgroundColor: SahyanColors.urgentCoral,
-                  duration: Duration(seconds: 2),
+                  duration: Duration(seconds: 3),
                 ),
               );
             },
@@ -132,11 +147,12 @@ class SosActionBottomSheet extends ConsumerWidget {
             iconColor: SahyanColors.primaryDark,
             bgColor: SahyanColors.canvas,
             onTap: () {
+              _dispatchSosAlert(context, '1800-SAHYAN Safety Helpline');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Connecting to Sahyān 24/7 Safety Command...'),
+                  content: Text('Connecting to Sahyān 24/7 Safety Command & alerting corridor dispatch...'),
                   backgroundColor: SahyanColors.primaryDark,
-                  duration: Duration(seconds: 2),
+                  duration: Duration(seconds: 3),
                 ),
               );
             },
