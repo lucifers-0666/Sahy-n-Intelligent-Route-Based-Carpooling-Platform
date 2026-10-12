@@ -77,7 +77,9 @@ class LocationFilter {
       return true;
     }
 
-    final timeDeltaSec = current.timestamp.difference(previous.timestamp).inMilliseconds / 1000.0;
+    final timeDeltaSec =
+        current.timestamp.difference(previous.timestamp).inMilliseconds /
+        1000.0;
     if (timeDeltaSec <= 0.0) {
       return distMeters > 30.0; // Stationary threshold for duplicate timestamp
     }

@@ -23,13 +23,17 @@ class UserLocationState {
   });
 
   bool get hasLocation => currentLocation != null;
-  bool get hasPermission => permissionStatus == LocationPermissionStatus.granted;
+  bool get hasPermission =>
+      permissionStatus == LocationPermissionStatus.granted;
 
-  SelectedLocation? toSelectedLocation({String defaultName = 'Current Location'}) {
+  SelectedLocation? toSelectedLocation({
+    String defaultName = 'Current Location',
+  }) {
     if (currentLocation == null) return null;
     return SelectedLocation(
       name: defaultName,
-      address: 'Lat: ${currentLocation!.latitude.toStringAsFixed(4)}, Lng: ${currentLocation!.longitude.toStringAsFixed(4)}',
+      address:
+          'Lat: ${currentLocation!.latitude.toStringAsFixed(4)}, Lng: ${currentLocation!.longitude.toStringAsFixed(4)}',
       latitude: currentLocation!.latitude,
       longitude: currentLocation!.longitude,
     );
@@ -58,8 +62,8 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
   StreamSubscription<LocationPoint>? _streamSubscription;
 
   UserLocationNotifier({GpsProvider? gpsProvider})
-      : _gpsProvider = gpsProvider ?? GeolocatorProvider(),
-        super(const UserLocationState());
+    : _gpsProvider = gpsProvider ?? GeolocatorProvider(),
+      super(const UserLocationState());
 
   /// Fetch the latest current GPS coordinate fix from phone hardware
   Future<LocationPoint?> refreshLocation() async {
@@ -110,7 +114,8 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
           permissionStatus: permission,
           isServiceEnabled: true,
           isLoading: false,
-          errorMessage: 'Unable to acquire GPS fix. Please verify location settings.',
+          errorMessage:
+              'Unable to acquire GPS fix. Please verify location settings.',
         );
         return null;
       }
@@ -143,10 +148,7 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
     _streamSubscription?.cancel();
     _streamSubscription = _gpsProvider.positionStream.listen(
       (point) {
-        state = state.copyWith(
-          currentLocation: point,
-          clearError: true,
-        );
+        state = state.copyWith(currentLocation: point, clearError: true);
       },
       onError: (error) {
         state = state.copyWith(errorMessage: 'Position stream error: $error');
@@ -169,5 +171,5 @@ class UserLocationNotifier extends StateNotifier<UserLocationState> {
 
 final userLocationProvider =
     StateNotifierProvider<UserLocationNotifier, UserLocationState>((ref) {
-  return UserLocationNotifier();
-});
+      return UserLocationNotifier();
+    });

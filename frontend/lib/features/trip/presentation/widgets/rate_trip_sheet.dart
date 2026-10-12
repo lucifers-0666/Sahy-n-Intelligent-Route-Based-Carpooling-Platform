@@ -9,11 +9,7 @@ class RateTripSheet extends ConsumerStatefulWidget {
   final BookingModel? booking;
   final String? driverName;
 
-  const RateTripSheet({
-    super.key,
-    this.booking,
-    this.driverName,
-  });
+  const RateTripSheet({super.key, this.booking, this.driverName});
 
   static Future<void> show(
     BuildContext context, {
@@ -25,9 +21,7 @@ class RateTripSheet extends ConsumerStatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: RateTripSheet(booking: booking, driverName: driverName),
       ),
     );
@@ -39,7 +33,11 @@ class RateTripSheet extends ConsumerStatefulWidget {
 
 class _RateTripSheetState extends ConsumerState<RateTripSheet> {
   int _rating = 5;
-  final Set<String> _selectedTags = {'Punctual', 'Smooth Driving', 'Clean Vehicle'};
+  final Set<String> _selectedTags = {
+    'Punctual',
+    'Smooth Driving',
+    'Clean Vehicle',
+  };
   final TextEditingController _commentController = TextEditingController();
   bool _isSubmitting = false;
 
@@ -75,7 +73,9 @@ class _RateTripSheetState extends ConsumerState<RateTripSheet> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Thank you! Your $_rating-star review has been recorded.'),
+          content: Text(
+            'Thank you! Your $_rating-star review has been recorded.',
+          ),
           backgroundColor: SahyanColors.primaryDark,
           duration: const Duration(seconds: 2),
         ),
@@ -85,9 +85,8 @@ class _RateTripSheetState extends ConsumerState<RateTripSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final driver = widget.driverName ??
-        widget.booking?.ride?.driverName ??
-        'Driver';
+    final driver =
+        widget.driverName ?? widget.booking?.ride?.driverName ?? 'Driver';
 
     return Container(
       decoration: const BoxDecoration(
@@ -160,9 +159,13 @@ class _RateTripSheetState extends ConsumerState<RateTripSheet> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 6),
                         child: Icon(
-                          isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
+                          isSelected
+                              ? Icons.star_rounded
+                              : Icons.star_outline_rounded,
                           size: 38,
-                          color: isSelected ? const Color(0xFFFBBF24) : SahyanColors.border,
+                          color: isSelected
+                              ? const Color(0xFFFBBF24)
+                              : SahyanColors.border,
                         ),
                       ),
                     );
@@ -203,15 +206,21 @@ class _RateTripSheetState extends ConsumerState<RateTripSheet> {
                 selectedColor: SahyanColors.primaryMint.withValues(alpha: 0.2),
                 checkmarkColor: SahyanColors.primaryDark,
                 side: BorderSide(
-                  color: isChosen ? SahyanColors.primaryMint : SahyanColors.border,
+                  color: isChosen
+                      ? SahyanColors.primaryMint
+                      : SahyanColors.border,
                   width: 0.8,
                 ),
                 labelStyle: AppTypography.caption.copyWith(
-                  color: isChosen ? SahyanColors.primaryDark : SahyanColors.textMain,
+                  color: isChosen
+                      ? SahyanColors.primaryDark
+                      : SahyanColors.textMain,
                   fontWeight: isChosen ? FontWeight.w700 : FontWeight.w500,
                   fontSize: 12,
                 ),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               );
             }).toList(),
           ),
@@ -224,20 +233,31 @@ class _RateTripSheetState extends ConsumerState<RateTripSheet> {
             style: AppTypography.bodyMedium,
             decoration: InputDecoration(
               hintText: 'Add an optional note about your trip experience...',
-              hintStyle: AppTypography.caption.copyWith(color: SahyanColors.textMuted),
+              hintStyle: AppTypography.caption.copyWith(
+                color: SahyanColors.textMuted,
+              ),
               filled: true,
               fillColor: SahyanColors.canvas,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: SahyanColors.border, width: 0.8),
+                borderSide: const BorderSide(
+                  color: SahyanColors.border,
+                  width: 0.8,
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: SahyanColors.border, width: 0.8),
+                borderSide: const BorderSide(
+                  color: SahyanColors.border,
+                  width: 0.8,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: SahyanColors.primaryDark, width: 1.2),
+                borderSide: const BorderSide(
+                  color: SahyanColors.primaryDark,
+                  width: 1.2,
+                ),
               ),
               contentPadding: const EdgeInsets.all(12),
             ),
@@ -251,7 +271,9 @@ class _RateTripSheetState extends ConsumerState<RateTripSheet> {
               backgroundColor: SahyanColors.primaryDark,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               elevation: 0,
             ),
             child: _isSubmitting

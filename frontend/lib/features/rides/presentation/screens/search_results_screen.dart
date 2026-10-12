@@ -217,44 +217,49 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                       scrollDirection: Axis.horizontal,
                       physics: const BouncingScrollPhysics(),
                       child: Row(
-                        children: [
-                          'All',
-                          'Direct Only',
-                          'High Match',
-                          'Under ₹350',
-                        ].map((filterLabel) {
-                          final isSelected = _selectedQuickFilter == filterLabel;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: Text(filterLabel),
-                              selected: isSelected,
-                              selectedColor: AppColors.primaryForest,
-                              backgroundColor: AppColors.white,
-                              labelStyle: AppTypography.caption.copyWith(
-                                color: isSelected
-                                    ? AppColors.white
-                                    : AppColors.textPrimary,
-                                fontWeight: isSelected
-                                    ? FontWeight.w700
-                                    : FontWeight.w600,
-                              ),
-                              side: BorderSide(
-                                color: isSelected
-                                    ? AppColors.primaryForest
-                                    : AppColors.border,
-                                width: 0.8,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadii.full),
-                              ),
-                              onSelected: (_) {
-                                setState(() => _selectedQuickFilter = filterLabel);
-                              },
-                            ),
-                          );
-                        }).toList(),
+                        children:
+                            [
+                              'All',
+                              'Direct Only',
+                              'High Match',
+                              'Under ₹350',
+                            ].map((filterLabel) {
+                              final isSelected =
+                                  _selectedQuickFilter == filterLabel;
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: ChoiceChip(
+                                  label: Text(filterLabel),
+                                  selected: isSelected,
+                                  selectedColor: AppColors.primaryForest,
+                                  backgroundColor: AppColors.white,
+                                  labelStyle: AppTypography.caption.copyWith(
+                                    color: isSelected
+                                        ? AppColors.white
+                                        : AppColors.textPrimary,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                  ),
+                                  side: BorderSide(
+                                    color: isSelected
+                                        ? AppColors.primaryForest
+                                        : AppColors.border,
+                                    width: 0.8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadii.full,
+                                    ),
+                                  ),
+                                  onSelected: (_) {
+                                    setState(
+                                      () => _selectedQuickFilter = filterLabel,
+                                    );
+                                  },
+                                ),
+                              );
+                            }).toList(),
                       ),
                     ),
                   );

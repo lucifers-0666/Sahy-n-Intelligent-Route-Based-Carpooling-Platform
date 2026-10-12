@@ -28,12 +28,18 @@ class ProfileSafetyScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: SahyanColors.textMuted),
+            icon: const Icon(
+              Icons.edit_outlined,
+              color: SahyanColors.textMuted,
+            ),
             tooltip: 'Edit Profile',
             onPressed: () => context.push('/edit-profile'),
           ),
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: SahyanColors.textMuted),
+            icon: const Icon(
+              Icons.settings_outlined,
+              color: SahyanColors.textMuted,
+            ),
             tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
@@ -183,21 +189,13 @@ class ProfileSafetyScreen extends ConsumerWidget {
             label: 'CO₂ offset',
             highlightColor: SahyanColors.primaryMint,
           ),
-          Container(
-            width: 0.8,
-            height: 36,
-            color: SahyanColors.border,
-          ),
+          Container(width: 0.8, height: 36, color: SahyanColors.border),
           _buildMetricItem(
             value: '28',
             label: 'Journeys',
             highlightColor: SahyanColors.primaryDark,
           ),
-          Container(
-            width: 0.8,
-            height: 36,
-            color: SahyanColors.border,
-          ),
+          Container(width: 0.8, height: 36, color: SahyanColors.border),
           _buildMetricItem(
             value: '₹9,840',
             label: 'Shared split',
@@ -519,10 +517,7 @@ class ProfileSafetyScreen extends ConsumerWidget {
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(
-          fontSize: 11,
-          color: SahyanColors.textMuted,
-        ),
+        style: const TextStyle(fontSize: 11, color: SahyanColors.textMuted),
       ),
       trailing: const Icon(
         Icons.arrow_forward_ios_rounded,
@@ -565,7 +560,8 @@ class ProfileSafetyScreen extends ConsumerWidget {
               _buildMenuItem(
                 icon: Icons.shield_outlined,
                 title: 'Privacy & Permissions Hub',
-                subtitle: 'Granular location, biometric & telephony data policies',
+                subtitle:
+                    'Granular location, biometric & telephony data policies',
                 onTap: () => context.push('/privacy-permissions'),
               ),
               _buildMenuDivider(),
@@ -622,8 +618,11 @@ class ProfileSafetyScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             const Row(
               children: [
-                Icon(Icons.download_done_rounded,
-                    color: SahyanColors.primaryDark, size: 24),
+                Icon(
+                  Icons.download_done_rounded,
+                  color: SahyanColors.primaryDark,
+                  size: 24,
+                ),
                 SizedBox(width: 12),
                 Text(
                   'Travel History Ledger Export',
@@ -657,16 +656,42 @@ class ProfileSafetyScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Format', style: TextStyle(fontSize: 12, color: SahyanColors.textMuted)),
-                      Text('JSON & Verified PDF Receipt', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: SahyanColors.textMain)),
+                      Text(
+                        'Format',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: SahyanColors.textMuted,
+                        ),
+                      ),
+                      Text(
+                        'JSON & Verified PDF Receipt',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: SahyanColors.textMain,
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Standard', style: TextStyle(fontSize: 12, color: SahyanColors.textMuted)),
-                      Text('DPDP Act 2023 / GDPR Art. 20', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: SahyanColors.primaryDark)),
+                      Text(
+                        'Standard',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: SahyanColors.textMuted,
+                        ),
+                      ),
+                      Text(
+                        'DPDP Act 2023 / GDPR Art. 20',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: SahyanColors.primaryDark,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -678,19 +703,26 @@ class ProfileSafetyScreen extends ConsumerWidget {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Travel History Ledger (JSON/PDF) prepared and downloaded successfully!'),
+                    content: Text(
+                      'Travel History Ledger (JSON/PDF) prepared and downloaded successfully!',
+                    ),
                     backgroundColor: SahyanColors.primaryDark,
                     duration: Duration(seconds: 3),
                   ),
                 );
               },
               icon: const Icon(Icons.file_download_outlined, size: 18),
-              label: const Text('Download Travel History (JSON / PDF)', style: TextStyle(fontWeight: FontWeight.w700)),
+              label: const Text(
+                'Download Travel History (JSON / PDF)',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: SahyanColors.primaryDark,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ],
@@ -705,9 +737,16 @@ class ProfileSafetyScreen extends ConsumerWidget {
       builder: (ctx) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.warning_amber_rounded, color: SahyanColors.urgentCoral, size: 24),
+            Icon(
+              Icons.warning_amber_rounded,
+              color: SahyanColors.urgentCoral,
+              size: 24,
+            ),
             SizedBox(width: 8),
-            Text('Data Anonymization', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            Text(
+              'Data Anonymization',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            ),
           ],
         ),
         content: const Text(
@@ -734,7 +773,9 @@ class ProfileSafetyScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Account anonymization request registered under DPDP Act. Logging out...'),
+          content: Text(
+            'Account anonymization request registered under DPDP Act. Logging out...',
+          ),
           backgroundColor: SahyanColors.urgentCoral,
           duration: Duration(seconds: 2),
         ),
@@ -796,9 +837,7 @@ class ProfileSafetyScreen extends ConsumerWidget {
       style: OutlinedButton.styleFrom(
         side: const BorderSide(color: SahyanColors.urgentCoral, width: 1.0),
         minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }

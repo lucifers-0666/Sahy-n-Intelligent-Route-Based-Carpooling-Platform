@@ -1156,7 +1156,11 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
               ),
               side: const BorderSide(color: AppColors.primaryForest),
             ),
-            icon: const Icon(Icons.navigation_rounded, size: 16, color: AppColors.primaryForest),
+            icon: const Icon(
+              Icons.navigation_rounded,
+              size: 16,
+              color: AppColors.primaryForest,
+            ),
             label: Text(
               'Drive HUD',
               style: AppTypography.caption.copyWith(
@@ -1190,11 +1194,7 @@ class _DriverRidesScreenState extends ConsumerState<DriverRidesScreen> {
           if (isNarrow) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                hudBtn,
-                const SizedBox(height: 6),
-                completeBtn,
-              ],
+              children: [hudBtn, const SizedBox(height: 6), completeBtn],
             );
           }
 

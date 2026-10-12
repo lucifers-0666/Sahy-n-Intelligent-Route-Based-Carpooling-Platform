@@ -177,7 +177,9 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
             final map = item as Map<String, dynamic>;
             final rawName = map['name'] as String?;
             final desc = map['description'] as String? ?? input;
-            final name = (rawName != null && rawName.isNotEmpty) ? rawName : desc;
+            final name = (rawName != null && rawName.isNotEmpty)
+                ? rawName
+                : desc;
             final city = map['city'] as String? ?? 'Gujarat';
             final lat = (map['latitude'] as num?)?.toDouble() ?? 23.0225;
             final lng = (map['longitude'] as num?)?.toDouble() ?? 72.5714;
@@ -276,7 +278,8 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
       if (position != null && mounted) {
         final currentLoc = LocationModel(
           name: 'Current Location',
-          address: 'GPS (${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})',
+          address:
+              'GPS (${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)})',
           city: 'Current Area',
           latitude: position.latitude,
           longitude: position.longitude,
@@ -286,7 +289,9 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Unable to acquire GPS fix. Please verify location settings.'),
+            content: Text(
+              'Unable to acquire GPS fix. Please verify location settings.',
+            ),
             backgroundColor: SahyanColors.urgentCoral,
           ),
         );
@@ -416,14 +421,18 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
                           ),
                         )
                       : _query.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.cancel, size: 18, color: SahyanColors.textMuted),
-                              onPressed: () {
-                                _searchController.clear();
-                                _onSearchChanged('');
-                              },
-                            )
-                          : null,
+                      ? IconButton(
+                          icon: const Icon(
+                            Icons.cancel,
+                            size: 18,
+                            color: SahyanColors.textMuted,
+                          ),
+                          onPressed: () {
+                            _searchController.clear();
+                            _onSearchChanged('');
+                          },
+                        )
+                      : null,
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -447,7 +456,10 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
                 onTap: _isLocating ? null : _handleUseCurrentLocation,
                 borderRadius: BorderRadius.circular(14),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   child: Row(
                     children: [
                       Container(
@@ -514,7 +526,9 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
             child: Row(
               children: [
                 Text(
-                  _query.isEmpty ? 'POPULAR GUJARAT CORRIDORS' : 'SEARCH RESULTS',
+                  _query.isEmpty
+                      ? 'POPULAR GUJARAT CORRIDORS'
+                      : 'SEARCH RESULTS',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -544,7 +558,10 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
                 : ListView.separated(
                     shrinkWrap: true,
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     itemCount: results.length,
                     separatorBuilder: (ctx, idx) => const Divider(
                       color: SahyanColors.border,

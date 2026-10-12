@@ -32,11 +32,8 @@ class BentoContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveRadius = borderRadius ?? BorderRadius.circular(22);
-    final effectiveBorder = borderSide ??
-        const BorderSide(
-          color: SahyanColors.border,
-          width: 0.8,
-        );
+    final effectiveBorder =
+        borderSide ?? const BorderSide(color: SahyanColors.border, width: 0.8);
 
     Widget container = Container(
       width: width,

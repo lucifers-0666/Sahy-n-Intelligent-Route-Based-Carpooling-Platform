@@ -371,7 +371,9 @@ class _DriverRequestDetailsScreenState
                               Container(
                                 width: 2,
                                 height: 38,
-                                color: AppColors.primaryForest.withValues(alpha: 0.3),
+                                color: AppColors.primaryForest.withValues(
+                                  alpha: 0.3,
+                                ),
                               ),
                               const Icon(
                                 Icons.place_rounded,

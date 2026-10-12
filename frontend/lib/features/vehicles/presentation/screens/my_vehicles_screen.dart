@@ -129,7 +129,10 @@ class MyVehiclesScreen extends ConsumerWidget {
     List<VehicleModel> vehicles,
   ) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -223,7 +226,9 @@ class MyVehiclesScreen extends ConsumerWidget {
                           Flexible(
                             child: Text(
                               vehicle.displayName,
-                              style: AppTypography.screenTitle.copyWith(fontSize: 15),
+                              style: AppTypography.screenTitle.copyWith(
+                                fontSize: 15,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -231,10 +236,15 @@ class MyVehiclesScreen extends ConsumerWidget {
                           if (vehicle.type.isElectric) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.softForest,
-                                borderRadius: BorderRadius.circular(AppRadii.full),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadii.full,
+                                ),
                               ),
                               child: Text(
                                 'EV',
@@ -339,7 +349,8 @@ class MyVehiclesScreen extends ConsumerWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  onPressed: () => context.push('/vehicles/edit', extra: vehicle),
+                  onPressed: () =>
+                      context.push('/vehicles/edit', extra: vehicle),
                 ),
                 TextButton.icon(
                   icon: const Icon(
@@ -397,23 +408,38 @@ class MyVehiclesScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardBackground,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.card)),
-        title: Text('Delete Vehicle', style: AppTypography.screenTitle.copyWith(fontSize: 18)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.card),
+        ),
+        title: Text(
+          'Delete Vehicle',
+          style: AppTypography.screenTitle.copyWith(fontSize: 18),
+        ),
         content: Text(
           'Are you sure you want to delete ${vehicle.displayName} (${vehicle.registrationNumber})? This will remove the vehicle from your fleet.',
           style: AppTypography.bodyMedium,
         ),
         actions: [
           TextButton(
-            child: Text('Cancel', style: AppTypography.button.copyWith(color: AppColors.textSecondary)),
+            child: Text(
+              'Cancel',
+              style: AppTypography.button.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
             onPressed: () => Navigator.of(ctx).pop(),
           ),
           TextButton(
-            child: Text('Delete', style: AppTypography.button.copyWith(color: AppColors.mutedRust)),
+            child: Text(
+              'Delete',
+              style: AppTypography.button.copyWith(color: AppColors.mutedRust),
+            ),
             onPressed: () async {
               Navigator.of(ctx).pop();
               try {
-                await ref.read(vehiclesProvider.notifier).deleteVehicle(vehicle.id);
+                await ref
+                    .read(vehiclesProvider.notifier)
+                    .deleteVehicle(vehicle.id);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -426,7 +452,9 @@ class MyVehiclesScreen extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(e.toString().replaceAll('ApiException: ', '')),
+                      content: Text(
+                        e.toString().replaceAll('ApiException: ', ''),
+                      ),
                       backgroundColor: AppColors.mutedRust,
                     ),
                   );

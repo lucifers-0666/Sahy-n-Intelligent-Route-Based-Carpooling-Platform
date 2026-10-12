@@ -71,7 +71,10 @@ class RouteProgressService {
         progressFraction: 1.0,
         isOffRoute: false,
         deviationMeters: dist,
-        effectiveDeviationMeters: math.max(0.0, dist - currentPosition.accuracy),
+        effectiveDeviationMeters: math.max(
+          0.0,
+          dist - currentPosition.accuracy,
+        ),
         nearestSegmentIndex: 0,
       );
     }
@@ -103,7 +106,10 @@ class RouteProgressService {
     }
 
     // Effective deviation subtracts GPS accuracy uncertainty
-    final effectiveDeviation = math.max(0.0, minDistance - currentPosition.accuracy);
+    final effectiveDeviation = math.max(
+      0.0,
+      minDistance - currentPosition.accuracy,
+    );
     final isOffRoute = effectiveDeviation > offRouteThresholdMeters;
 
     // Remaining polyline distance: from projection point to next waypoint, then sum remaining segments
@@ -162,7 +168,12 @@ class RouteProgressService {
 
     if (dx == 0.0 && dy == 0.0) {
       return _SegmentProjection(
-        distanceMeters: DistanceCalculator.haversineDistance(pLat, pLng, x1, y1),
+        distanceMeters: DistanceCalculator.haversineDistance(
+          pLat,
+          pLng,
+          x1,
+          y1,
+        ),
         projLat: x1,
         projLng: y1,
       );
@@ -174,7 +185,12 @@ class RouteProgressService {
     final projLat = x1 + clampedT * dx;
     final projLng = y1 + clampedT * dy;
 
-    final dist = DistanceCalculator.haversineDistance(pLat, pLng, projLat, projLng);
+    final dist = DistanceCalculator.haversineDistance(
+      pLat,
+      pLng,
+      projLat,
+      projLng,
+    );
     return _SegmentProjection(
       distanceMeters: dist,
       projLat: projLat,

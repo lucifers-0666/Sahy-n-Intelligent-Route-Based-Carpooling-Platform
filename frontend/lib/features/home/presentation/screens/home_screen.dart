@@ -111,8 +111,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void initState() {
     super.initState();
-    final isTest =
-        WidgetsBinding.instance.toString().contains('TestWidgetsFlutterBinding');
+    final isTest = WidgetsBinding.instance.toString().contains(
+      'TestWidgetsFlutterBinding',
+    );
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -253,7 +254,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (originText.isEmpty || destText.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please specify both origin and destination corridors.'),
+          content: Text(
+            'Please specify both origin and destination corridors.',
+          ),
           backgroundColor: SahyanColors.urgentCoral,
         ),
       );
@@ -414,8 +417,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   color: SahyanColors.primaryLight,
                                   borderRadius: BorderRadius.circular(999),
                                   border: Border.all(
-                                    color: SahyanColors.primaryMint
-                                        .withValues(alpha: 0.4),
+                                    color: SahyanColors.primaryMint.withValues(
+                                      alpha: 0.4,
+                                    ),
                                     width: 0.8,
                                   ),
                                 ),
@@ -716,7 +720,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     matchScoreText: '95% Corridor Match',
                     badges: [
                       'via ${quickCorridors.isNotEmpty ? quickCorridors[0]['viaHighway'] ?? 'NH47' : 'NH47'}',
-                      'EV Fastlane'
+                      'EV Fastlane',
                     ],
                     badgeVariants: const [
                       PillTagVariant.neutral,
@@ -749,13 +753,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     matchScoreText: '92% Corridor Match',
                     badges: [
                       'via ${quickCorridors.length > 1 ? quickCorridors[1]['viaHighway'] ?? 'NH48' : 'NH48'}',
-                      'Zero Toll'
+                      'Zero Toll',
                     ],
                     badgeVariants: const [
                       PillTagVariant.neutral,
                       PillTagVariant.mint,
                     ],
-                    badgeIcons: const [null, Icons.check_circle_outline_rounded],
+                    badgeIcons: const [
+                      null,
+                      Icons.check_circle_outline_rounded,
+                    ],
                     price:
                         '₹${quickCorridors.length > 1 ? quickCorridors[1]['price'] : 210} / seat',
                     onTap: () {
@@ -1022,13 +1029,13 @@ class _ActiveJourneyCard extends StatelessWidget {
     final title = isDriver ? 'Your Published Ride' : 'Upcoming Booked Ride';
     final origin = isDriver
         ? driverRide!.origin.city.isNotEmpty
-            ? driverRide!.origin.city
-            : driverRide!.origin.name
+              ? driverRide!.origin.city
+              : driverRide!.origin.name
         : booking!.pickup.name;
     final dest = isDriver
         ? driverRide!.destination.city.isNotEmpty
-            ? driverRide!.destination.city
-            : driverRide!.destination.name
+              ? driverRide!.destination.city
+              : driverRide!.destination.name
         : booking!.drop.name;
     final statusText = isDriver
         ? 'Active Route'

@@ -42,10 +42,7 @@ class SahyanMatchScoreBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: _containerColor,
         borderRadius: BorderRadius.circular(AppRadii.full),
-        border: Border.all(
-          color: _badgeColor.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: _badgeColor.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -116,7 +113,9 @@ class SahyanMatchScoreBreakdownCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.softForest,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -175,7 +174,10 @@ class SahyanMatchScoreBreakdownCard extends StatelessWidget {
           _buildMetricRow(
             label: 'Drop Deviation',
             value: '${metrics.destinationDistanceKm.toStringAsFixed(1)} km',
-            progress: (1.0 - (metrics.destinationDistanceKm / 5.0)).clamp(0.1, 1.0),
+            progress: (1.0 - (metrics.destinationDistanceKm / 5.0)).clamp(
+              0.1,
+              1.0,
+            ),
             icon: Icons.location_on_outlined,
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -183,14 +185,16 @@ class SahyanMatchScoreBreakdownCard extends StatelessWidget {
           _buildMetricRow(
             label: 'Time Difference',
             value: '${metrics.departureDifferenceMinutes.abs()} min',
-            progress: (1.0 - (metrics.departureDifferenceMinutes.abs() / 60.0)).clamp(0.1, 1.0),
+            progress: (1.0 - (metrics.departureDifferenceMinutes.abs() / 60.0))
+                .clamp(0.1, 1.0),
             icon: Icons.schedule_rounded,
           ),
           const SizedBox(height: AppSpacing.sm),
 
           _buildMetricRow(
             label: 'Driver Reliability',
-            value: '${(factors.driverReliability / 20.0).clamp(1.0, 5.0).toStringAsFixed(1)} / 5',
+            value:
+                '${(factors.driverReliability / 20.0).clamp(1.0, 5.0).toStringAsFixed(1)} / 5',
             progress: (factors.driverReliability / 100.0).clamp(0.2, 1.0),
             icon: Icons.verified_user_rounded,
           ),

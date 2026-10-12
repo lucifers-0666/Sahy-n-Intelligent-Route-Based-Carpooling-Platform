@@ -10,7 +10,7 @@ class BiometricService {
   final LocalAuthentication _localAuth;
 
   BiometricService({LocalAuthentication? localAuth})
-      : _localAuth = localAuth ?? LocalAuthentication();
+    : _localAuth = localAuth ?? LocalAuthentication();
 
   /// Check if device supports hardware biometrics (fingerprint / face ID)
   Future<bool> canAuthenticate() async {
@@ -25,7 +25,8 @@ class BiometricService {
 
   /// Trigger native hardware biometrics prompt (fingerprint or face ID)
   Future<bool> authenticate({
-    String localizedReason = 'Scan fingerprint or face to authenticate instantly',
+    String localizedReason =
+        'Scan fingerprint or face to authenticate instantly',
   }) async {
     try {
       return await _localAuth.authenticate(

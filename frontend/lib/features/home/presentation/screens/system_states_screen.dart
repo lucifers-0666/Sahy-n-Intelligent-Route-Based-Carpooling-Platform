@@ -47,7 +47,8 @@ class _SystemStatesScreenState extends State<SystemStatesScreen> {
                   horizontal: AppSpacing.containerMargin,
                 ),
                 itemCount: _states.length,
-                separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                separatorBuilder: (_, _) =>
+                    const SizedBox(width: AppSpacing.sm),
                 itemBuilder: (context, index) {
                   final isSelected = _selectedStateIndex == index;
                   return InkWell(

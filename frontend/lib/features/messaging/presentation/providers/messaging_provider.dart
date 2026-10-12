@@ -50,88 +50,86 @@ class MessagingNotifier extends StateNotifier<MessagingState> {
   final MessagingRepository? repository;
   final String? currentUserId;
 
-  MessagingNotifier({
-    this.repository,
-    this.currentUserId,
-  })  : super(
-          MessagingState(
-            conversations: [
-              Conversation(
-                id: 'conv-1',
-                bookingId: 'conv-1',
-                participantName: 'Karan Patel',
-                participantRole: 'Driver',
-                routeSummary: 'Ahmedabad to Vadodara',
-                lastMessage:
-                    'I have arrived near Iscon Cross Roads service lane. Blue Creta.',
-                lastMessageTime: DateTime.now().subtract(
-                  const Duration(minutes: 5),
-                ),
-                unreadCount: 1,
-                phone: '+91 98765 43210',
+  MessagingNotifier({this.repository, this.currentUserId})
+    : super(
+        MessagingState(
+          conversations: [
+            Conversation(
+              id: 'conv-1',
+              bookingId: 'conv-1',
+              participantName: 'Karan Patel',
+              participantRole: 'Driver',
+              routeSummary: 'Ahmedabad to Vadodara',
+              lastMessage:
+                  'I have arrived near Iscon Cross Roads service lane. Blue Creta.',
+              lastMessageTime: DateTime.now().subtract(
+                const Duration(minutes: 5),
               ),
-              Conversation(
-                id: 'conv-2',
-                bookingId: 'conv-2',
-                participantName: 'Priya Shah',
-                participantRole: 'Passenger',
-                routeSummary: 'Gandhinagar to GIFT City',
-                lastMessage:
-                    'Thanks for the ride today! Will book again tomorrow.',
-                lastMessageTime: DateTime.now().subtract(
-                  const Duration(hours: 3),
-                ),
-                unreadCount: 0,
-                phone: '+91 98123 45678',
+              unreadCount: 1,
+              phone: '+91 98765 43210',
+            ),
+            Conversation(
+              id: 'conv-2',
+              bookingId: 'conv-2',
+              participantName: 'Priya Shah',
+              participantRole: 'Passenger',
+              routeSummary: 'Gandhinagar to GIFT City',
+              lastMessage:
+                  'Thanks for the ride today! Will book again tomorrow.',
+              lastMessageTime: DateTime.now().subtract(
+                const Duration(hours: 3),
+              ),
+              unreadCount: 0,
+              phone: '+91 98123 45678',
+            ),
+          ],
+          messages: {
+            'conv-1': [
+              ChatMessage(
+                id: 'm-101',
+                conversationId: 'conv-1',
+                senderId: 'driver',
+                text:
+                    'Hello, please confirm if you will be at the pickup point by 08:30 AM.',
+                timestamp: DateTime.now().subtract(const Duration(minutes: 25)),
+                isMe: false,
+                status: 'read',
+              ),
+              ChatMessage(
+                id: 'm-102',
+                conversationId: 'conv-1',
+                senderId: 'me',
+                text:
+                    'Yes Karan, I am 2 minutes away, walking towards the bus shelter.',
+                timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
+                isMe: true,
+                status: 'delivered',
+              ),
+              ChatMessage(
+                id: 'm-103',
+                conversationId: 'conv-1',
+                senderId: 'driver',
+                text:
+                    'I have arrived near Iscon Cross Roads service lane. Blue Creta.',
+                timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+                isMe: false,
+                status: 'delivered',
               ),
             ],
-            messages: {
-              'conv-1': [
-                ChatMessage(
-                  id: 'm-101',
-                  conversationId: 'conv-1',
-                  senderId: 'driver',
-                  text:
-                      'Hello, please confirm if you will be at the pickup point by 08:30 AM.',
-                  timestamp: DateTime.now().subtract(const Duration(minutes: 25)),
-                  isMe: false,
-                  status: 'read',
-                ),
-                ChatMessage(
-                  id: 'm-102',
-                  conversationId: 'conv-1',
-                  senderId: 'me',
-                  text:
-                      'Yes Karan, I am 2 minutes away, walking towards the bus shelter.',
-                  timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
-                  isMe: true,
-                  status: 'delivered',
-                ),
-                ChatMessage(
-                  id: 'm-103',
-                  conversationId: 'conv-1',
-                  senderId: 'driver',
-                  text:
-                      'I have arrived near Iscon Cross Roads service lane. Blue Creta.',
-                  timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-                  isMe: false,
-                  status: 'delivered',
-                ),
-              ],
-              'conv-2': [
-                ChatMessage(
-                  id: 'm-201',
-                  conversationId: 'conv-2',
-                  senderId: 'passenger',
-                  text: 'Thanks for the ride today! Will book again tomorrow.',
-                  timestamp: DateTime.now().subtract(const Duration(hours: 3)),
-                  isMe: false,
-                  status: 'read',
-                ),
-              ],
-            },
-          ),
-        ) {
+            'conv-2': [
+              ChatMessage(
+                id: 'm-201',
+                conversationId: 'conv-2',
+                senderId: 'passenger',
+                text: 'Thanks for the ride today! Will book again tomorrow.',
+                timestamp: DateTime.now().subtract(const Duration(hours: 3)),
+                isMe: false,
+                status: 'read',
+              ),
+            ],
+          },
+        ),
+      ) {
     if (repository != null) {
       fetchConversations();
     }
@@ -150,7 +148,10 @@ class MessagingNotifier extends StateNotifier<MessagingState> {
   Future<void> loadMessages(String bookingId) async {
     if (repository == null) return;
     try {
-      final msgs = await repository!.getMessages(bookingId, currentUserId: currentUserId);
+      final msgs = await repository!.getMessages(
+        bookingId,
+        currentUserId: currentUserId,
+      );
       if (msgs.isNotEmpty) {
         final updatedMap = Map<String, List<ChatMessage>>.from(state.messages);
         updatedMap[bookingId] = msgs;
@@ -223,10 +224,7 @@ class MessagingNotifier extends StateNotifier<MessagingState> {
 
 final messagingProvider =
     StateNotifierProvider<MessagingNotifier, MessagingState>((ref) {
-  final repo = ref.watch(messagingRepositoryProvider);
-  final user = ref.watch(authProvider).user;
-  return MessagingNotifier(
-    repository: repo,
-    currentUserId: user?.id,
-  );
-});
+      final repo = ref.watch(messagingRepositoryProvider);
+      final user = ref.watch(authProvider).user;
+      return MessagingNotifier(repository: repo, currentUserId: user?.id);
+    });

@@ -75,7 +75,10 @@ class SafetyCenterScreen extends StatelessWidget {
                 ),
               );
             },
-            child: const Text('Submit Report', style: TextStyle(color: AppColors.white)),
+            child: const Text(
+              'Submit Report',
+              style: TextStyle(color: AppColors.white),
+            ),
           ),
         ],
       ),
@@ -86,10 +89,7 @@ class SafetyCenterScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: const SahyanAppBar(
-        title: 'Safety Center',
-        showBackButton: true,
-      ),
+      appBar: const SahyanAppBar(title: 'Safety Center', showBackButton: true),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
@@ -116,7 +116,9 @@ class SafetyCenterScreen extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.softForest,
-                              borderRadius: BorderRadius.circular(AppRadii.full),
+                              borderRadius: BorderRadius.circular(
+                                AppRadii.full,
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,

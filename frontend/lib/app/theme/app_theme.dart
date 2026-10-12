@@ -5,7 +5,7 @@ import 'app_radii.dart';
 import 'app_spacing.dart';
 import 'app_typography.dart';
 
-export '../../core/theme/app_theme.dart';
+export 'app_colors.dart';
 
 /// Sahyān Application Theme configuration.
 /// Applies the standardized Plus Jakarta Sans typography and organic Forest palette.
@@ -402,4 +402,10 @@ extension SahyanThemeContext on BuildContext {
           : SahyanThemeTokens.light);
 
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
+}
+
+/// Canonical backward compatibility alias for legacy widgets referencing SahyanTheme.
+abstract class SahyanTheme {
+  static ThemeData get lightTheme => AppTheme.lightTheme;
+  static ThemeData get darkTheme => AppTheme.darkTheme;
 }

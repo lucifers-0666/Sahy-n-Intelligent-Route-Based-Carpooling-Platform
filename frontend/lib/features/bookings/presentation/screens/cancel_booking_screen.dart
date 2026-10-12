@@ -122,10 +122,7 @@ class _CancelBookingScreenState extends ConsumerState<CancelBookingScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: const SahyanAppBar(
-        title: 'Cancel Booking',
-        showBackButton: true,
-      ),
+      appBar: const SahyanAppBar(title: 'Cancel Booking', showBackButton: true),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
@@ -369,7 +366,9 @@ class _CancelBookingScreenState extends ConsumerState<CancelBookingScreen> {
                         Flexible(
                           child: Text(
                             'Refund Breakdown',
-                            style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                            style: AppTypography.cardTitle.copyWith(
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                         const SizedBox(width: AppSpacing.sm),

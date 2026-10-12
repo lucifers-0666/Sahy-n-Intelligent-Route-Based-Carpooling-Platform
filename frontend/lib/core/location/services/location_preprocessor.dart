@@ -61,9 +61,11 @@ class LocationPreprocessor {
     double smoothedHeading = raw.heading;
 
     if (_lastSmoothedPoint != null) {
-      smoothedLat = _lastSmoothedPoint!.latitude +
+      smoothedLat =
+          _lastSmoothedPoint!.latitude +
           smoothingAlpha * (raw.latitude - _lastSmoothedPoint!.latitude);
-      smoothedLng = _lastSmoothedPoint!.longitude +
+      smoothedLng =
+          _lastSmoothedPoint!.longitude +
           smoothingAlpha * (raw.longitude - _lastSmoothedPoint!.longitude);
 
       // If raw heading is 0 or unavailable, calculate from movement vector
@@ -86,7 +88,11 @@ class LocationPreprocessor {
         }
       } else {
         // Smooth heading using shortest angular delta
-        smoothedHeading = _smoothHeading(_lastSmoothedPoint!.heading, raw.heading, smoothingAlpha);
+        smoothedHeading = _smoothHeading(
+          _lastSmoothedPoint!.heading,
+          raw.heading,
+          smoothingAlpha,
+        );
       }
     }
 

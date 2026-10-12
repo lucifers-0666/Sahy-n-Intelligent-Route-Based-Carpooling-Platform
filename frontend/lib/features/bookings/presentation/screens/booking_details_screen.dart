@@ -606,7 +606,8 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                 if (_booking.isAccepted) ...[
                   if (!_booking.isPaid) ...[
                     SahyanButton(
-                      text: 'Pay ₹${(_booking.totalContribution + 60).toStringAsFixed(0)} (Escrow Sandbox)',
+                      text:
+                          'Pay ₹${(_booking.totalContribution + 60).toStringAsFixed(0)} (Escrow Sandbox)',
                       icon: Icons.lock_outline_rounded,
                       onPressed: () {
                         context.push('/payment-checkout', extra: _booking);

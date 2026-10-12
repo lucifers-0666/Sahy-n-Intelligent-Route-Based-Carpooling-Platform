@@ -31,7 +31,9 @@ class ApiConfig {
     if (url == null || url.isEmpty) {
       customBaseUrl = null;
     } else {
-      customBaseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+      customBaseUrl = url.endsWith('/')
+          ? url.substring(0, url.length - 1)
+          : url;
     }
   }
 

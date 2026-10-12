@@ -9,11 +9,7 @@ class SahyanOfflineBanner extends StatelessWidget {
   final bool isOffline;
   final VoidCallback? onRetry;
 
-  const SahyanOfflineBanner({
-    super.key,
-    required this.isOffline,
-    this.onRetry,
-  });
+  const SahyanOfflineBanner({super.key, required this.isOffline, this.onRetry});
 
   @override
   Widget build(BuildContext context) {

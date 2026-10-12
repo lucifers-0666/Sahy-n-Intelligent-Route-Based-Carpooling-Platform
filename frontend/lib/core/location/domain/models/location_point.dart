@@ -33,8 +33,14 @@ class LocationPoint {
 
   factory LocationPoint.fromMap(Map<dynamic, dynamic> map) {
     return LocationPoint(
-      latitude: (map['latitude'] as num?)?.toDouble() ?? (map['lat'] as num?)?.toDouble() ?? 0.0,
-      longitude: (map['longitude'] as num?)?.toDouble() ?? (map['lng'] as num?)?.toDouble() ?? 0.0,
+      latitude:
+          (map['latitude'] as num?)?.toDouble() ??
+          (map['lat'] as num?)?.toDouble() ??
+          0.0,
+      longitude:
+          (map['longitude'] as num?)?.toDouble() ??
+          (map['lng'] as num?)?.toDouble() ??
+          0.0,
       accuracy: (map['accuracy'] as num?)?.toDouble() ?? 10.0,
       altitude: (map['altitude'] as num?)?.toDouble() ?? 0.0,
       speed: (map['speed'] as num?)?.toDouble() ?? 0.0,
@@ -51,19 +57,19 @@ class LocationPoint {
   }
 
   Map<String, dynamic> toMap() => {
-        'latitude': latitude,
-        'longitude': longitude,
-        'accuracy': accuracy,
-        'altitude': altitude,
-        'speed': speed,
-        'heading': heading,
-        'timestamp': timestamp.toIso8601String(),
-        'provider': provider,
-        'isMock': isMock,
-        if (verticalAccuracy != null) 'verticalAccuracy': verticalAccuracy,
-        if (speedAccuracy != null) 'speedAccuracy': speedAccuracy,
-        if (headingAccuracy != null) 'headingAccuracy': headingAccuracy,
-      };
+    'latitude': latitude,
+    'longitude': longitude,
+    'accuracy': accuracy,
+    'altitude': altitude,
+    'speed': speed,
+    'heading': heading,
+    'timestamp': timestamp.toIso8601String(),
+    'provider': provider,
+    'isMock': isMock,
+    if (verticalAccuracy != null) 'verticalAccuracy': verticalAccuracy,
+    if (speedAccuracy != null) 'speedAccuracy': speedAccuracy,
+    if (headingAccuracy != null) 'headingAccuracy': headingAccuracy,
+  };
 
   LocationPoint copyWith({
     double? latitude,

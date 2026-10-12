@@ -3,11 +3,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../features/vehicles/domain/vehicle_type.dart';
 import 'vehicle_painters.dart';
 
-enum VehicleIconVariant {
-  illustration,
-  mapMarker,
-  badge,
-}
+enum VehicleIconVariant { illustration, mapMarker, badge }
 
 /// Centralized Sahyān Vehicle Icon Widget.
 /// Renders standard vehicle illustrations and directional map markers
@@ -41,9 +37,9 @@ class VehicleIcon extends StatelessWidget {
     this.height = 44,
     this.color,
     this.isSelected = false,
-  })  : variant = VehicleIconVariant.illustration,
-        isActive = true,
-        heading = 0.0;
+  }) : variant = VehicleIconVariant.illustration,
+       isActive = true,
+       heading = 0.0;
 
   const VehicleIcon.mapMarker({
     super.key,
@@ -52,10 +48,10 @@ class VehicleIcon extends StatelessWidget {
     this.heading = 0.0,
     this.isActive = true,
     this.color,
-  })  : variant = VehicleIconVariant.mapMarker,
-        width = size,
-        height = size,
-        isSelected = false;
+  }) : variant = VehicleIconVariant.mapMarker,
+       width = size,
+       height = size,
+       isSelected = false;
 
   const VehicleIcon.badge({
     super.key,
@@ -63,11 +59,11 @@ class VehicleIcon extends StatelessWidget {
     double size = 40,
     this.color,
     this.isSelected = false,
-  })  : variant = VehicleIconVariant.badge,
-        width = size,
-        height = size,
-        isActive = true,
-        heading = 0.0;
+  }) : variant = VehicleIconVariant.badge,
+       width = size,
+       height = size,
+       isActive = true,
+       heading = 0.0;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +129,8 @@ class VehicleAssets {
 
   static String displayName(VehicleType type) => type.displayName;
   static int defaultCapacity(VehicleType type) => type.defaultSeatCapacity;
-  static String categoryName(VehicleType type) => type.categoryGroup.displayName;
+  static String categoryName(VehicleType type) =>
+      type.categoryGroup.displayName;
   static bool isElectric(VehicleType type) => type.isElectric;
 
   static String uiAssetPath(VehicleType type) =>
@@ -142,7 +139,12 @@ class VehicleAssets {
   static String markerAssetPath(VehicleType type) =>
       'assets/icons/vehicles/${type.code}/${type.code}_marker.png';
 
-  static Widget iconFor(VehicleType type, {double width = 56, double height = 36, Color? color}) {
+  static Widget iconFor(
+    VehicleType type, {
+    double width = 56,
+    double height = 36,
+    Color? color,
+  }) {
     return VehicleIcon.illustration(
       type: type,
       width: width,
@@ -151,11 +153,11 @@ class VehicleAssets {
     );
   }
 
-  static Widget badgeFor(VehicleType type, {double size = 40, bool isSelected = false}) {
-    return VehicleIcon.badge(
-      type: type,
-      size: size,
-      isSelected: isSelected,
-    );
+  static Widget badgeFor(
+    VehicleType type, {
+    double size = 40,
+    bool isSelected = false,
+  }) {
+    return VehicleIcon.badge(type: type, size: size, isSelected: isSelected);
   }
 }

@@ -79,7 +79,9 @@ class _FilterRidesScreenState extends ConsumerState<FilterRidesScreen> {
   Widget build(BuildContext context) {
     final query = ref.watch(rideSearchQueryProvider);
     final originText = query.origin.isNotEmpty ? query.origin : 'Ahmedabad';
-    final destText = query.destination.isNotEmpty ? query.destination : 'Rajkot';
+    final destText = query.destination.isNotEmpty
+        ? query.destination
+        : 'Rajkot';
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
@@ -170,36 +172,39 @@ class _FilterRidesScreenState extends ConsumerState<FilterRidesScreen> {
                     Wrap(
                       spacing: AppSpacing.sm,
                       runSpacing: AppSpacing.sm,
-                      children: [
-                        'Anytime',
-                        'Morning (6 AM - 12 PM)',
-                        'Afternoon (12 PM - 6 PM)',
-                        'Evening (6 PM - 12 AM)',
-                      ].map((seg) {
-                        final isSelected = _departureSegment == seg;
-                        return ChoiceChip(
-                          label: Text(seg),
-                          selected: isSelected,
-                          selectedColor: AppColors.softForest,
-                          backgroundColor: AppColors.white,
-                          side: BorderSide(
-                            color: isSelected
-                                ? AppColors.primaryForest
-                                : AppColors.border,
-                          ),
-                          labelStyle: AppTypography.caption.copyWith(
-                            color: isSelected
-                                ? AppColors.primaryForest
-                                : AppColors.textPrimary,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                          onSelected: (val) {
-                            if (val) setState(() => _departureSegment = seg);
-                          },
-                        );
-                      }).toList(),
+                      children:
+                          [
+                            'Anytime',
+                            'Morning (6 AM - 12 PM)',
+                            'Afternoon (12 PM - 6 PM)',
+                            'Evening (6 PM - 12 AM)',
+                          ].map((seg) {
+                            final isSelected = _departureSegment == seg;
+                            return ChoiceChip(
+                              label: Text(seg),
+                              selected: isSelected,
+                              selectedColor: AppColors.softForest,
+                              backgroundColor: AppColors.white,
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primaryForest
+                                    : AppColors.border,
+                              ),
+                              labelStyle: AppTypography.caption.copyWith(
+                                color: isSelected
+                                    ? AppColors.primaryForest
+                                    : AppColors.textPrimary,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                              onSelected: (val) {
+                                if (val) {
+                                  setState(() => _departureSegment = seg);
+                                }
+                              },
+                            );
+                          }).toList(),
                     ),
 
                     const SizedBox(height: AppSpacing.md),
@@ -231,35 +236,33 @@ class _FilterRidesScreenState extends ConsumerState<FilterRidesScreen> {
                     Wrap(
                       spacing: AppSpacing.sm,
                       runSpacing: AppSpacing.sm,
-                      children: [
-                        'Direct (95%+)',
-                        'Highway (80%+)',
-                        'Any Match',
-                      ].map((tier) {
-                        final isSelected = _routeMatchTier == tier;
-                        return ChoiceChip(
-                          label: Text(tier),
-                          selected: isSelected,
-                          selectedColor: AppColors.softForest,
-                          backgroundColor: AppColors.white,
-                          side: BorderSide(
-                            color: isSelected
-                                ? AppColors.primaryForest
-                                : AppColors.border,
-                          ),
-                          labelStyle: AppTypography.caption.copyWith(
-                            color: isSelected
-                                ? AppColors.primaryForest
-                                : AppColors.textPrimary,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                          onSelected: (val) {
-                            if (val) setState(() => _routeMatchTier = tier);
-                          },
-                        );
-                      }).toList(),
+                      children: ['Direct (95%+)', 'Highway (80%+)', 'Any Match']
+                          .map((tier) {
+                            final isSelected = _routeMatchTier == tier;
+                            return ChoiceChip(
+                              label: Text(tier),
+                              selected: isSelected,
+                              selectedColor: AppColors.softForest,
+                              backgroundColor: AppColors.white,
+                              side: BorderSide(
+                                color: isSelected
+                                    ? AppColors.primaryForest
+                                    : AppColors.border,
+                              ),
+                              labelStyle: AppTypography.caption.copyWith(
+                                color: isSelected
+                                    ? AppColors.primaryForest
+                                    : AppColors.textPrimary,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                              onSelected: (val) {
+                                if (val) setState(() => _routeMatchTier = tier);
+                              },
+                            );
+                          })
+                          .toList(),
                     ),
 
                     const SizedBox(height: AppSpacing.lg),
@@ -433,7 +436,9 @@ class _FilterRidesScreenState extends ConsumerState<FilterRidesScreen> {
                                           : FontWeight.normal,
                                     ),
                                     onSelected: (val) {
-                                      if (val) setState(() => _minRating = rating);
+                                      if (val) {
+                                        setState(() => _minRating = rating);
+                                      }
                                     },
                                   );
                                 }).toList(),

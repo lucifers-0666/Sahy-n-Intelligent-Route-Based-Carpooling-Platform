@@ -59,7 +59,8 @@ class Conversation {
       routeSummary: json['routeSummary'] as String? ?? 'Highway Corridor',
       lastMessage: json['lastMessage'] as String? ?? '',
       lastMessageTime: json['lastMessageTime'] != null
-          ? DateTime.tryParse(json['lastMessageTime'].toString()) ?? DateTime.now()
+          ? DateTime.tryParse(json['lastMessageTime'].toString()) ??
+                DateTime.now()
           : DateTime.now(),
       unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
       phone: json['phone'] as String?,
@@ -106,13 +107,16 @@ class ChatMessage {
     String? currentUserId,
   }) {
     final senderObj = json['sender'];
-    final senderId = senderObj is Map ? (senderObj['_id'] ?? senderObj['id'] ?? '') : (senderObj?.toString() ?? '');
+    final senderId = senderObj is Map
+        ? (senderObj['_id'] ?? senderObj['id'] ?? '')
+        : (senderObj?.toString() ?? '');
     final isMe = currentUserId != null && senderId == currentUserId;
     final readAt = json['readAt'];
 
     return ChatMessage(
       id: json['id'] as String? ?? json['_id'] as String? ?? '',
-      conversationId: (json['booking'] ?? json['conversationId'] ?? '').toString(),
+      conversationId: (json['booking'] ?? json['conversationId'] ?? '')
+          .toString(),
       senderId: senderId.toString(),
       text: json['text'] as String? ?? '',
       timestamp: json['createdAt'] != null

@@ -22,7 +22,11 @@ class SeatSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     // Generate seat layout (Front: Passenger A1 & Driver; Rear: A2, A3, A4)
     final List<Map<String, dynamic>> seats = [
-      {'id': 'A1', 'label': 'Front Passenger', 'isAvailable': availableSeats >= 1},
+      {
+        'id': 'A1',
+        'label': 'Front Passenger',
+        'isAvailable': availableSeats >= 1,
+      },
       {'id': 'A2', 'label': 'Rear Left', 'isAvailable': availableSeats >= 2},
       {'id': 'A3', 'label': 'Rear Center', 'isAvailable': availableSeats >= 3},
       {'id': 'A4', 'label': 'Rear Right', 'isAvailable': availableSeats >= 4},
@@ -55,7 +59,10 @@ class SeatSelector extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: selectedSeats.isNotEmpty
                       ? AppColors.softForest
@@ -90,7 +97,9 @@ class SeatSelector extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(AppRadii.sm),
-                border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+                border: Border.all(
+                  color: AppColors.border.withValues(alpha: 0.6),
+                ),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -236,7 +245,8 @@ class SeatSelector extends StatelessWidget {
     }
 
     return Semantics(
-      label: '$label, seat $id, ${isAvailable ? (isSelected ? 'selected' : 'available') : 'occupied'}',
+      label:
+          '$label, seat $id, ${isAvailable ? (isSelected ? 'selected' : 'available') : 'occupied'}',
       button: isAvailable,
       child: GestureDetector(
         onTap: isAvailable
@@ -295,8 +305,8 @@ class SeatSelector extends StatelessWidget {
                   color: isSelected
                       ? AppColors.primaryForest
                       : (isAvailable
-                          ? AppColors.textSecondary
-                          : AppColors.textSecondary.withValues(alpha: 0.5)),
+                            ? AppColors.textSecondary
+                            : AppColors.textSecondary.withValues(alpha: 0.5)),
                   fontSize: 9,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),

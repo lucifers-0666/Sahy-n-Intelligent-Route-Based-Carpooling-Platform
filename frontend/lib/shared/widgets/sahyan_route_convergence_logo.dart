@@ -267,6 +267,7 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
   late final Animation<double> _wordmarkFade;
   late final Animation<Offset> _wordmarkSlide;
   late final Animation<double> _taglineFade;
+  bool _hasNotifiedComplete = false;
 
   @override
   void initState() {
@@ -329,7 +330,8 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
       if (status == AnimationStatus.completed) {
         if (widget.loop) {
           _controller.repeat();
-        } else {
+        } else if (!_hasNotifiedComplete) {
+          _hasNotifiedComplete = true;
           widget.onComplete?.call();
         }
       }
@@ -350,9 +352,12 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
     final disableAnimations =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     if (disableAnimations) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.onComplete?.call();
-      });
+      if (!_hasNotifiedComplete) {
+        _hasNotifiedComplete = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onComplete?.call();
+        });
+      }
       return _buildStaticVersion();
     }
 

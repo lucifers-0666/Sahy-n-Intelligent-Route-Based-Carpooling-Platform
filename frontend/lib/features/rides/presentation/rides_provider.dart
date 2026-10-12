@@ -19,7 +19,9 @@ final rideApiRepositoryProvider = Provider<RideRepository>((ref) {
 final ridesRepositoryProvider = rideApiRepositoryProvider;
 
 // Live Gujarat Highway Corridors Provider
-final corridorsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+final corridorsProvider = FutureProvider<List<Map<String, dynamic>>>((
+  ref,
+) async {
   final apiClient = ref.watch(apiClientProvider);
   try {
     final response = await apiClient.get('/rides/corridors');

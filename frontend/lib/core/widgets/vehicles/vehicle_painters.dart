@@ -61,16 +61,51 @@ class VehicleIllustrationPainter extends CustomPainter {
 
     switch (type.categoryGroup) {
       case VehicleCategoryGroup.twoWheeler:
-        _paintTwoWheeler(canvas, w, h, bodyPaint, wheelPaint, hubcapPaint, accentPaint);
+        _paintTwoWheeler(
+          canvas,
+          w,
+          h,
+          bodyPaint,
+          wheelPaint,
+          hubcapPaint,
+          accentPaint,
+        );
         break;
       case VehicleCategoryGroup.threeWheeler:
-        _paintThreeWheeler(canvas, w, h, bodyPaint, windowPaint, wheelPaint, hubcapPaint, accentPaint);
+        _paintThreeWheeler(
+          canvas,
+          w,
+          h,
+          bodyPaint,
+          windowPaint,
+          wheelPaint,
+          hubcapPaint,
+          accentPaint,
+        );
         break;
       case VehicleCategoryGroup.utility:
-        _paintUtilityVehicle(canvas, w, h, bodyPaint, windowPaint, wheelPaint, hubcapPaint, accentPaint);
+        _paintUtilityVehicle(
+          canvas,
+          w,
+          h,
+          bodyPaint,
+          windowPaint,
+          wheelPaint,
+          hubcapPaint,
+          accentPaint,
+        );
         break;
       case VehicleCategoryGroup.car:
-        _paintCar(canvas, w, h, bodyPaint, windowPaint, wheelPaint, hubcapPaint, accentPaint);
+        _paintCar(
+          canvas,
+          w,
+          h,
+          bodyPaint,
+          windowPaint,
+          wheelPaint,
+          hubcapPaint,
+          accentPaint,
+        );
         break;
     }
 
@@ -103,10 +138,25 @@ class VehicleIllustrationPainter extends CustomPainter {
         // Compact 2-box hatchback profile
         bodyPath.moveTo(w * 0.08, groundY - 4);
         bodyPath.lineTo(w * 0.08, h * 0.42); // blunt rear
-        bodyPath.quadraticBezierTo(w * 0.12, h * 0.32, w * 0.25, h * 0.30); // roof start
+        bodyPath.quadraticBezierTo(
+          w * 0.12,
+          h * 0.32,
+          w * 0.25,
+          h * 0.30,
+        ); // roof start
         bodyPath.lineTo(w * 0.58, h * 0.30); // flat roof
-        bodyPath.quadraticBezierTo(w * 0.72, h * 0.34, w * 0.88, h * 0.52); // steep windshield & bonnet
-        bodyPath.quadraticBezierTo(w * 0.94, h * 0.58, w * 0.92, groundY - 4); // nose
+        bodyPath.quadraticBezierTo(
+          w * 0.72,
+          h * 0.34,
+          w * 0.88,
+          h * 0.52,
+        ); // steep windshield & bonnet
+        bodyPath.quadraticBezierTo(
+          w * 0.94,
+          h * 0.58,
+          w * 0.92,
+          groundY - 4,
+        ); // nose
         bodyPath.close();
 
         // Windows
@@ -133,7 +183,11 @@ class VehicleIllustrationPainter extends CustomPainter {
           ..color = const Color(0xFF374151)
           ..strokeWidth = 3
           ..style = PaintingStyle.stroke;
-        canvas.drawLine(Offset(w * 0.22, h * 0.18), Offset(w * 0.62, h * 0.18), railPaint);
+        canvas.drawLine(
+          Offset(w * 0.22, h * 0.18),
+          Offset(w * 0.62, h * 0.18),
+          railPaint,
+        );
 
         // Windows
         windowPath.moveTo(w * 0.20, h * 0.26);
@@ -217,9 +271,19 @@ class VehicleIllustrationPainter extends CustomPainter {
         // Classic 3-box notchback sedan
         bodyPath.moveTo(w * 0.06, groundY - 4);
         bodyPath.lineTo(w * 0.14, h * 0.48); // trunk
-        bodyPath.quadraticBezierTo(w * 0.22, h * 0.34, w * 0.40, h * 0.32); // rear windshield
+        bodyPath.quadraticBezierTo(
+          w * 0.22,
+          h * 0.34,
+          w * 0.40,
+          h * 0.32,
+        ); // rear windshield
         bodyPath.lineTo(w * 0.62, h * 0.32); // roof
-        bodyPath.quadraticBezierTo(w * 0.74, h * 0.36, w * 0.84, h * 0.52); // front windshield
+        bodyPath.quadraticBezierTo(
+          w * 0.74,
+          h * 0.36,
+          w * 0.84,
+          h * 0.52,
+        ); // front windshield
         bodyPath.lineTo(w * 0.95, h * 0.54); // hood
         bodyPath.quadraticBezierTo(w * 0.96, h * 0.62, w * 0.93, groundY - 4);
         bodyPath.close();
@@ -270,7 +334,13 @@ class VehicleIllustrationPainter extends CustomPainter {
 
     // Wheels
     _drawWheel(canvas, Offset(rearWheelX, groundY), wheelRadius, wheel, hubcap);
-    _drawWheel(canvas, Offset(frontWheelX, groundY), wheelRadius, wheel, hubcap);
+    _drawWheel(
+      canvas,
+      Offset(frontWheelX, groundY),
+      wheelRadius,
+      wheel,
+      hubcap,
+    );
   }
 
   void _paintTwoWheeler(
@@ -293,8 +363,10 @@ class VehicleIllustrationPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
-    final isBicycle = type == VehicleType.bicycle || type == VehicleType.electricBicycle;
-    final isScooter = type == VehicleType.scooter || type == VehicleType.electricScooter;
+    final isBicycle =
+        type == VehicleType.bicycle || type == VehicleType.electricBicycle;
+    final isScooter =
+        type == VehicleType.scooter || type == VehicleType.electricScooter;
 
     if (isBicycle) {
       // Bicycle Diamond Frame
@@ -326,7 +398,11 @@ class VehicleIllustrationPainter extends CustomPainter {
       final saddlePaint = Paint()..color = const Color(0xFF1F2937);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromCenter(center: Offset(seat.dx, seat.dy - 6), width: 22, height: 7),
+          Rect.fromCenter(
+            center: Offset(seat.dx, seat.dy - 6),
+            width: 22,
+            height: 7,
+          ),
           const Radius.circular(3),
         ),
         saddlePaint,
@@ -346,7 +422,12 @@ class VehicleIllustrationPainter extends CustomPainter {
       // Step-through scooter body
       final scooterPath = Path();
       scooterPath.moveTo(rearWheelX - 8, groundY - 6);
-      scooterPath.quadraticBezierTo(w * 0.16, h * 0.40, w * 0.36, h * 0.40); // rear cowl
+      scooterPath.quadraticBezierTo(
+        w * 0.16,
+        h * 0.40,
+        w * 0.36,
+        h * 0.40,
+      ); // rear cowl
       scooterPath.lineTo(w * 0.50, groundY - 8); // floorboard
       scooterPath.lineTo(w * 0.68, groundY - 8);
       scooterPath.lineTo(w * 0.72, h * 0.30); // front apron
@@ -409,12 +490,22 @@ class VehicleIllustrationPainter extends CustomPainter {
       );
 
       // Handlebar & Headlight
-      canvas.drawCircle(Offset(w * 0.70, h * 0.38), 5, Paint()..color = const Color(0xFFFBBF24));
+      canvas.drawCircle(
+        Offset(w * 0.70, h * 0.38),
+        5,
+        Paint()..color = const Color(0xFFFBBF24),
+      );
     }
 
     // Spokes/wheels for two-wheelers
     _drawWheel(canvas, Offset(rearWheelX, groundY), wheelRadius, wheel, hubcap);
-    _drawWheel(canvas, Offset(frontWheelX, groundY), wheelRadius, wheel, hubcap);
+    _drawWheel(
+      canvas,
+      Offset(frontWheelX, groundY),
+      wheelRadius,
+      wheel,
+      hubcap,
+    );
   }
 
   void _paintThreeWheeler(
@@ -436,15 +527,26 @@ class VehicleIllustrationPainter extends CustomPainter {
     final cabPath = Path();
     cabPath.moveTo(w * 0.12, groundY - 6);
     cabPath.lineTo(w * 0.12, h * 0.34);
-    cabPath.quadraticBezierTo(w * 0.16, h * 0.24, w * 0.32, h * 0.22); // yellow/green hood roof
+    cabPath.quadraticBezierTo(
+      w * 0.16,
+      h * 0.24,
+      w * 0.32,
+      h * 0.22,
+    ); // yellow/green hood roof
     cabPath.lineTo(w * 0.64, h * 0.22);
-    cabPath.quadraticBezierTo(w * 0.74, h * 0.28, w * 0.82, h * 0.50); // windshield slope
+    cabPath.quadraticBezierTo(
+      w * 0.74,
+      h * 0.28,
+      w * 0.82,
+      h * 0.50,
+    ); // windshield slope
     cabPath.lineTo(frontWheelX + 6, groundY - 6);
     cabPath.close();
 
     // Body paint (Sahyān Forest or Electric Green)
     final isEv = type == VehicleType.electricAutoRickshaw;
-    final roofPaint = Paint()..color = isEv ? const Color(0xFF0F766E) : const Color(0xFFD97706);
+    final roofPaint = Paint()
+      ..color = isEv ? const Color(0xFF0F766E) : const Color(0xFFD97706);
     canvas.drawPath(cabPath, roofPaint);
 
     // Lower chassis
@@ -469,7 +571,13 @@ class VehicleIllustrationPainter extends CustomPainter {
 
     // Wheels
     _drawWheel(canvas, Offset(rearWheelX, groundY), wheelRadius, wheel, hubcap);
-    _drawWheel(canvas, Offset(frontWheelX, groundY), wheelRadius, wheel, hubcap);
+    _drawWheel(
+      canvas,
+      Offset(frontWheelX, groundY),
+      wheelRadius,
+      wheel,
+      hubcap,
+    );
   }
 
   void _paintUtilityVehicle(
@@ -539,8 +647,15 @@ class VehicleIllustrationPainter extends CustomPainter {
 
         // 3 Windows
         for (int i = 0; i < 3; i++) {
-          final winRect = Rect.fromLTWH(w * (0.16 + (i * 0.24)), h * 0.28, w * 0.18, h * 0.22);
-          windowPath.addRRect(RRect.fromRectAndRadius(winRect, const Radius.circular(2)));
+          final winRect = Rect.fromLTWH(
+            w * (0.16 + (i * 0.24)),
+            h * 0.28,
+            w * 0.18,
+            h * 0.22,
+          );
+          windowPath.addRRect(
+            RRect.fromRectAndRadius(winRect, const Radius.circular(2)),
+          );
         }
         break;
 
@@ -557,8 +672,18 @@ class VehicleIllustrationPainter extends CustomPainter {
         bodyPath.close();
 
         // Dual windows
-        windowPath.addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w * 0.20, h * 0.30, w * 0.24, h * 0.20), const Radius.circular(2)));
-        windowPath.addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w * 0.48, h * 0.30, w * 0.28, h * 0.20), const Radius.circular(2)));
+        windowPath.addRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.20, h * 0.30, w * 0.24, h * 0.20),
+            const Radius.circular(2),
+          ),
+        );
+        windowPath.addRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.48, h * 0.30, w * 0.28, h * 0.20),
+            const Radius.circular(2),
+          ),
+        );
         break;
     }
 
@@ -566,10 +691,22 @@ class VehicleIllustrationPainter extends CustomPainter {
     canvas.drawPath(windowPath, window);
 
     _drawWheel(canvas, Offset(rearWheelX, groundY), wheelRadius, wheel, hubcap);
-    _drawWheel(canvas, Offset(frontWheelX, groundY), wheelRadius, wheel, hubcap);
+    _drawWheel(
+      canvas,
+      Offset(frontWheelX, groundY),
+      wheelRadius,
+      wheel,
+      hubcap,
+    );
   }
 
-  void _drawWheel(Canvas canvas, Offset center, double radius, Paint tire, Paint rim) {
+  void _drawWheel(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    Paint tire,
+    Paint rim,
+  ) {
     canvas.drawCircle(center, radius, tire);
     canvas.drawCircle(center, radius * 0.55, rim);
     canvas.drawCircle(center, radius * 0.22, tire);
@@ -578,7 +715,10 @@ class VehicleIllustrationPainter extends CustomPainter {
   void _paintEvBadge(Canvas canvas, double w, double h) {
     final badgePaint = Paint()..color = const Color(0xFF10B981);
     final badgeRect = Rect.fromLTWH(w * 0.78, h * 0.08, 16, 16);
-    canvas.drawRRect(RRect.fromRectAndRadius(badgeRect, const Radius.circular(8)), badgePaint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(badgeRect, const Radius.circular(8)),
+      badgePaint,
+    );
 
     final bolt = Path();
     bolt.moveTo(w * 0.78 + 9, h * 0.08 + 3);
@@ -647,11 +787,18 @@ class VehicleMarkerPainter extends CustomPainter {
 
     // Marker shadow
     final shadowPath = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        Rect.fromCenter(center: center, width: w * 0.62, height: h * 0.78),
-        Radius.circular(w * 0.20),
-      ));
-    canvas.drawShadow(shadowPath, Colors.black.withValues(alpha: 0.35), 4, true);
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: center, width: w * 0.62, height: h * 0.78),
+          Radius.circular(w * 0.20),
+        ),
+      );
+    canvas.drawShadow(
+      shadowPath,
+      Colors.black.withValues(alpha: 0.35),
+      4,
+      true,
+    );
     canvas.drawPath(shadowPath, containerPaint);
 
     // Border around white pill
@@ -697,30 +844,64 @@ class VehicleMarkerPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _drawTopDownCar(Canvas canvas, Offset c, double w, double h, Paint paint, Paint glass) {
+  void _drawTopDownCar(
+    Canvas canvas,
+    Offset c,
+    double w,
+    double h,
+    Paint paint,
+    Paint glass,
+  ) {
     final cw = w * 0.36;
     final ch = h * 0.60;
     final carRect = Rect.fromCenter(center: c, width: cw, height: ch);
 
     // Body
-    canvas.drawRRect(RRect.fromRectAndRadius(carRect, Radius.circular(cw * 0.35)), paint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(carRect, Radius.circular(cw * 0.35)),
+      paint,
+    );
 
     // Front windshield
-    final frontGlass = Rect.fromCenter(center: Offset(c.dx, c.dy - (ch * 0.20)), width: cw * 0.70, height: ch * 0.16);
-    canvas.drawRRect(RRect.fromRectAndRadius(frontGlass, const Radius.circular(2)), glass);
+    final frontGlass = Rect.fromCenter(
+      center: Offset(c.dx, c.dy - (ch * 0.20)),
+      width: cw * 0.70,
+      height: ch * 0.16,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(frontGlass, const Radius.circular(2)),
+      glass,
+    );
 
     // Rear windshield
-    final rearGlass = Rect.fromCenter(center: Offset(c.dx, c.dy + (ch * 0.22)), width: cw * 0.65, height: ch * 0.12);
-    canvas.drawRRect(RRect.fromRectAndRadius(rearGlass, const Radius.circular(2)), glass);
+    final rearGlass = Rect.fromCenter(
+      center: Offset(c.dx, c.dy + (ch * 0.22)),
+      width: cw * 0.65,
+      height: ch * 0.12,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rearGlass, const Radius.circular(2)),
+      glass,
+    );
   }
 
-  void _drawTopDownTwoWheeler(Canvas canvas, Offset c, double w, double h, Paint paint) {
+  void _drawTopDownTwoWheeler(
+    Canvas canvas,
+    Offset c,
+    double w,
+    double h,
+    Paint paint,
+  ) {
     // Slim silhouette with front handlebar and wheels
     final tirePaint = Paint()..color = const Color(0xFF1F2937);
     // Front wheel
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(c.dx, c.dy - (h * 0.22)), width: 5, height: 14),
+        Rect.fromCenter(
+          center: Offset(c.dx, c.dy - (h * 0.22)),
+          width: 5,
+          height: 14,
+        ),
         const Radius.circular(2),
       ),
       tirePaint,
@@ -728,7 +909,11 @@ class VehicleMarkerPainter extends CustomPainter {
     // Rear wheel
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(c.dx, c.dy + (h * 0.22)), width: 5, height: 14),
+        Rect.fromCenter(
+          center: Offset(c.dx, c.dy + (h * 0.22)),
+          width: 5,
+          height: 14,
+        ),
         const Radius.circular(2),
       ),
       tirePaint,
@@ -755,32 +940,68 @@ class VehicleMarkerPainter extends CustomPainter {
     );
   }
 
-  void _drawTopDownThreeWheeler(Canvas canvas, Offset c, double w, double h, Paint paint, Paint glass) {
+  void _drawTopDownThreeWheeler(
+    Canvas canvas,
+    Offset c,
+    double w,
+    double h,
+    Paint paint,
+    Paint glass,
+  ) {
     // Delta shape: single front, wide dual rear
     final autoPath = Path();
     autoPath.moveTo(c.dx, c.dy - (h * 0.26)); // narrow front
     autoPath.lineTo(c.dx + (w * 0.19), c.dy + (h * 0.22)); // wide rear right
-    autoPath.quadraticBezierTo(c.dx, c.dy + (h * 0.26), c.dx - (w * 0.19), c.dy + (h * 0.22)); // rear curved
+    autoPath.quadraticBezierTo(
+      c.dx,
+      c.dy + (h * 0.26),
+      c.dx - (w * 0.19),
+      c.dy + (h * 0.22),
+    ); // rear curved
     autoPath.close();
 
     canvas.drawPath(autoPath, paint);
 
     // Front windshield
-    final frontGlass = Rect.fromCenter(center: Offset(c.dx, c.dy - (h * 0.10)), width: w * 0.24, height: h * 0.10);
-    canvas.drawRRect(RRect.fromRectAndRadius(frontGlass, const Radius.circular(2)), glass);
+    final frontGlass = Rect.fromCenter(
+      center: Offset(c.dx, c.dy - (h * 0.10)),
+      width: w * 0.24,
+      height: h * 0.10,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(frontGlass, const Radius.circular(2)),
+      glass,
+    );
   }
 
-  void _drawTopDownUtility(Canvas canvas, Offset c, double w, double h, Paint paint, Paint glass) {
+  void _drawTopDownUtility(
+    Canvas canvas,
+    Offset c,
+    double w,
+    double h,
+    Paint paint,
+    Paint glass,
+  ) {
     final cw = w * 0.40;
     final ch = h * 0.64;
     final bodyRect = Rect.fromCenter(center: c, width: cw, height: ch);
 
     // Rectangular commercial body
-    canvas.drawRRect(RRect.fromRectAndRadius(bodyRect, const Radius.circular(4)), paint);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(bodyRect, const Radius.circular(4)),
+      paint,
+    );
 
     // Cab windshield
-    final cabGlass = Rect.fromCenter(center: Offset(c.dx, c.dy - (ch * 0.25)), width: cw * 0.78, height: ch * 0.16);
-    canvas.drawRRect(RRect.fromRectAndRadius(cabGlass, const Radius.circular(2)), glass);
+    final cabGlass = Rect.fromCenter(
+      center: Offset(c.dx, c.dy - (ch * 0.25)),
+      width: cw * 0.78,
+      height: ch * 0.16,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(cabGlass, const Radius.circular(2)),
+      glass,
+    );
   }
 
   @override

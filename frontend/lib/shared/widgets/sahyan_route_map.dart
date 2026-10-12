@@ -133,7 +133,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       _prevDriverPos = _displayDriverPos ?? newPos;
       _prevHeading = _displayHeading;
       _currentDriverPos = newPos;
-      _currentHeading = _shortestHeading(_prevHeading, widget.driverHeading ?? 0.0);
+      _currentHeading = _shortestHeading(
+        _prevHeading,
+        widget.driverHeading ?? 0.0,
+      );
 
       _interpolationController.forward(from: 0.0);
     }
@@ -254,7 +257,11 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               ),
             ],
           ),
-          child: const Icon(Icons.trip_origin_rounded, size: 20, color: Colors.white),
+          child: const Icon(
+            Icons.trip_origin_rounded,
+            size: 20,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -262,7 +269,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     // Destination marker
     markers.add(
       fmap.Marker(
-        point: ll.LatLng(widget.destination.latitude, widget.destination.longitude),
+        point: ll.LatLng(
+          widget.destination.latitude,
+          widget.destination.longitude,
+        ),
         width: 40,
         height: 40,
         child: Container(
@@ -278,7 +288,11 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               ),
             ],
           ),
-          child: const Icon(Icons.location_on_rounded, size: 22, color: Colors.white),
+          child: const Icon(
+            Icons.location_on_rounded,
+            size: 22,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -297,14 +311,22 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 1.5),
             ),
-            child: const Icon(Icons.flag_rounded, size: 16, color: Colors.white),
+            child: const Icon(
+              Icons.flag_rounded,
+              size: 16,
+              color: Colors.white,
+            ),
           ),
         ),
       );
     }
 
     // Driver vehicle marker — uses interpolated position & heading
-    final driverPos = _displayDriverPos ?? (widget.driverPosition != null ? toLatLong(widget.driverPosition) : null);
+    final driverPos =
+        _displayDriverPos ??
+        (widget.driverPosition != null
+            ? toLatLong(widget.driverPosition)
+            : null);
     if (driverPos != null) {
       markers.add(
         fmap.Marker(
@@ -326,7 +348,11 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                   ),
                 ],
               ),
-              child: const Icon(Icons.navigation_rounded, size: 26, color: Colors.white),
+              child: const Icon(
+                Icons.navigation_rounded,
+                size: 26,
+                color: Colors.white,
+              ),
             ),
           ),
         ),
@@ -370,16 +396,13 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                   ),
                   children: [
                     fmap.TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.sahyan.sahyan',
                       maxZoom: 19,
                     ),
-                    fmap.PolylineLayer(
-                      polylines: _buildPolylines(),
-                    ),
-                    fmap.MarkerLayer(
-                      markers: _buildMarkers(),
-                    ),
+                    fmap.PolylineLayer(polylines: _buildPolylines()),
+                    fmap.MarkerLayer(markers: _buildMarkers()),
                   ],
                 ),
 
@@ -388,11 +411,17 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                   top: 12,
                   left: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: SahyanColors.surface.withValues(alpha: 0.95),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: SahyanColors.border, width: 0.8),
+                      border: Border.all(
+                        color: SahyanColors.border,
+                        width: 0.8,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.06),
@@ -404,7 +433,11 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.radar_rounded, size: 14, color: SahyanColors.primaryMint),
+                        Icon(
+                          Icons.radar_rounded,
+                          size: 14,
+                          color: SahyanColors.primaryMint,
+                        ),
                         SizedBox(width: 6),
                         Text(
                           'Live Route Corridor',
@@ -424,7 +457,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                   bottom: 4,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: SahyanColors.surface.withValues(alpha: 0.8),
                       borderRadius: BorderRadius.circular(4),
@@ -441,14 +477,19 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                 ),
 
                 // ── Follow / Free-pan toggle FAB ───────────────────────────
-                if (widget.driverPosition != null && widget.onFollowToggle != null)
+                if (widget.driverPosition != null &&
+                    widget.onFollowToggle != null)
                   Positioned(
                     bottom: 16,
                     left: 16,
                     child: GestureDetector(
-                      onTap: () => widget.onFollowToggle!(!widget.followVehicle),
+                      onTap: () =>
+                          widget.onFollowToggle!(!widget.followVehicle),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: widget.followVehicle
                               ? SahyanColors.primaryMint
@@ -501,7 +542,11 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     );
 
     if (widget.height != null) {
-      return SizedBox(height: widget.height, width: double.infinity, child: content);
+      return SizedBox(
+        height: widget.height,
+        width: double.infinity,
+        child: content,
+      );
     }
     return content;
   }
@@ -520,8 +565,11 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               points: widget.polylinePoints,
               origin: widget.origin,
               destination: widget.destination,
-              driverPosition: _displayDriverPos ??
-                  (widget.driverPosition != null ? toLatLong(widget.driverPosition) : null),
+              driverPosition:
+                  _displayDriverPos ??
+                  (widget.driverPosition != null
+                      ? toLatLong(widget.driverPosition)
+                      : null),
               driverHeading: _displayHeading,
             ),
           ),
@@ -538,7 +586,11 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.map_outlined, size: 13, color: SahyanColors.primaryDark),
+                  Icon(
+                    Icons.map_outlined,
+                    size: 13,
+                    color: SahyanColors.primaryDark,
+                  ),
                   SizedBox(width: 4),
                   Text(
                     'Interactive Route Preview',
@@ -566,7 +618,11 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.trip_origin, size: 12, color: SahyanColors.primaryDark),
+                  const Icon(
+                    Icons.trip_origin,
+                    size: 12,
+                    color: SahyanColors.primaryDark,
+                  ),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
@@ -581,9 +637,17 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Icon(Icons.arrow_forward, size: 10, color: SahyanColors.textMuted),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      size: 10,
+                      color: SahyanColors.textMuted,
+                    ),
                   ),
-                  const Icon(Icons.location_on, size: 12, color: SahyanColors.primaryMint),
+                  const Icon(
+                    Icons.location_on,
+                    size: 12,
+                    color: SahyanColors.primaryMint,
+                  ),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(

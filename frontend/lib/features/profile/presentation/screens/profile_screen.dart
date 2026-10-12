@@ -411,7 +411,8 @@ class ProfileScreen extends ConsumerWidget {
                           _buildNavTile(
                             icon: Icons.badge_outlined,
                             title: 'Personal Details & Legal Identity',
-                            subtitle: 'Legal name, verified phone badge, and bio',
+                            subtitle:
+                                'Legal name, verified phone badge, and bio',
                             onTap: () {
                               context.push('/personal-details');
                             },
@@ -505,7 +506,9 @@ class ProfileScreen extends ConsumerWidget {
                           Text(
                             'Intelligent Route-Based Carpooling Platform',
                             style: AppTypography.caption.copyWith(
-                              color: AppColors.textSecondary.withValues(alpha: 0.7),
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.7,
+                              ),
                               fontSize: 10,
                             ),
                           ),

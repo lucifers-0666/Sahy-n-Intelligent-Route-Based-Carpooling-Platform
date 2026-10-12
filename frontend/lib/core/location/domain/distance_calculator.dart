@@ -16,7 +16,8 @@ class DistanceCalculator {
     final double dLat = _degreesToRadians(lat2 - lat1);
     final double dLon = _degreesToRadians(lon2 - lon1);
 
-    final double a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final double a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_degreesToRadians(lat1)) *
             math.cos(_degreesToRadians(lat2)) *
             math.sin(dLon / 2) *
@@ -40,7 +41,8 @@ class DistanceCalculator {
     final double deltaLambda = _degreesToRadians(lon2 - lon1);
 
     final double y = math.sin(deltaLambda) * math.cos(phi2);
-    final double x = math.cos(phi1) * math.sin(phi2) -
+    final double x =
+        math.cos(phi1) * math.sin(phi2) -
         math.sin(phi1) * math.cos(phi2) * math.cos(deltaLambda);
 
     final double theta = math.atan2(y, x);
@@ -48,6 +50,8 @@ class DistanceCalculator {
     return bearingDegrees;
   }
 
-  static double _degreesToRadians(double degrees) => degrees * (math.pi / 180.0);
-  static double _radiansToDegrees(double radians) => radians * (180.0 / math.pi);
+  static double _degreesToRadians(double degrees) =>
+      degrees * (math.pi / 180.0);
+  static double _radiansToDegrees(double radians) =>
+      radians * (180.0 / math.pi);
 }

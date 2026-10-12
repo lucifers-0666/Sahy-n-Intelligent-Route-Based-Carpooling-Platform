@@ -5,8 +5,10 @@ import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/features/auth/presentation/screens/login_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/register_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/otp_screen.dart';
+import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/reset_password_screen.dart';
+import 'package:sahyan/features/auth/presentation/widgets/sahyan_highway_hero.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/auth/data/auth_repository.dart';
 import 'package:sahyan/core/storage/secure_storage_service.dart';
@@ -96,6 +98,7 @@ Widget createTestApp(
   return ProviderScope(
     overrides: [authProvider.overrideWith((ref) => TestAuthNotifier())],
     child: MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: MediaQuery(
         data: MediaQueryData(
@@ -420,5 +423,56 @@ void main() {
         },
       );
     }
+  });
+
+  group('Responsive WelcomeScreen & Hero UI Tests', () {
+    const testWidths = [320.0, 360.0, 390.0, 412.0, 600.0];
+
+    for (final width in testWidths) {
+      testWidgets(
+        'WelcomeScreen renders without overflow on width ${width.toInt()}dp',
+        (tester) async {
+          tester.view.physicalSize = Size(width, 844);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(() {
+            tester.view.resetPhysicalSize();
+            tester.view.resetDevicePixelRatio();
+          });
+
+          await tester.pumpWidget(
+            createTestApp(const WelcomeScreen(), width: width),
+          );
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 100));
+
+          expect(
+            find.text('Share the journey, not just the ride.'),
+            findsOneWidget,
+          );
+          expect(find.text('Continue with phone'), findsOneWidget);
+          expect(find.text('Verified'), findsOneWidget);
+          expect(find.text('Fair cost'), findsOneWidget);
+          expect(find.text('Direct routes'), findsOneWidget);
+        },
+      );
+    }
+
+    testWidgets(
+      'SahyanHighwaySunriseHero renders in light and dark mode without error',
+      (tester) async {
+        await tester.pumpWidget(
+          createTestApp(
+            const Column(
+              children: [
+                SahyanHighwaySunriseHero(height: 300, isDark: false),
+                SahyanHighwaySunriseHero(height: 300, isDark: true),
+              ],
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(find.byType(SahyanHighwaySunriseHero), findsNWidgets(2));
+      },
+    );
   });
 }

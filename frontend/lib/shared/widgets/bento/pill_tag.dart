@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 
-enum PillTagVariant {
-  neutral,
-  mint,
-  dark,
-  gold,
-  coral,
-}
+enum PillTagVariant { neutral, mint, dark, gold, coral }
 
 class PillTag extends StatelessWidget {
   final String label;
@@ -78,7 +72,8 @@ class PillTag extends StatelessWidget {
     if (customTextColor != null) fg = customTextColor!;
 
     Widget content = Container(
-      padding: padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(20),
@@ -105,10 +100,7 @@ class PillTag extends StatelessWidget {
     );
 
     if (onTap != null) {
-      return GestureDetector(
-        onTap: onTap,
-        child: content,
-      );
+      return GestureDetector(onTap: onTap, child: content);
     }
 
     return content;

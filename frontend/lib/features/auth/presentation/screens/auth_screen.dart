@@ -16,8 +16,9 @@ class AuthScreen extends ConsumerStatefulWidget {
 
 class _AuthScreenState extends ConsumerState<AuthScreen> {
   int _authModeIndex = 0; // 0: Instant OTP, 1: Passcode
-  final TextEditingController _phoneController =
-      TextEditingController(text: '9876543210');
+  final TextEditingController _phoneController = TextEditingController(
+    text: '9876543210',
+  );
   final List<TextEditingController> _otpControllers = [
     TextEditingController(text: '5'),
     TextEditingController(text: '9'),
@@ -63,10 +64,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     try {
       // Authenticate via auth provider
-      await ref.read(authProvider.notifier).login(
-            identifier: '+91$phone',
-            password: 'password123',
-          );
+      await ref
+          .read(authProvider.notifier)
+          .login(identifier: '+91$phone', password: 'password123');
 
       if (!mounted) return;
       setState(() => _isLoading = false);
@@ -172,10 +172,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    SahyanLogo(
-                      variant: SahyanLogoVariant.symbolOnly,
-                      size: 14,
-                    ),
+                    SahyanLogo(variant: SahyanLogoVariant.symbolOnly, size: 14),
                     SizedBox(width: 6),
                     Text(
                       'SAHYĀN MOBILITY',
@@ -309,10 +306,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   decoration: BoxDecoration(
                     color: SahyanColors.surface,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: SahyanColors.border,
-                      width: 0.8,
-                    ),
+                    border: Border.all(color: SahyanColors.border, width: 0.8),
                   ),
                   child: const Text(
                     '+91',
@@ -595,33 +589,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             icon: Icons.verified_user_outlined,
             text: '100% ID Verified',
           ),
-          Container(
-            width: 1,
-            height: 18,
-            color: SahyanColors.border,
-          ),
+          Container(width: 1, height: 18, color: SahyanColors.border),
           _buildTrustBadge(
             icon: Icons.lock_outline_rounded,
             text: 'RBI Escrow Split',
           ),
-          Container(
-            width: 1,
-            height: 18,
-            color: SahyanColors.border,
-          ),
-          _buildTrustBadge(
-            icon: Icons.speed_rounded,
-            text: 'Zero Surge Tolls',
-          ),
+          Container(width: 1, height: 18, color: SahyanColors.border),
+          _buildTrustBadge(icon: Icons.speed_rounded, text: 'Zero Surge Tolls'),
         ],
       ),
     );
   }
 
-  Widget _buildTrustBadge({
-    required IconData icon,
-    required String text,
-  }) {
+  Widget _buildTrustBadge({required IconData icon, required String text}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

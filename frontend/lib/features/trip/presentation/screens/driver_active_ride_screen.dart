@@ -42,8 +42,9 @@ class _DriverActiveRideScreenState
   /// Start GPS streaming if on a native platform with a valid ride ID.
   Future<void> _startGpsStream() async {
     final rideId = _ride?.id;
-    final isRunningInTest =
-        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    final isRunningInTest = WidgetsBinding.instance.runtimeType
+        .toString()
+        .contains('Test');
     if (rideId == null || kIsWeb || isRunningInTest) return;
 
     try {
@@ -52,7 +53,9 @@ class _DriverActiveRideScreenState
       // 'driver-id' would normally come from auth provider; using placeholder
       socketClient.joinRideRoom(rideId, 'driver-self', 'driver');
 
-      final started = await DriverLocationService.instance.startStreaming(rideId);
+      final started = await DriverLocationService.instance.startStreaming(
+        rideId,
+      );
       debugPrint('[DriverActiveRide] GPS streaming: $started');
     } catch (e) {
       debugPrint('[DriverActiveRide] GPS start error: $e');
@@ -106,10 +109,7 @@ class _DriverActiveRideScreenState
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadii.lg),
         ),
-        title: Text(
-          'Complete Journey?',
-          style: AppTypography.sectionHeader,
-        ),
+        title: Text('Complete Journey?', style: AppTypography.sectionHeader),
         content: Text(
           'Confirm that all passengers have arrived safely at their destinations. Escrow payout will be released to your earnings account.',
           style: AppTypography.bodyMedium,
@@ -127,7 +127,10 @@ class _DriverActiveRideScreenState
               backgroundColor: AppColors.primaryForest,
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Complete Trip', style: TextStyle(color: AppColors.white)),
+            child: const Text(
+              'Complete Trip',
+              style: TextStyle(color: AppColors.white),
+            ),
           ),
         ],
       ),
@@ -141,9 +144,7 @@ class _DriverActiveRideScreenState
     await _stopGpsStream();
 
     if (_ride != null) {
-      await ref
-          .read(myRidesProvider.notifier)
-          .completeTrip(_ride!.id);
+      await ref.read(myRidesProvider.notifier).completeTrip(_ride!.id);
     }
 
     if (!mounted) return;
@@ -220,7 +221,9 @@ class _DriverActiveRideScreenState
                           Expanded(
                             child: Text(
                               'NH 47 Express Corridor',
-                              style: AppTypography.cardTitle.copyWith(fontSize: 13),
+                              style: AppTypography.cardTitle.copyWith(
+                                fontSize: 13,
+                              ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -436,7 +439,9 @@ class _DriverActiveRideScreenState
                         Flexible(
                           child: Text(
                             '$originName to $destName',
-                            style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                            style: AppTypography.cardTitle.copyWith(
+                              fontSize: 14,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -555,7 +560,10 @@ class _DriverActiveRideScreenState
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          Text('Seat A1 · Window', style: AppTypography.caption),
+                          Text(
+                            'Seat A1 · Window',
+                            style: AppTypography.caption,
+                          ),
                         ],
                       ),
                     ),
@@ -611,7 +619,10 @@ class _DriverActiveRideScreenState
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              Text('Seat A2 · Mid', style: AppTypography.caption),
+                              Text(
+                                'Seat A2 · Mid',
+                                style: AppTypography.caption,
+                              ),
                             ],
                           ),
                         ),
@@ -688,7 +699,9 @@ class _DriverActiveRideScreenState
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryForest,
                               minimumSize: const Size(80, 42),
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(
                                   AppRadii.sm,

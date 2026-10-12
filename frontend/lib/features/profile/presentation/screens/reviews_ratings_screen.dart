@@ -141,12 +141,12 @@ class _ReviewsRatingsScreenState extends ConsumerState<ReviewsRatingsScreen> {
                   final filteredReviews = _selectedTab == 0
                       ? _sampleReviews
                       : _selectedTab == 1
-                          ? _sampleReviews
-                              .where((r) => r['role'] == 'Co-passenger')
-                              .toList()
-                          : _sampleReviews
-                              .where((r) => r['role'] == 'Driver')
-                              .toList();
+                      ? _sampleReviews
+                            .where((r) => r['role'] == 'Co-passenger')
+                            .toList()
+                      : _sampleReviews
+                            .where((r) => r['role'] == 'Driver')
+                            .toList();
 
                   if (filteredReviews.isEmpty) {
                     return Center(
@@ -181,7 +181,8 @@ class _ReviewsRatingsScreenState extends ConsumerState<ReviewsRatingsScreen> {
                                 const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         mainAxisAlignment:
@@ -189,16 +190,17 @@ class _ReviewsRatingsScreenState extends ConsumerState<ReviewsRatingsScreen> {
                                         children: [
                                           Text(
                                             review['name'] as String,
-                                            style: AppTypography.cardTitle.copyWith(
-                                              fontSize: 14,
-                                            ),
+                                            style: AppTypography.cardTitle
+                                                .copyWith(fontSize: 14),
                                           ),
                                           Text(
                                             review['date'] as String,
-                                            style: AppTypography.caption.copyWith(
-                                              color: AppColors.textSecondary,
-                                              fontSize: 11,
-                                            ),
+                                            style: AppTypography.caption
+                                                .copyWith(
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                  fontSize: 11,
+                                                ),
                                           ),
                                         ],
                                       ),

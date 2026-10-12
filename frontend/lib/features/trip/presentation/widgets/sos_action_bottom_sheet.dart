@@ -13,10 +13,7 @@ class SosActionBottomSheet extends ConsumerWidget {
 
   const SosActionBottomSheet({super.key, this.booking});
 
-  static Future<void> show(
-    BuildContext context, {
-    BookingModel? booking,
-  }) {
+  static Future<void> show(BuildContext context, {BookingModel? booking}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -42,10 +39,13 @@ class SosActionBottomSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileState = ref.watch(profileProvider);
     final emergencyContacts = profileState.emergencyContacts;
-    final primaryContact = emergencyContacts.isNotEmpty ? emergencyContacts.first : null;
+    final primaryContact = emergencyContacts.isNotEmpty
+        ? emergencyContacts.first
+        : null;
 
     final bookingId = booking?.id ?? 'active-corridor-trip';
-    final liveShareUrl = 'https://sahyan.app/live-tracking/track-live?bookingId=$bookingId';
+    final liveShareUrl =
+        'https://sahyan.app/live-tracking/track-live?bookingId=$bookingId';
 
     return Container(
       decoration: const BoxDecoration(
@@ -122,14 +122,17 @@ class SosActionBottomSheet extends ConsumerWidget {
             context: context,
             icon: Icons.local_police_outlined,
             title: 'Call National Emergency (112)',
-            subtitle: 'Direct connection to emergency police & medical assistance',
+            subtitle:
+                'Direct connection to emergency police & medical assistance',
             iconColor: SahyanColors.urgentCoral,
             bgColor: SahyanColors.urgentCoral.withValues(alpha: 0.08),
             onTap: () {
               _dispatchSosAlert(context, 'Call 112 National Police Emergency');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Dialing 112 National Emergency Police & broadcasting SOS alert to Admin Safety Command...'),
+                  content: Text(
+                    'Dialing 112 National Emergency Police & broadcasting SOS alert to Admin Safety Command...',
+                  ),
                   backgroundColor: SahyanColors.urgentCoral,
                   duration: Duration(seconds: 3),
                 ),
@@ -150,7 +153,9 @@ class SosActionBottomSheet extends ConsumerWidget {
               _dispatchSosAlert(context, '1800-SAHYAN Safety Helpline');
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Connecting to Sahyān 24/7 Safety Command & alerting corridor dispatch...'),
+                  content: Text(
+                    'Connecting to Sahyān 24/7 Safety Command & alerting corridor dispatch...',
+                  ),
                   backgroundColor: SahyanColors.primaryDark,
                   duration: Duration(seconds: 3),
                 ),
@@ -164,14 +169,17 @@ class SosActionBottomSheet extends ConsumerWidget {
             _buildActionTile(
               context: context,
               icon: Icons.contact_phone_outlined,
-              title: 'Call ${primaryContact.name} (${primaryContact.relationship})',
+              title:
+                  'Call ${primaryContact.name} (${primaryContact.relationship})',
               subtitle: primaryContact.phone,
               iconColor: SahyanColors.primaryMint,
               bgColor: SahyanColors.canvas,
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Calling emergency contact ${primaryContact.name} (${primaryContact.phone})...'),
+                    content: Text(
+                      'Calling emergency contact ${primaryContact.name} (${primaryContact.phone})...',
+                    ),
                     backgroundColor: SahyanColors.primaryDark,
                     duration: const Duration(seconds: 2),
                   ),
@@ -198,7 +206,8 @@ class SosActionBottomSheet extends ConsumerWidget {
             context: context,
             icon: Icons.share_location_rounded,
             title: 'Share Live Trip Corridor',
-            subtitle: 'Share live GPS route tracking link with friends & family',
+            subtitle:
+                'Share live GPS route tracking link with friends & family',
             iconColor: SahyanColors.primaryDark,
             bgColor: SahyanColors.canvas,
             onTap: () {
@@ -221,9 +230,14 @@ class SosActionBottomSheet extends ConsumerWidget {
               foregroundColor: SahyanColors.textMain,
               side: const BorderSide(color: SahyanColors.border, width: 0.8),
               padding: const EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
-            child: const Text('Dismiss', style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text(
+              'Dismiss',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
           const SizedBox(height: 8),
         ],

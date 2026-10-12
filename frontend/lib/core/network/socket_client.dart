@@ -27,8 +27,14 @@ class DriverLocationPayload {
   factory DriverLocationPayload.fromMap(Map<dynamic, dynamic> map) {
     return DriverLocationPayload(
       rideId: map['rideId']?.toString() ?? '',
-      latitude: (map['latitude'] as num?)?.toDouble() ?? (map['lat'] as num?)?.toDouble() ?? 0.0,
-      longitude: (map['longitude'] as num?)?.toDouble() ?? (map['lng'] as num?)?.toDouble() ?? 0.0,
+      latitude:
+          (map['latitude'] as num?)?.toDouble() ??
+          (map['lat'] as num?)?.toDouble() ??
+          0.0,
+      longitude:
+          (map['longitude'] as num?)?.toDouble() ??
+          (map['lng'] as num?)?.toDouble() ??
+          0.0,
       accuracy: (map['accuracy'] as num?)?.toDouble() ?? 10.0,
       heading: (map['heading'] as num?)?.toDouble() ?? 0.0,
       speed: (map['speed'] as num?)?.toDouble() ?? 0.0,
@@ -39,14 +45,14 @@ class DriverLocationPayload {
   }
 
   Map<String, dynamic> toMap() => {
-        'rideId': rideId,
-        'latitude': latitude,
-        'longitude': longitude,
-        'accuracy': accuracy,
-        'heading': heading,
-        'speed': speed,
-        'timestamp': timestamp.toIso8601String(),
-      };
+    'rideId': rideId,
+    'latitude': latitude,
+    'longitude': longitude,
+    'accuracy': accuracy,
+    'heading': heading,
+    'speed': speed,
+    'timestamp': timestamp.toIso8601String(),
+  };
 }
 
 enum SocketConnectionState { connected, disconnected, reconnecting }
@@ -68,11 +74,14 @@ class SocketClient {
   bool get isConnected => _socket?.connected ?? false;
 
   // ── Stream controllers ────────────────────────────────────────────────────
-  final Map<String, StreamController<DriverLocationPayload>> _locationControllers = {};
+  final Map<String, StreamController<DriverLocationPayload>>
+  _locationControllers = {};
   final Map<String, StreamController<String>> _statusControllers = {};
-  final _connectionStateController = StreamController<SocketConnectionState>.broadcast();
+  final _connectionStateController =
+      StreamController<SocketConnectionState>.broadcast();
 
-  Stream<SocketConnectionState> get connectionState => _connectionStateController.stream;
+  Stream<SocketConnectionState> get connectionState =>
+      _connectionStateController.stream;
 
   // ── Bounded Offline Queue ─────────────────────────────────────────────────
   static const int _maxOfflineQueueSize = 10;
@@ -209,7 +218,10 @@ class SocketClient {
   }
 
   void emitTripStatus(String rideId, String status) {
-    _socket?.emit('broadcast_trip_status', {'rideId': rideId, 'status': status});
+    _socket?.emit('broadcast_trip_status', {
+      'rideId': rideId,
+      'status': status,
+    });
   }
 
   /// Broadcast high-priority Emergency SOS incident directly to admin emergency console
@@ -217,21 +229,26 @@ class SocketClient {
     _ensureConnected();
     if (_socket != null) {
       _socket!.emit('trigger_emergency_sos', payload);
-      debugPrint('[SocketClient] Emergency SOS incident broadcasted to admin command: $payload');
+      debugPrint(
+        '[SocketClient] Emergency SOS incident broadcasted to admin command: $payload',
+      );
     }
   }
 
   // ── Passenger Listeners ───────────────────────────────────────────────────
 
   Stream<DriverLocationPayload> onDriverLocation(String rideId) {
-    if (!_locationControllers.containsKey(rideId) || _locationControllers[rideId]!.isClosed) {
-      _locationControllers[rideId] = StreamController<DriverLocationPayload>.broadcast();
+    if (!_locationControllers.containsKey(rideId) ||
+        _locationControllers[rideId]!.isClosed) {
+      _locationControllers[rideId] =
+          StreamController<DriverLocationPayload>.broadcast();
     }
     return _locationControllers[rideId]!.stream;
   }
 
   Stream<String> onTripStatusChanged(String rideId) {
-    if (!_statusControllers.containsKey(rideId) || _statusControllers[rideId]!.isClosed) {
+    if (!_statusControllers.containsKey(rideId) ||
+        _statusControllers[rideId]!.isClosed) {
       _statusControllers[rideId] = StreamController<String>.broadcast();
     }
     return _statusControllers[rideId]!.stream;

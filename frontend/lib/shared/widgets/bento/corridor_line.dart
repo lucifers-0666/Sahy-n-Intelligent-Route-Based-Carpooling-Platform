@@ -37,7 +37,9 @@ class CorridorLine extends StatelessWidget {
                       border: Border.all(color: Colors.white, width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: SahyanColors.primaryDark.withValues(alpha: 0.3),
+                          color: SahyanColors.primaryDark.withValues(
+                            alpha: 0.3,
+                          ),
                           blurRadius: 4,
                         ),
                       ],
@@ -66,7 +68,9 @@ class CorridorLine extends StatelessWidget {
                       border: Border.all(color: Colors.white, width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: SahyanColors.primaryMint.withValues(alpha: 0.4),
+                          color: SahyanColors.primaryMint.withValues(
+                            alpha: 0.4,
+                          ),
                           blurRadius: 4,
                         ),
                       ],

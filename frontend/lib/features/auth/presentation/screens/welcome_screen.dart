@@ -32,12 +32,12 @@ class WelcomeScreen extends ConsumerWidget {
     final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
 
-    // Adapt hero height for short devices
-    final heroHeight = (screenHeight * 0.44).clamp(240.0, 380.0);
+    // Adapt hero height for short and tall devices with comfortable headroom
+    final heroHeight = (screenHeight * 0.44).clamp(280.0, 400.0);
 
     final cardBg = isDark
-        ? AppColors.darkSurface.withValues(alpha: 0.92)
-        : Colors.white.withValues(alpha: 0.94);
+        ? AppColors.darkSurface.withValues(alpha: 0.94)
+        : Colors.white.withValues(alpha: 0.96);
     final borderColor = isDark
         ? AppColors.darkSurfaceHigh
         : AppColors.border.withValues(alpha: 0.85);
@@ -53,9 +53,11 @@ class WelcomeScreen extends ConsumerWidget {
             top: 0,
             left: 0,
             right: 0,
-            height: heroHeight + 36, // overlap beneath bottom card
+            height:
+                heroHeight +
+                28, // slight intentional overlap beneath bottom sheet
             child: SahyanHighwaySunriseHero(
-              height: heroHeight + 36,
+              height: heroHeight + 28,
               isDark: isDark,
             ),
           ),
@@ -65,8 +67,8 @@ class WelcomeScreen extends ConsumerWidget {
             bottom: false,
             child: Column(
               children: [
-                // Top Status Bar Spacer
-                SizedBox(height: heroHeight * 0.72),
+                // Top Spacer ensuring car and horizon remain visible
+                SizedBox(height: heroHeight - 26),
 
                 // Frosted Glass Content Surface
                 Expanded(
@@ -171,22 +173,28 @@ class WelcomeScreen extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 20),
 
-                                    // 3 Compact Trust Indicators on ONE Single Row
+                                    // 3 Compact Trust Indicators on ONE Single Row (Equal-width distribution)
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceEvenly,
                                       children: const [
-                                        _TrustChip(
-                                          icon: Icons.verified_user_rounded,
-                                          label: 'Verified',
+                                        Expanded(
+                                          child: _TrustChip(
+                                            icon: Icons.verified_user_rounded,
+                                            label: 'Verified',
+                                          ),
                                         ),
-                                        _TrustChip(
-                                          icon: Icons.savings_outlined,
-                                          label: 'Fair cost',
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: _TrustChip(
+                                            icon: Icons.savings_outlined,
+                                            label: 'Fair cost',
+                                          ),
                                         ),
-                                        _TrustChip(
-                                          icon: Icons.alt_route_rounded,
-                                          label: 'Direct routes',
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: _TrustChip(
+                                            icon: Icons.alt_route_rounded,
+                                            label: 'Direct routes',
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -292,24 +300,29 @@ class _TrustChip extends StatelessWidget {
     final textColor = isDark ? AppColors.darkText : AppColors.ink;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: borderColor, width: 1.0),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: iconColor),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-              letterSpacing: -0.1,
+          Icon(icon, size: 13, color: iconColor),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11.0,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+                letterSpacing: -0.1,
+              ),
             ),
           ),
         ],

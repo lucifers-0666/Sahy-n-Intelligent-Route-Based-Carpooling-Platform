@@ -122,7 +122,10 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
       appBar: const SahyanAppBar(title: 'Add Vehicle'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.md,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
@@ -161,10 +164,15 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                           if (_selectedType.isElectric) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.softForest,
-                                borderRadius: BorderRadius.circular(AppRadii.full),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadii.full,
+                                ),
                               ),
                               child: Text(
                                 'EV',
@@ -253,9 +261,8 @@ class _AddVehicleScreenState extends ConsumerState<AddVehicleScreen> {
                                       Expanded(
                                         child: Text(
                                           '${type.displayName} (${type.categoryGroup.displayName})',
-                                          style: AppTypography.bodyMedium.copyWith(
-                                            fontSize: 13,
-                                          ),
+                                          style: AppTypography.bodyMedium
+                                              .copyWith(fontSize: 13),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),

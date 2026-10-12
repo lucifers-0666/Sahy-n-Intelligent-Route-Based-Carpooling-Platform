@@ -154,7 +154,10 @@ class BookingConfirmationScreen extends ConsumerWidget {
                         children: [
                           Expanded(
                             flex: 2,
-                            child: Text('Vehicle', style: AppTypography.secondary),
+                            child: Text(
+                              'Vehicle',
+                              style: AppTypography.secondary,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -262,8 +265,12 @@ class BookingConfirmationScreen extends ConsumerWidget {
           child: Text(
             value,
             style: AppTypography.bodyMedium.copyWith(
-              fontWeight: isBold || highlight ? FontWeight.bold : FontWeight.w500,
-              color: highlight ? AppColors.primaryForest : AppColors.textPrimary,
+              fontWeight: isBold || highlight
+                  ? FontWeight.bold
+                  : FontWeight.w500,
+              color: highlight
+                  ? AppColors.primaryForest
+                  : AppColors.textPrimary,
             ),
             textAlign: TextAlign.right,
           ),

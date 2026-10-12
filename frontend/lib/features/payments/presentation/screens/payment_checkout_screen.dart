@@ -417,9 +417,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
         Text(label, style: AppTypography.secondary),
         Text(
           value,
-          style: AppTypography.bodyMedium.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: AppTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -437,7 +435,9 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.softForest.withValues(alpha: 0.35) : AppColors.white,
+          color: isSelected
+              ? AppColors.softForest.withValues(alpha: 0.35)
+              : AppColors.white,
           borderRadius: BorderRadius.circular(AppRadii.md),
           border: Border.all(
             color: isSelected ? AppColors.primaryForest : AppColors.border,
@@ -448,7 +448,9 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.primaryForest : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.primaryForest
+                  : AppColors.textSecondary,
               size: 24,
             ),
             const SizedBox(width: AppSpacing.md),
@@ -459,8 +461,12 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                   Text(
                     title,
                     style: AppTypography.bodyMedium.copyWith(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      color: isSelected ? AppColors.deepForest : AppColors.textPrimary,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
+                      color: isSelected
+                          ? AppColors.deepForest
+                          : AppColors.textPrimary,
                     ),
                   ),
                   Text(

@@ -202,9 +202,7 @@ class _RideSearchResultsScreenState
                 // Apply local client filters
                 var filtered = results.map((r) => r.ride).toList();
                 if (_verifiedOnly) {
-                  filtered = filtered
-                      .where((r) => r.isDriverVerified)
-                      .toList();
+                  filtered = filtered.where((r) => r.isDriverVerified).toList();
                 }
                 if (_acOnly) {
                   filtered = filtered
@@ -220,7 +218,8 @@ class _RideSearchResultsScreenState
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
                   itemCount: filtered.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 14),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 14),
                   itemBuilder: (context, index) {
                     final ride = filtered[index];
                     return _buildLiveRideBentoCard(context, ride);
@@ -296,14 +295,18 @@ class _RideSearchResultsScreenState
     final arrTimeStr = ride.estimatedArrival.isNotEmpty
         ? ride.estimatedArrival
         : '09:30 PM';
-    final durationStr = ride.route != null && ride.route!.formattedDuration.isNotEmpty
+    final durationStr =
+        ride.route != null && ride.route!.formattedDuration.isNotEmpty
         ? '${ride.route!.formattedDuration} nonstop'
         : '3h 15m nonstop';
 
-    final driverName = ride.driverName.isNotEmpty ? ride.driverName : 'Verified Driver';
+    final driverName = ride.driverName.isNotEmpty
+        ? ride.driverName
+        : 'Verified Driver';
     final ratingVal = ride.driverRating > 0 ? ride.driverRating : 4.9;
     const ridesCount = 184;
-    final vehicleDesc = '${ride.vehicle.make} ${ride.vehicle.model} · ${ride.vehicle.color} · Quiet Cabin';
+    final vehicleDesc =
+        '${ride.vehicle.make} ${ride.vehicle.model} · ${ride.vehicle.color} · Quiet Cabin';
 
     return BentoContainer(
       onTap: () {
@@ -521,8 +524,10 @@ class _RideSearchResultsScreenState
                   label: '${ride.availableSeats} Seats Open',
                   variant: PillTagVariant.mint,
                   fontSize: 11,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                 ),
               ],
             ),
@@ -585,7 +590,10 @@ class _RideSearchResultsScreenState
                   children: [
                     Text(
                       'Request Seat',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     SizedBox(width: 4),
                     Icon(Icons.arrow_forward_rounded, size: 14),
@@ -714,7 +722,8 @@ class _RideSearchResultsScreenState
                         min: 5,
                         max: 40,
                         divisions: 7,
-                        onChanged: (val) => setState(() => _searchRadiusKm = val),
+                        onChanged: (val) =>
+                            setState(() => _searchRadiusKm = val),
                       ),
                     ),
                   ],
@@ -729,7 +738,10 @@ class _RideSearchResultsScreenState
           OutlinedButton(
             style: OutlinedButton.styleFrom(
               minimumSize: const Size(double.infinity, 52),
-              side: const BorderSide(color: SahyanColors.primaryDark, width: 1.5),
+              side: const BorderSide(
+                color: SahyanColors.primaryDark,
+                width: 1.5,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -737,7 +749,9 @@ class _RideSearchResultsScreenState
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Corridor alert created! Drivers will be notified.'),
+                  content: Text(
+                    'Corridor alert created! Drivers will be notified.',
+                  ),
                   backgroundColor: SahyanColors.primaryDark,
                 ),
               );
@@ -745,7 +759,11 @@ class _RideSearchResultsScreenState
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.radar_rounded, color: SahyanColors.primaryDark, size: 18),
+                Icon(
+                  Icons.radar_rounded,
+                  color: SahyanColors.primaryDark,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'Post as Wanted Ride',

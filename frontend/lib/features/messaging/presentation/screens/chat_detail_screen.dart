@@ -82,7 +82,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     Conversation? conv = widget.initialConversation;
     if (conv == null && widget.conversationId != null) {
       final matches = state.conversations
-          .where((c) => c.id == widget.conversationId || c.bookingId == widget.conversationId)
+          .where(
+            (c) =>
+                c.id == widget.conversationId ||
+                c.bookingId == widget.conversationId,
+          )
           .toList();
       if (matches.isNotEmpty) {
         conv = matches.first;
@@ -104,7 +108,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       );
     }
 
-    final messages = state.messages[conv.id] ?? state.messages[conv.bookingId ?? ''] ?? [];
+    final messages =
+        state.messages[conv.id] ?? state.messages[conv.bookingId ?? ''] ?? [];
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
@@ -124,7 +129,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               final phoneToCall = conv!.phone ?? '+91 98765 43210';
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Calling ${conv.participantName} ($phoneToCall)...'),
+                  content: Text(
+                    'Calling ${conv.participantName} ($phoneToCall)...',
+                  ),
                   backgroundColor: AppColors.deepForest,
                   duration: const Duration(seconds: 2),
                 ),
@@ -176,7 +183,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
@@ -185,7 +195,11 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.verified_user_outlined, size: 11, color: SahyanColors.primaryMint),
+                        const Icon(
+                          Icons.verified_user_outlined,
+                          size: 11,
+                          color: SahyanColors.primaryMint,
+                        ),
                         const SizedBox(width: 3),
                         Text(
                           'Verified',
@@ -242,7 +256,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                         onTap: () => _handleSend(conv!.id, text),
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.softForest.withValues(alpha: 0.4),
                             borderRadius: BorderRadius.circular(20),
@@ -306,11 +323,17 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                         fillColor: AppColors.warmBackground,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: AppColors.border, width: 0.8),
+                          borderSide: const BorderSide(
+                            color: AppColors.border,
+                            width: 0.8,
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: AppColors.border, width: 0.8),
+                          borderSide: const BorderSide(
+                            color: AppColors.border,
+                            width: 0.8,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
@@ -340,7 +363,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                         size: 18,
                       ),
                       tooltip: 'Send',
-                      onPressed: () => _handleSend(conv!.id, _messageController.text),
+                      onPressed: () =>
+                          _handleSend(conv!.id, _messageController.text),
                     ),
                   ),
                 ],

@@ -99,7 +99,10 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
                     onPressed: widget.onFinish,
                     style: TextButton.styleFrom(
                       minimumSize: const Size(48, 48),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
                     child: const Text(
                       'Skip',
@@ -130,43 +133,50 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
                       return Center(
                         child: SingleChildScrollView(
                           physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 8,
+                          ),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               // Center Visual: Elevated Squircle/Circle with Glowing Ring
                               Container(
-                                width: 110,
-                                height: 110,
-                                decoration: BoxDecoration(
-                                  color: SahyanColors.surface,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: SahyanColors.border, width: 1.0),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: SahyanColors.primaryDark.withValues(alpha: 0.08),
-                                      blurRadius: 24,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
-                                ),
-                                child: Center(
-                                  child: Container(
-                                    width: 80,
-                                    height: 80,
-                                    decoration: const BoxDecoration(
-                                      color: SahyanColors.primaryLight,
+                                    width: 110,
+                                    height: 110,
+                                    decoration: BoxDecoration(
+                                      color: SahyanColors.surface,
                                       shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: SahyanColors.border,
+                                        width: 1.0,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: SahyanColors.primaryDark
+                                              .withValues(alpha: 0.08),
+                                          blurRadius: 24,
+                                          offset: const Offset(0, 8),
+                                        ),
+                                      ],
                                     ),
-                                    child: Icon(
-                                      data.icon,
-                                      size: 38,
-                                      color: SahyanColors.primaryDark,
+                                    child: Center(
+                                      child: Container(
+                                        width: 80,
+                                        height: 80,
+                                        decoration: const BoxDecoration(
+                                          color: SahyanColors.primaryLight,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          data.icon,
+                                          size: 38,
+                                          color: SahyanColors.primaryDark,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              )
+                                  )
                                   .animate(key: ValueKey('icon_$index'))
                                   .scale(
                                     duration: 450.ms,
@@ -180,25 +190,29 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
 
                               // Pill Badge
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: SahyanColors.primaryLight,
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: SahyanColors.primaryMint.withValues(alpha: 0.35),
-                                    width: 0.8,
-                                  ),
-                                ),
-                                child: Text(
-                                  data.badge,
-                                  style: const TextStyle(
-                                    fontFamily: 'Plus Jakarta Sans',
-                                    color: SahyanColors.primaryDark,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              )
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: SahyanColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: SahyanColors.primaryMint
+                                            .withValues(alpha: 0.35),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      data.badge,
+                                      style: const TextStyle(
+                                        fontFamily: 'Plus Jakarta Sans',
+                                        color: SahyanColors.primaryDark,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  )
                                   .animate(key: ValueKey('badge_$index'))
                                   .fadeIn(duration: 350.ms, delay: 50.ms)
                                   .slideY(begin: 0.2, end: 0),
@@ -207,17 +221,17 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
 
                               // Title
                               Text(
-                                data.title,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  fontSize: 23,
-                                  fontWeight: FontWeight.w800,
-                                  color: SahyanColors.textMain,
-                                  letterSpacing: -0.5,
-                                  height: 1.3,
-                                ),
-                              )
+                                    data.title,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontSize: 23,
+                                      fontWeight: FontWeight.w800,
+                                      color: SahyanColors.textMain,
+                                      letterSpacing: -0.5,
+                                      height: 1.3,
+                                    ),
+                                  )
                                   .animate(key: ValueKey('title_$index'))
                                   .fadeIn(duration: 400.ms, delay: 100.ms)
                                   .slideY(begin: 0.15, end: 0),
@@ -226,15 +240,15 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
 
                               // Description
                               Text(
-                                data.description,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  fontSize: 13.5,
-                                  color: SahyanColors.textMuted,
-                                  height: 1.5,
-                                ),
-                              )
+                                    data.description,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontSize: 13.5,
+                                      color: SahyanColors.textMuted,
+                                      height: 1.5,
+                                    ),
+                                  )
                                   .animate(key: ValueKey('desc_$index'))
                                   .fadeIn(duration: 450.ms, delay: 150.ms)
                                   .slideY(begin: 0.1, end: 0),
@@ -253,7 +267,10 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 500),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 18,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -269,7 +286,9 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
                             height: 6,
                             width: isActive ? 24 : 6,
                             decoration: BoxDecoration(
-                              color: isActive ? SahyanColors.primaryDark : SahyanColors.border,
+                              color: isActive
+                                  ? SahyanColors.primaryDark
+                                  : SahyanColors.border,
                               borderRadius: BorderRadius.circular(3),
                             ),
                           );
@@ -296,7 +315,9 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                _currentIndex == _pages.length - 1 ? 'Get Started' : 'Next',
+                                _currentIndex == _pages.length - 1
+                                    ? 'Get Started'
+                                    : 'Next',
                                 style: const TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 16,

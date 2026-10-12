@@ -124,7 +124,10 @@ class _EditVehicleScreenState extends ConsumerState<EditVehicleScreen> {
       appBar: const SahyanAppBar(title: 'Edit Vehicle'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.md,
+          ),
           child: Form(
             key: _formKey,
             child: Column(
@@ -231,9 +234,8 @@ class _EditVehicleScreenState extends ConsumerState<EditVehicleScreen> {
                                       Expanded(
                                         child: Text(
                                           type.displayName,
-                                          style: AppTypography.bodyMedium.copyWith(
-                                            fontSize: 13,
-                                          ),
+                                          style: AppTypography.bodyMedium
+                                              .copyWith(fontSize: 13),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -299,10 +301,9 @@ class _EditVehicleScreenState extends ConsumerState<EditVehicleScreen> {
                           label: 'Make',
                           hint: 'e.g. Maruti Suzuki, Hyundai, Tata, Honda',
                           controller: _makeController,
-                          validator: (val) =>
-                              val == null || val.trim().isEmpty
-                                  ? 'Make required'
-                                  : null,
+                          validator: (val) => val == null || val.trim().isEmpty
+                              ? 'Make required'
+                              : null,
                         ),
                         const SizedBox(height: AppSpacing.md),
 
@@ -311,10 +312,9 @@ class _EditVehicleScreenState extends ConsumerState<EditVehicleScreen> {
                           label: 'Model',
                           hint: 'e.g. Swift VXI, Creta, Nexon, Activa',
                           controller: _modelController,
-                          validator: (val) =>
-                              val == null || val.trim().isEmpty
-                                  ? 'Model required'
-                                  : null,
+                          validator: (val) => val == null || val.trim().isEmpty
+                              ? 'Model required'
+                              : null,
                         ),
                         const SizedBox(height: AppSpacing.md),
 
@@ -371,10 +371,9 @@ class _EditVehicleScreenState extends ConsumerState<EditVehicleScreen> {
                           label: 'Color',
                           hint: 'e.g. Arctic White, Silky Silver, Black',
                           controller: _colorController,
-                          validator: (val) =>
-                              val == null || val.trim().isEmpty
-                                  ? 'Color required'
-                                  : null,
+                          validator: (val) => val == null || val.trim().isEmpty
+                              ? 'Color required'
+                              : null,
                         ),
                         const SizedBox(height: AppSpacing.md),
 

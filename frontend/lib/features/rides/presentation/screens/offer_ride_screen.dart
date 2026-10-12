@@ -100,8 +100,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
   }
 
   Future<void> _openLocationSearch({required bool isOrigin}) async {
-    final title =
-        isOrigin ? 'Select Origin (Pickup)' : 'Select Destination (Dropoff)';
+    final title = isOrigin
+        ? 'Select Origin (Pickup)'
+        : 'Select Destination (Dropoff)';
     final selected = await LocationSearchBottomSheet.show(
       context: context,
       title: title,
@@ -793,7 +794,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                     polylinePoints:
                         draft.route != null &&
                             draft.route!.encodedPolyline.isNotEmpty
-                        ? RouteService.decodePolyline(draft.route!.encodedPolyline)
+                        ? RouteService.decodePolyline(
+                                draft.route!.encodedPolyline,
+                              )
                               .map((pt) => LatLng(pt.latitude, pt.longitude))
                               .toList()
                         : const [],
@@ -803,8 +806,8 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                             draft.route!.encodedPolyline.isNotEmpty
                         ? RouteGeometryService.calculateBounds(
                             RouteService.decodePolyline(
-                              draft.route!.encodedPolyline,
-                            )
+                                  draft.route!.encodedPolyline,
+                                )
                                 .map((pt) => LatLng(pt.latitude, pt.longitude))
                                 .toList(),
                           )
@@ -816,10 +819,15 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                          final pts = draft.route != null &&
+                          final pts =
+                              draft.route != null &&
                                   draft.route!.encodedPolyline.isNotEmpty
-                              ? RouteService.decodePolyline(draft.route!.encodedPolyline)
-                                    .map((pt) => LatLng(pt.latitude, pt.longitude))
+                              ? RouteService.decodePolyline(
+                                      draft.route!.encodedPolyline,
+                                    )
+                                    .map(
+                                      (pt) => LatLng(pt.latitude, pt.longitude),
+                                    )
                                     .toList()
                               : const [];
                           FullScreenRouteMapSheet.show(
@@ -847,10 +855,15 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                       elevation: 2,
                       child: InkWell(
                         onTap: () {
-                          final pts = draft.route != null &&
+                          final pts =
+                              draft.route != null &&
                                   draft.route!.encodedPolyline.isNotEmpty
-                              ? RouteService.decodePolyline(draft.route!.encodedPolyline)
-                                    .map((pt) => LatLng(pt.latitude, pt.longitude))
+                              ? RouteService.decodePolyline(
+                                      draft.route!.encodedPolyline,
+                                    )
+                                    .map(
+                                      (pt) => LatLng(pt.latitude, pt.longitude),
+                                    )
                                     .toList()
                               : const [];
                           FullScreenRouteMapSheet.show(
@@ -943,17 +956,15 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
       );
     }
 
-    final corridor =
-        (draft.origin != null && draft.destination != null)
-            ? RouteGeometryService.getHighwayCorridor(
-                draft.origin!,
-                draft.destination!,
-              )
-            : 'via NH47';
-    final distanceKm =
-        draft.route != null
-            ? (draft.route!.distanceMeters / 1000).toStringAsFixed(0)
-            : '219';
+    final corridor = (draft.origin != null && draft.destination != null)
+        ? RouteGeometryService.getHighwayCorridor(
+            draft.origin!,
+            draft.destination!,
+          )
+        : 'via NH47';
+    final distanceKm = draft.route != null
+        ? (draft.route!.distanceMeters / 1000).toStringAsFixed(0)
+        : '219';
     final durationSec = draft.route?.durationSeconds ?? 11700;
     final hours = durationSec ~/ 3600;
     final minutes = (durationSec % 3600) ~/ 60;

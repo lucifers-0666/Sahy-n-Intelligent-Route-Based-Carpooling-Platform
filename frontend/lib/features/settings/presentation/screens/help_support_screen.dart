@@ -363,9 +363,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text(
-                              'Support email: support@sahyan.in',
-                            ),
+                            content: Text('Support email: support@sahyan.in'),
                             backgroundColor: AppColors.primaryForest,
                           ),
                         );
@@ -389,7 +387,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     required String subtitle,
   }) {
     return SahyanCard(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
       child: Row(
         children: [
           Container(

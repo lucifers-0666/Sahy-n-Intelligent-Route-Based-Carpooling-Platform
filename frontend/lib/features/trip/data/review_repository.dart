@@ -46,10 +46,7 @@ class ReviewRepositoryImpl implements ReviewRepository {
       return {
         'success': true,
         'message': 'Review submitted successfully',
-        'driverRating': {
-          'average': rating.toDouble(),
-          'count': 1,
-        },
+        'driverRating': {'average': rating.toDouble(), 'count': 1},
       };
     }
   }

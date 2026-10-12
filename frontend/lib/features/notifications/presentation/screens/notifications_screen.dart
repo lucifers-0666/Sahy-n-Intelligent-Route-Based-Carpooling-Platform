@@ -142,7 +142,9 @@ class NotificationsScreen extends ConsumerWidget {
                             alignment: Alignment.centerRight,
                             padding: const EdgeInsets.only(right: 20),
                             decoration: BoxDecoration(
-                              color: SahyanColors.urgentCoral.withValues(alpha: 0.12),
+                              color: SahyanColors.urgentCoral.withValues(
+                                alpha: 0.12,
+                              ),
                               borderRadius: BorderRadius.circular(AppRadii.md),
                             ),
                             child: const Icon(
@@ -155,7 +157,9 @@ class NotificationsScreen extends ConsumerWidget {
                             notifier.dismissNotification(item.id);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Notification dismissed: ${item.title}'),
+                                content: Text(
+                                  'Notification dismissed: ${item.title}',
+                                ),
                                 duration: const Duration(seconds: 2),
                               ),
                             );

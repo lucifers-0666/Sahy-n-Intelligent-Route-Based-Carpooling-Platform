@@ -131,9 +131,9 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                               : (_booking.isPending
                                     ? Icons.timelapse_rounded
                                     : (_booking.isRejected ||
-                                          _booking.isCancelled
-                                      ? Icons.cancel_outlined
-                                      : Icons.directions_car_rounded)),
+                                              _booking.isCancelled
+                                          ? Icons.cancel_outlined
+                                          : Icons.directions_car_rounded)),
                           color: _booking.isAccepted
                               ? AppColors.primaryForest
                               : (_booking.isPending
@@ -231,13 +231,15 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                         title: 'Driver Reviewing',
                         subtitle:
                             'Verifying route compatibility and detour timing',
-                        isCompleted: _booking.isAccepted || _booking.isCompleted,
+                        isCompleted:
+                            _booking.isAccepted || _booking.isCompleted,
                         isActive: _booking.isPending,
                       ),
                       _buildTimelineStep(
                         stepNumber: '3',
                         title: 'Confirmation & Boarding PIN',
-                        subtitle: 'Passcode generated for secure vehicle check-in',
+                        subtitle:
+                            'Passcode generated for secure vehicle check-in',
                         isCompleted: _booking.isCompleted,
                         isActive: _booking.isAccepted,
                       ),
@@ -302,7 +304,8 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                                   const SizedBox(width: 8),
                                   Flexible(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
                                       children: [
                                         Text(
                                           vehicle.fullName,
@@ -349,7 +352,10 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Pickup Point', style: AppTypography.caption),
+                                Text(
+                                  'Pickup Point',
+                                  style: AppTypography.caption,
+                                ),
                                 Text(
                                   _booking.pickup.name,
                                   style: AppTypography.bodyMedium.copyWith(
@@ -377,7 +383,10 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Drop Point', style: AppTypography.caption),
+                                Text(
+                                  'Drop Point',
+                                  style: AppTypography.caption,
+                                ),
                                 Text(
                                   _booking.drop.name,
                                   style: AppTypography.bodyMedium.copyWith(
@@ -397,7 +406,10 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text('Seats Requested', style: AppTypography.caption),
+                            child: Text(
+                              'Seats Requested',
+                              style: AppTypography.caption,
+                            ),
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           Text(
@@ -413,7 +425,10 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text('Total Contribution', style: AppTypography.caption),
+                            child: Text(
+                              'Total Contribution',
+                              style: AppTypography.caption,
+                            ),
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           Text(
@@ -497,7 +512,9 @@ class _BookingRequestScreenState extends ConsumerState<BookingRequestScreen> {
               decoration: BoxDecoration(
                 color: isCompleted
                     ? AppColors.primaryForest
-                    : (isActive ? AppColors.softForest : AppColors.warmBackground),
+                    : (isActive
+                          ? AppColors.softForest
+                          : AppColors.warmBackground),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isActive || isCompleted

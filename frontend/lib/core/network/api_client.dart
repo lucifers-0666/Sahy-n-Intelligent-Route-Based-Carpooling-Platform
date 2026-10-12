@@ -37,8 +37,8 @@ class ApiClient {
     http.Client? client,
     this.onUnauthorized,
     this.onAccountSuspended,
-  })  : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl,
-        _client = client ?? http.Client();
+  }) : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl,
+       _client = client ?? http.Client();
 
   /// Probes candidate hosts concurrently on Android to establish the fastest working connection
   Future<String> _resolveEffectiveBaseUrl() async {
@@ -191,16 +191,17 @@ class ApiClient {
 
     final errorCode =
         jsonResponseBody is Map && jsonResponseBody.containsKey('errorCode')
-            ? jsonResponseBody['errorCode'] as String?
-            : null;
+        ? jsonResponseBody['errorCode'] as String?
+        : null;
     final suspensionReason =
-        jsonResponseBody is Map && jsonResponseBody.containsKey('suspensionReason')
-            ? jsonResponseBody['suspensionReason'] as String?
-            : null;
+        jsonResponseBody is Map &&
+            jsonResponseBody.containsKey('suspensionReason')
+        ? jsonResponseBody['suspensionReason'] as String?
+        : null;
     final suspendedAt =
         jsonResponseBody is Map && jsonResponseBody.containsKey('suspendedAt')
-            ? jsonResponseBody['suspendedAt']?.toString()
-            : null;
+        ? jsonResponseBody['suspendedAt']?.toString()
+        : null;
 
     if (response.statusCode == 403 && errorCode == 'ACCOUNT_SUSPENDED') {
       onAccountSuspended?.call(

@@ -57,8 +57,10 @@ void main() {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
+            debugShowCheckedModeBanner: false,
             home: AccountSuspendedScreen(
-              reason: 'Repeated non-compliance with passenger safety guidelines during route transit.',
+              reason:
+                  'Repeated non-compliance with passenger safety guidelines during route transit.',
               suspendedAt: '2026-10-10T12:00:00.000Z',
             ),
           ),
@@ -92,9 +94,8 @@ void main() {
       await tester.pumpWidget(
         const ProviderScope(
           child: MaterialApp(
-            home: AccountSuspendedScreen(
-              reason: 'Policy violation',
-            ),
+            debugShowCheckedModeBanner: false,
+            home: AccountSuspendedScreen(reason: 'Policy violation'),
           ),
         ),
       );
@@ -118,79 +119,91 @@ void main() {
   });
 
   group('Suspension API & AuthNotifier State Transitions', () {
-    test('ApiClient invokes onAccountSuspended callback when 403 ACCOUNT_SUSPENDED occurs', () async {
-      String? capturedReason;
-      String? capturedTimestamp;
+    test(
+      'ApiClient invokes onAccountSuspended callback when 403 ACCOUNT_SUSPENDED occurs',
+      () async {
+        String? capturedReason;
+        String? capturedTimestamp;
 
-      final mockClient = MockClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'success': false,
-            'errorCode': 'ACCOUNT_SUSPENDED',
-            'message': 'Account has been suspended by administration.',
-            'suspensionReason': 'Driver license expired.',
-            'suspendedAt': '2026-10-10T10:00:00Z',
-          }),
-          403,
-          headers: {'content-type': 'application/json'},
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'success': false,
+              'errorCode': 'ACCOUNT_SUSPENDED',
+              'message': 'Account has been suspended by administration.',
+              'suspensionReason': 'Driver license expired.',
+              'suspendedAt': '2026-10-10T10:00:00Z',
+            }),
+            403,
+            headers: {'content-type': 'application/json'},
+          );
+        });
+
+        final apiClient = ApiClient(
+          baseUrl: 'http://localhost:5000/api/v1',
+          client: mockClient,
+          onAccountSuspended: (reason, timestamp) {
+            capturedReason = reason;
+            capturedTimestamp = timestamp;
+          },
         );
-      });
 
-      final apiClient = ApiClient(
-        baseUrl: 'http://localhost:5000/api/v1',
-        client: mockClient,
-        onAccountSuspended: (reason, timestamp) {
-          capturedReason = reason;
-          capturedTimestamp = timestamp;
-        },
-      );
-
-      await expectLater(
-        () => apiClient.get('/auth/me'),
-        throwsA(isA<ApiException>()),
-      );
-
-      expect(capturedReason, 'Driver license expired.');
-      expect(capturedTimestamp, '2026-10-10T10:00:00Z');
-    });
-
-    test('AuthNotifier transitions to AuthStatus.suspended upon handleSuspension', () async {
-      final mockClient = MockClient((request) async {
-        return http.Response(
-          jsonEncode({
-            'success': false,
-            'errorCode': 'ACCOUNT_SUSPENDED',
-            'message': 'Account is suspended.',
-            'suspensionReason': 'Safety complaint investigation.',
-            'suspendedAt': '2026-10-10T11:00:00Z',
-          }),
-          403,
-          headers: {'content-type': 'application/json'},
+        await expectLater(
+          () => apiClient.get('/auth/me'),
+          throwsA(isA<ApiException>()),
         );
-      });
 
-      final apiClient = ApiClient(
-        baseUrl: 'http://localhost:5000/api/v1',
-        client: mockClient,
-      );
-      final storage = MockSecureStorageService();
-      final repo = AuthRepositoryImpl(apiClient: apiClient, storageService: storage);
+        expect(capturedReason, 'Driver license expired.');
+        expect(capturedTimestamp, '2026-10-10T10:00:00Z');
+      },
+    );
 
-      final notifier = AuthNotifier(
-        repository: repo,
-        storageService: storage,
-        apiClient: apiClient,
-      );
+    test(
+      'AuthNotifier transitions to AuthStatus.suspended upon handleSuspension',
+      () async {
+        final mockClient = MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'success': false,
+              'errorCode': 'ACCOUNT_SUSPENDED',
+              'message': 'Account is suspended.',
+              'suspensionReason': 'Safety complaint investigation.',
+              'suspendedAt': '2026-10-10T11:00:00Z',
+            }),
+            403,
+            headers: {'content-type': 'application/json'},
+          );
+        });
 
-      await notifier.handleSuspension(
-        'Safety complaint investigation.',
-        '2026-10-10T11:00:00Z',
-      );
+        final apiClient = ApiClient(
+          baseUrl: 'http://localhost:5000/api/v1',
+          client: mockClient,
+        );
+        final storage = MockSecureStorageService();
+        final repo = AuthRepositoryImpl(
+          apiClient: apiClient,
+          storageService: storage,
+        );
 
-      expect(notifier.state.status, AuthStatus.suspended);
-      expect(notifier.state.isSuspended, isTrue);
-      expect(notifier.state.suspensionReason, 'Safety complaint investigation.');
-      expect(notifier.state.suspendedAt, '2026-10-10T11:00:00Z');
-    });
+        final notifier = AuthNotifier(
+          repository: repo,
+          storageService: storage,
+          apiClient: apiClient,
+        );
+
+        await notifier.handleSuspension(
+          'Safety complaint investigation.',
+          '2026-10-10T11:00:00Z',
+        );
+
+        expect(notifier.state.status, AuthStatus.suspended);
+        expect(notifier.state.isSuspended, isTrue);
+        expect(
+          notifier.state.suspensionReason,
+          'Safety complaint investigation.',
+        );
+        expect(notifier.state.suspendedAt, '2026-10-10T11:00:00Z');
+      },
+    );
   });
 }

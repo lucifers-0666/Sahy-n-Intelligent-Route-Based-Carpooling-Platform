@@ -26,8 +26,11 @@ class _PrivacyPermissionsScreenState
         backgroundColor: SahyanColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: SahyanColors.textMain, size: 18),
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: SahyanColors.textMain,
+            size: 18,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -258,7 +261,9 @@ class _PrivacyPermissionsScreenState
                     const SizedBox(height: 2),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: tagColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
@@ -348,8 +353,11 @@ class _PrivacyPermissionsScreenState
             alignment: Alignment.centerRight,
             child: TextButton.icon(
               onPressed: onExplain,
-              icon: const Icon(Icons.info_outline_rounded,
-                  size: 15, color: SahyanColors.primaryDark),
+              icon: const Icon(
+                Icons.info_outline_rounded,
+                size: 15,
+                color: SahyanColors.primaryDark,
+              ),
               label: const Text(
                 'View Enclave Security Specs',
                 style: TextStyle(
@@ -373,8 +381,11 @@ class _PrivacyPermissionsScreenState
         children: [
           const Row(
             children: [
-              Icon(Icons.verified_user_outlined,
-                  color: SahyanColors.primaryMint, size: 18),
+              Icon(
+                Icons.verified_user_outlined,
+                color: SahyanColors.primaryMint,
+                size: 18,
+              ),
               SizedBox(width: 8),
               Text(
                 'Regulatory & DPDP Compliance',
@@ -403,7 +414,8 @@ class _PrivacyPermissionsScreenState
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: SahyanColors.border, width: 0.8),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             ),
             child: const Text(
@@ -542,27 +554,32 @@ class _PrivacyPermissionsScreenState
               ),
             ),
             const SizedBox(height: 8),
-            ...enclavePoints.map((point) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(Icons.check_circle_rounded,
-                          size: 16, color: SahyanColors.primaryMint),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          point,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: SahyanColors.textMuted,
-                            height: 1.3,
-                          ),
+            ...enclavePoints.map(
+              (point) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 16,
+                      color: SahyanColors.primaryMint,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        point,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: SahyanColors.textMuted,
+                          height: 1.3,
                         ),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 18),
             ElevatedButton(
               onPressed: () => Navigator.pop(ctx),

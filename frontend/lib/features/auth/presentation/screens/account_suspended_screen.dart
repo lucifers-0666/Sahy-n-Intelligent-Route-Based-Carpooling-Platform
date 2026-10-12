@@ -50,17 +50,17 @@ class AccountSuspendedScreen extends ConsumerWidget {
           centerTitle: true,
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(2),
-            child: Container(
-              color: Colors.black,
-              height: 2,
-            ),
+            child: Container(color: Colors.black, height: 2),
           ),
         ),
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 28,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight: constraints.maxHeight - 56,
@@ -95,7 +95,10 @@ class AccountSuspendedScreen extends ConsumerWidget {
                                       padding: const EdgeInsets.all(6),
                                       decoration: BoxDecoration(
                                         color: Colors.black,
-                                        border: Border.all(color: Colors.white, width: 1.5),
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 1.5,
+                                        ),
                                       ),
                                       child: const Icon(
                                         Icons.block,
@@ -177,7 +180,8 @@ class AccountSuspendedScreen extends ConsumerWidget {
                                 ),
                                 const SizedBox(height: 12),
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     const Text(
                                       'RECORDED TIMESTAMP',
@@ -250,9 +254,14 @@ class AccountSuspendedScreen extends ConsumerWidget {
                                 backgroundColor: Colors.black,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: const RoundedRectangleBorder(
-                                  side: BorderSide(color: Colors.black, width: 2),
+                                  side: BorderSide(
+                                    color: Colors.black,
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                               onPressed: () async {
@@ -277,8 +286,13 @@ class AccountSuspendedScreen extends ConsumerWidget {
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.black,
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                side: const BorderSide(color: Colors.black, width: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                side: const BorderSide(
+                                  color: Colors.black,
+                                  width: 2,
+                                ),
                                 shape: const RoundedRectangleBorder(),
                               ),
                               onPressed: () {

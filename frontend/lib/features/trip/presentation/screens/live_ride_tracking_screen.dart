@@ -186,12 +186,18 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
         }
       });
 
-      socketClient.joinRideRoom(rideId, widget.userId ?? 'passenger-anon', 'passenger');
-
-      _locationSub = socketClient.onDriverLocation(rideId).listen(
-        _onDriverLocationPayload,
-        onError: (_) => _startSimulationIfNoData(),
+      socketClient.joinRideRoom(
+        rideId,
+        widget.userId ?? 'passenger-anon',
+        'passenger',
       );
+
+      _locationSub = socketClient
+          .onDriverLocation(rideId)
+          .listen(
+            _onDriverLocationPayload,
+            onError: (_) => _startSimulationIfNoData(),
+          );
 
       // Start simulation after 4 seconds if no socket data arrives
       Future.delayed(const Duration(seconds: 4), () {
@@ -216,11 +222,16 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
 
     final newPos = LatLng(payload.latitude, payload.longitude);
     final remaining = _haversineDistanceKm(
-      newPos.latitude, newPos.longitude,
-      _destination.latitude, _destination.longitude,
+      newPos.latitude,
+      newPos.longitude,
+      _destination.latitude,
+      _destination.longitude,
     );
     final speed = payload.speed > 0 ? payload.speed : 40.0;
-    final etaMins = ((remaining / speed) * 60).round().clamp(1, _totalDurationMins);
+    final etaMins = ((remaining / speed) * 60).round().clamp(
+      1,
+      _totalDurationMins,
+    );
 
     setState(() {
       _driverPosition = newPos;
@@ -272,11 +283,15 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
 
     final simPos = LatLng(lat, lng);
     final remaining = _haversineDistanceKm(
-      lat, lng, _destination.latitude, _destination.longitude,
+      lat,
+      lng,
+      _destination.latitude,
+      _destination.longitude,
     );
-    final etaMins = ((_totalDurationMins * (1.0 - effectiveProgress))
-            .clamp(4.0, _totalDurationMins.toDouble()))
-        .toInt();
+    final etaMins = ((_totalDurationMins * (1.0 - effectiveProgress)).clamp(
+      4.0,
+      _totalDurationMins.toDouble(),
+    )).toInt();
 
     setState(() {
       _driverPosition = simPos;
@@ -289,11 +304,17 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
 
   // ── ETA / Haversine ──────────────────────────────────────────────────────
 
-  double _haversineDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+  double _haversineDistanceKm(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const r = 6371.0; // Earth radius km
     final dLat = _toRad(lat2 - lat1);
     final dLon = _toRad(lon2 - lon1);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_toRad(lat1)) *
             math.cos(_toRad(lat2)) *
             math.sin(dLon / 2) *
@@ -346,16 +367,17 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
 
   @override
   Widget build(BuildContext context) {
-    final driver = widget.driverName ??
+    final driver =
+        widget.driverName ??
         widget.booking?.ride?.driverName ??
         'Verified Driver';
-    final vehicle = widget.vehicleInfo ??
+    final vehicle =
+        widget.vehicleInfo ??
         (widget.booking?.ride != null
             ? '${widget.booking!.ride!.vehicle.make} ${widget.booking!.ride!.vehicle.model} \u2022 ${widget.booking!.ride!.vehicle.registrationNumber}'
             : 'Vehicle Confirmed');
-    final rating = widget.driverRating ??
-        widget.booking?.ride?.driverRating ??
-        4.92;
+    final rating =
+        widget.driverRating ?? widget.booking?.ride?.driverRating ?? 4.92;
 
     return Scaffold(
       backgroundColor: SahyanColors.canvas,
@@ -479,10 +501,17 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.verified_rounded, size: 13, color: SahyanColors.primaryMint),
+                        const Icon(
+                          Icons.verified_rounded,
+                          size: 13,
+                          color: SahyanColors.primaryMint,
+                        ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1.5,
+                          ),
                           decoration: BoxDecoration(
                             color: SahyanColors.primaryLight,
                             borderRadius: BorderRadius.circular(4),
@@ -490,7 +519,11 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star_rounded, size: 12, color: SahyanColors.goldStar),
+                              const Icon(
+                                Icons.star_rounded,
+                                size: 12,
+                                color: SahyanColors.goldStar,
+                              ),
                               const SizedBox(width: 2),
                               Text(
                                 rating.toStringAsFixed(2),
@@ -519,7 +552,11 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                   ],
                 ),
               ),
-              VehicleIcon.illustration(type: widget.vehicleType, width: 38, height: 22),
+              VehicleIcon.illustration(
+                type: widget.vehicleType,
+                width: 38,
+                height: 22,
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -552,7 +589,10 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                 // Live speed pill
                 if (_liveSpeedKmh > 0)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: SahyanColors.primaryMint.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(6),
@@ -713,23 +753,35 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                   label: const Text('Call'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: SahyanColors.primaryDark,
-                    side: const BorderSide(color: SahyanColors.border, width: 0.8),
+                    side: const BorderSide(
+                      color: SahyanColors.border,
+                      width: 0.8,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => context.push('/messages/${widget.booking?.id ?? "conv-1"}'),
+                  onPressed: () => context.push(
+                    '/messages/${widget.booking?.id ?? "conv-1"}',
+                  ),
                   icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
                   label: const Text('Chat'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: SahyanColors.primaryDark,
-                    side: const BorderSide(color: SahyanColors.border, width: 0.8),
+                    side: const BorderSide(
+                      color: SahyanColors.border,
+                      width: 0.8,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -738,12 +790,17 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                 child: OutlinedButton.icon(
                   onPressed: () {
                     final bookingId = widget.booking?.id ?? 'active-trip';
-                    Clipboard.setData(ClipboardData(
-                      text: 'https://sahyan.app/live-tracking/track-live?bookingId=$bookingId',
-                    ));
+                    Clipboard.setData(
+                      ClipboardData(
+                        text:
+                            'https://sahyan.app/live-tracking/track-live?bookingId=$bookingId',
+                      ),
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Live tracking link copied to clipboard.'),
+                        content: Text(
+                          'Live tracking link copied to clipboard.',
+                        ),
                         backgroundColor: SahyanColors.primaryDark,
                         duration: Duration(seconds: 2),
                       ),
@@ -753,25 +810,42 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                   label: const Text('Share'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: SahyanColors.primaryDark,
-                    side: const BorderSide(color: SahyanColors.border, width: 0.8),
+                    side: const BorderSide(
+                      color: SahyanColors.border,
+                      width: 0.8,
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () => SosActionBottomSheet.show(context, booking: widget.booking),
-                  icon: const Icon(Icons.emergency_outlined, size: 16, color: Colors.white),
+                  onPressed: () => SosActionBottomSheet.show(
+                    context,
+                    booking: widget.booking,
+                  ),
+                  icon: const Icon(
+                    Icons.emergency_outlined,
+                    size: 16,
+                    color: Colors.white,
+                  ),
                   label: const Text(
                     'SOS',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: SahyanColors.primaryDark,
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 0,
                   ),
                 ),

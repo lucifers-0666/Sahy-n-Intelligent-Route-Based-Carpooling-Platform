@@ -233,10 +233,16 @@ class ActiveJourneyScreen extends ConsumerWidget {
                                   tooltip: 'Copy PIN',
                                   visualDensity: VisualDensity.compact,
                                   onPressed: () {
-                                    Clipboard.setData(ClipboardData(text: activeBooking.securityPin));
+                                    Clipboard.setData(
+                                      ClipboardData(
+                                        text: activeBooking.securityPin,
+                                      ),
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('Boarding PIN copied to clipboard'),
+                                        content: Text(
+                                          'Boarding PIN copied to clipboard',
+                                        ),
                                         backgroundColor: AppColors.deepForest,
                                         duration: Duration(seconds: 2),
                                       ),
@@ -250,12 +256,16 @@ class ActiveJourneyScreen extends ConsumerWidget {
                       ),
                     ] else ...[
                       SahyanButton(
-                        text: 'Pay ₹${(activeBooking.totalContribution + 60).toStringAsFixed(0)} (Escrow Sandbox)',
+                        text:
+                            'Pay ₹${(activeBooking.totalContribution + 60).toStringAsFixed(0)} (Escrow Sandbox)',
                         icon: Icons.lock_outline_rounded,
                         variant: SahyanButtonVariant.secondary,
                         isFullWidth: true,
                         onPressed: () {
-                          context.push('/payment-checkout', extra: activeBooking);
+                          context.push(
+                            '/payment-checkout',
+                            extra: activeBooking,
+                          );
                         },
                       ),
                     ],

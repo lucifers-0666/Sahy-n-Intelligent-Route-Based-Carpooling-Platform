@@ -1,10 +1,4 @@
-enum LocationAccuracyTier {
-  excellent,
-  good,
-  acceptable,
-  poor,
-  invalid,
-}
+enum LocationAccuracyTier { excellent, good, acceptable, poor, invalid }
 
 /// Centralized policy for GPS accuracy thresholding and confidence classification
 class LocationAccuracyPolicy {

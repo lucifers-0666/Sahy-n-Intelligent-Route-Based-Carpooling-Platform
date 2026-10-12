@@ -19,8 +19,6 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
   int _selectedTabIndex = 0;
   late final PageController _pageController;
 
-
-
   @override
   void initState() {
     super.initState();
@@ -82,7 +80,10 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.history_rounded, color: SahyanColors.textMuted),
+            icon: const Icon(
+              Icons.history_rounded,
+              color: SahyanColors.textMuted,
+            ),
             tooltip: 'Trip History',
             onPressed: () => context.push('/ride-history'),
           ),
@@ -92,7 +93,10 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: SegmentedPillBar(
                   items: dynamicTabs,
                   selectedIndex: _selectedTabIndex,
@@ -108,108 +112,130 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
         child: bookingsAsync.isLoading
             ? _buildShimmerLoading()
             : PageView(
-          controller: _pageController,
-          physics: const BouncingScrollPhysics(),
-          onPageChanged: (index) {
-            setState(() {
-              _selectedTabIndex = index;
-            });
-          },
-          children: [
-            // Page 0: Active Journeys
-            RefreshIndicator(
-              color: SahyanColors.primaryDark,
-              onRefresh: () async {
-                await ref.read(bookingsNotifierProvider.notifier).fetchMyBookings();
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Column(
-                  children: [
-                    if (activeBookings.isNotEmpty) ...[
-                      ...activeBookings.map((b) => Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildLiveTelematicsBadge(booking: b),
-                              const SizedBox(height: 14),
-                              _buildDigitalBoardingPass(booking: b),
-                              const SizedBox(height: 14),
-                              _buildActionDock(
-                                driverName: b.ride?.driverName.isNotEmpty == true
-                                    ? b.ride!.driverName
-                                    : 'Verified Driver',
-                                booking: b,
+                controller: _pageController,
+                physics: const BouncingScrollPhysics(),
+                onPageChanged: (index) {
+                  setState(() {
+                    _selectedTabIndex = index;
+                  });
+                },
+                children: [
+                  // Page 0: Active Journeys
+                  RefreshIndicator(
+                    color: SahyanColors.primaryDark,
+                    onRefresh: () async {
+                      await ref
+                          .read(bookingsNotifierProvider.notifier)
+                          .fetchMyBookings();
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      child: Column(
+                        children: [
+                          if (activeBookings.isNotEmpty) ...[
+                            ...activeBookings.map(
+                              (b) => Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildLiveTelematicsBadge(booking: b),
+                                  const SizedBox(height: 14),
+                                  _buildDigitalBoardingPass(booking: b),
+                                  const SizedBox(height: 14),
+                                  _buildActionDock(
+                                    driverName:
+                                        b.ride?.driverName.isNotEmpty == true
+                                        ? b.ride!.driverName
+                                        : 'Verified Driver',
+                                    booking: b,
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
                               ),
-                              const SizedBox(height: 16),
-                            ],
-                          )),
-                    ] else ...[
-                      _buildEmptyActivePassesCard(),
-                    ],
-                    const SizedBox(height: 14),
-                    _buildEcoImpactCard(),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ),
+                            ),
+                          ] else ...[
+                            _buildEmptyActivePassesCard(),
+                          ],
+                          const SizedBox(height: 14),
+                          _buildEcoImpactCard(),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ),
 
-            // Page 1: Pending Requests
-            RefreshIndicator(
-              color: SahyanColors.primaryDark,
-              onRefresh: () async {
-                await ref.read(bookingsNotifierProvider.notifier).fetchMyBookings();
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Column(
-                  children: [
-                    if (pendingBookings.isNotEmpty) ...[
-                      ...pendingBookings.map((b) => _buildLivePendingCard(b)),
-                    ] else ...[
-                      _buildEmptyPendingRequestsCard(),
-                    ],
-                    const SizedBox(height: 14),
-                    _buildEcoImpactCard(),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            ),
+                  // Page 1: Pending Requests
+                  RefreshIndicator(
+                    color: SahyanColors.primaryDark,
+                    onRefresh: () async {
+                      await ref
+                          .read(bookingsNotifierProvider.notifier)
+                          .fetchMyBookings();
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      child: Column(
+                        children: [
+                          if (pendingBookings.isNotEmpty) ...[
+                            ...pendingBookings.map(
+                              (b) => _buildLivePendingCard(b),
+                            ),
+                          ] else ...[
+                            _buildEmptyPendingRequestsCard(),
+                          ],
+                          const SizedBox(height: 14),
+                          _buildEcoImpactCard(),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ),
 
-            // Page 2: History
-            RefreshIndicator(
-              color: SahyanColors.primaryDark,
-              onRefresh: () async {
-                await ref.read(bookingsNotifierProvider.notifier).fetchMyBookings();
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                child: Column(
-                  children: [
-                    if (historyBookings.isNotEmpty) ...[
-                      ...historyBookings.map((b) => _buildLiveHistoryCard(b)),
-                    ] else ...[
-                      _buildEmptyHistoryCard(),
-                    ],
-                    const SizedBox(height: 14),
-                    _buildEcoImpactCard(),
-                    const SizedBox(height: 24),
-                  ],
-                ),
+                  // Page 2: History
+                  RefreshIndicator(
+                    color: SahyanColors.primaryDark,
+                    onRefresh: () async {
+                      await ref
+                          .read(bookingsNotifierProvider.notifier)
+                          .fetchMyBookings();
+                    },
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      child: Column(
+                        children: [
+                          if (historyBookings.isNotEmpty) ...[
+                            ...historyBookings.map(
+                              (b) => _buildLiveHistoryCard(b),
+                            ),
+                          ] else ...[
+                            _buildEmptyHistoryCard(),
+                          ],
+                          const SizedBox(height: 14),
+                          _buildEcoImpactCard(),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -221,21 +247,17 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
   Widget _buildShimmerLoading() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Column(
-        children: List.generate(3, (i) => _ShimmerCard(index: i)),
-      ),
+      child: Column(children: List.generate(3, (i) => _ShimmerCard(index: i))),
     );
   }
-
-
 
   /// Live Telematics Badge — derives display text from real booking data.
   Widget _buildLiveTelematicsBadge({BookingModel? booking}) {
     final hasLiveRide = booking != null;
     final pickupDesc = hasLiveRide
         ? (booking.pickup.address.isNotEmpty
-            ? booking.pickup.address
-            : (booking.ride?.origin.address ?? 'your pickup point'))
+              ? booking.pickup.address
+              : (booking.ride?.origin.address ?? 'your pickup point'))
         : null;
     final shortPickup = pickupDesc != null && pickupDesc.length > 32
         ? '${pickupDesc.substring(0, 30)}…'
@@ -262,7 +284,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              hasLiveRide ? Icons.navigation_rounded : Icons.directions_car_outlined,
+              hasLiveRide
+                  ? Icons.navigation_rounded
+                  : Icons.directions_car_outlined,
               color: SahyanColors.primaryDark,
               size: 18,
             ),
@@ -317,7 +341,6 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-
   Widget _buildDigitalBoardingPass({BookingModel? booking}) {
     final driverName = booking?.ride?.driverName.isNotEmpty == true
         ? booking!.ride!.driverName
@@ -332,23 +355,25 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     final driverRating = booking?.ride != null
         ? booking!.ride!.driverRating.toStringAsFixed(2)
         : '4.95';
-    final vehicleModel = booking?.ride != null && booking!.ride!.vehicle.make.isNotEmpty
+    final vehicleModel =
+        booking?.ride != null && booking!.ride!.vehicle.make.isNotEmpty
         ? '${booking.ride!.vehicle.make} ${booking.ride!.vehicle.model}'
         : 'Vehicle Assigned';
-    final vehiclePlate = booking?.ride?.vehicle.registrationNumber.isNotEmpty == true
+    final vehiclePlate =
+        booking?.ride?.vehicle.registrationNumber.isNotEmpty == true
         ? booking!.ride!.vehicle.registrationNumber
         : 'GJ-XX-XXXX';
     final pinCode = booking?.securityPin ?? '4821';
     final pickupName = booking != null && booking.pickup.address.isNotEmpty
         ? booking.pickup.address
         : (booking?.ride?.origin.address.isNotEmpty == true
-            ? booking!.ride!.origin.address
-            : 'Pickup Location');
+              ? booking!.ride!.origin.address
+              : 'Pickup Location');
     final dropName = booking != null && booking.drop.address.isNotEmpty
         ? booking.drop.address
         : (booking?.ride?.destination.address.isNotEmpty == true
-            ? booking!.ride!.destination.address
-            : 'Destination Location');
+              ? booking!.ride!.destination.address
+              : 'Destination Location');
 
     return BentoContainer(
       padding: EdgeInsets.zero,
@@ -493,7 +518,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                 // Journey Timeline — real departure/arrival times
+                // Journey Timeline — real departure/arrival times
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -569,7 +594,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      booking?.ride?.estimatedArrival ?? '-- : --',
+                                      booking?.ride?.estimatedArrival ??
+                                          '-- : --',
                                       style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
@@ -732,7 +758,10 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     );
   }
 
-  Widget _buildActionDock({String driverName = 'Verified Driver', BookingModel? booking}) {
+  Widget _buildActionDock({
+    String driverName = 'Verified Driver',
+    BookingModel? booking,
+  }) {
     final bookingId = booking?.id ?? 'conv-1';
     return BentoContainer(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
@@ -842,7 +871,14 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
   Widget _buildLivePendingCard(BookingModel booking) {
     final driverName = booking.ride?.driverName ?? 'Driver';
     final initials = driverName.trim().isNotEmpty
-        ? driverName.trim().split(' ').where((e) => e.isNotEmpty).map((e) => e[0]).take(2).join().toUpperCase()
+        ? driverName
+              .trim()
+              .split(' ')
+              .where((e) => e.isNotEmpty)
+              .map((e) => e[0])
+              .take(2)
+              .join()
+              .toUpperCase()
         : 'DR';
     final origin = booking.pickup.address.isNotEmpty
         ? booking.pickup.address
@@ -974,7 +1010,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                           context: context,
                           builder: (ctx) => AlertDialog(
                             title: const Text('Cancel Request?'),
-                            content: const Text('Are you sure you want to cancel this booking request?'),
+                            content: const Text(
+                              'Are you sure you want to cancel this booking request?',
+                            ),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, false),
@@ -982,16 +1020,25 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                               ),
                               TextButton(
                                 onPressed: () => Navigator.pop(ctx, true),
-                                child: const Text('Cancel Request', style: TextStyle(color: SahyanColors.urgentCoral)),
+                                child: const Text(
+                                  'Cancel Request',
+                                  style: TextStyle(
+                                    color: SahyanColors.urgentCoral,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
                         );
                         if (confirmed == true && mounted) {
-                          await ref.read(bookingsNotifierProvider.notifier).cancelBooking(booking.id);
+                          await ref
+                              .read(bookingsNotifierProvider.notifier)
+                              .cancelBooking(booking.id);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Booking request cancelled')),
+                              const SnackBar(
+                                content: Text('Booking request cancelled'),
+                              ),
                             );
                           }
                         }
@@ -1124,7 +1171,11 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 // Rate Trip CTA — shown only for completed bookings
                 if (isCompleted) ...[
                   const SizedBox(height: 12),
-                  const Divider(color: SahyanColors.border, height: 1, thickness: 0.8),
+                  const Divider(
+                    color: SahyanColors.border,
+                    height: 1,
+                    thickness: 0.8,
+                  ),
                   const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
@@ -1351,10 +1402,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                 SizedBox(height: 2),
                 Text(
                   'Top 12% among Gujarat EV Corridor sharers',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: SahyanColors.textMuted,
-                  ),
+                  style: TextStyle(fontSize: 11, color: SahyanColors.textMuted),
                 ),
               ],
             ),
@@ -1363,8 +1411,6 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
       ),
     );
   }
-
-
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1477,7 +1523,9 @@ class _DashedLinePainter extends CustomPainter {
     const dashSpace = 4.0;
     double startX = 0.0;
     while (startX < size.width) {
-      final endX = (startX + dashWidth > size.width) ? size.width : startX + dashWidth;
+      final endX = (startX + dashWidth > size.width)
+          ? size.width
+          : startX + dashWidth;
       canvas.drawLine(
         Offset(startX, size.height / 2),
         Offset(endX, size.height / 2),
@@ -1490,4 +1538,3 @@ class _DashedLinePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

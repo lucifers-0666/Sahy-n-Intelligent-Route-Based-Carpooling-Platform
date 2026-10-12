@@ -19,7 +19,8 @@ import '../network/socket_client.dart';
 /// 3. Call [stopStreaming] when driver completes or cancels the trip.
 class DriverLocationService {
   DriverLocationService._internal();
-  static final DriverLocationService instance = DriverLocationService._internal();
+  static final DriverLocationService instance =
+      DriverLocationService._internal();
 
   GpsProvider _provider = GeolocatorProvider();
   StreamSubscription<LocationPoint>? _positionSub;
@@ -32,7 +33,8 @@ class DriverLocationService {
 
   bool get isStreaming => _isStreaming;
   String? get activeRideId => _activeRideId;
-  double get trackedDistanceMeters => _distanceTracker.totalTrackedDistanceMeters;
+  double get trackedDistanceMeters =>
+      _distanceTracker.totalTrackedDistanceMeters;
   double get trackedDistanceKm => _distanceTracker.totalTrackedDistanceKm;
 
   /// Custom provider injection for automated testing and preview environments
@@ -43,7 +45,11 @@ class DriverLocationService {
   // ── Start Streaming ───────────────────────────────────────────────────────
 
   /// Request permission and begin streaming preprocessed GPS telematics for [rideId]
-  Future<bool> startStreaming(String rideId, {String? vehicleType, GpsProvider? provider}) async {
+  Future<bool> startStreaming(
+    String rideId, {
+    String? vehicleType,
+    GpsProvider? provider,
+  }) async {
     if (_isStreaming) await stopStreaming();
 
     if (provider != null) {
@@ -53,14 +59,18 @@ class DriverLocationService {
     }
 
     _preprocessor = LocationPreprocessor(
-      filter: LocationFilter(config: LocationFilterConfig.forVehicleType(vehicleType)),
+      filter: LocationFilter(
+        config: LocationFilterConfig.forVehicleType(vehicleType),
+      ),
     );
     _distanceTracker.reset();
 
     // Check device location service status
     final serviceEnabled = await _provider.isServiceEnabled();
     if (!serviceEnabled && !kIsWeb) {
-      debugPrint('[DriverLocationService] Device location services are disabled.');
+      debugPrint(
+        '[DriverLocationService] Device location services are disabled.',
+      );
       return false;
     }
 
@@ -72,7 +82,9 @@ class DriverLocationService {
       }
 
       if (status != LocationPermissionStatus.granted && !kIsWeb) {
-        debugPrint('[DriverLocationService] Location permission denied: $status');
+        debugPrint(
+          '[DriverLocationService] Location permission denied: $status',
+        );
         return false;
       }
     } catch (e) {
@@ -92,7 +104,9 @@ class DriverLocationService {
         cancelOnError: false,
       );
 
-      debugPrint('[DriverLocationService] Telematics streaming active for ride: $rideId');
+      debugPrint(
+        '[DriverLocationService] Telematics streaming active for ride: $rideId',
+      );
       return true;
     } catch (e) {
       debugPrint('[DriverLocationService] Failed to start position stream: $e');
@@ -109,7 +123,9 @@ class DriverLocationService {
     _isStreaming = false;
     _preprocessor.reset();
     _distanceTracker.reset();
-    debugPrint('[DriverLocationService] GPS streaming stopped for ride: $_activeRideId');
+    debugPrint(
+      '[DriverLocationService] GPS streaming stopped for ride: $_activeRideId',
+    );
     _activeRideId = null;
   }
 
@@ -122,7 +138,9 @@ class DriverLocationService {
     final normalized = _preprocessor.process(raw);
     if (normalized == null) {
       if (kDebugMode) {
-        debugPrint('[DriverLocationService] GPS fix dropped by preprocessor pipeline.');
+        debugPrint(
+          '[DriverLocationService] GPS fix dropped by preprocessor pipeline.',
+        );
       }
       return;
     }

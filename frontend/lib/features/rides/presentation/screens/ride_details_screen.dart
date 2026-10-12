@@ -96,35 +96,32 @@ class RideDetailsScreen extends ConsumerWidget {
               builder: (context) {
                 final polylinePoints =
                     (ride.route != null &&
-                            ride.route!.encodedPolyline.isNotEmpty)
-                        ? RouteService.decodePolyline(
-                            ride.route!.encodedPolyline,
-                          )
-                            .map((pt) => LatLng(pt.latitude, pt.longitude))
-                            .toList()
-                        : <LatLng>[];
+                        ride.route!.encodedPolyline.isNotEmpty)
+                    ? RouteService.decodePolyline(
+                        ride.route!.encodedPolyline,
+                      ).map((pt) => LatLng(pt.latitude, pt.longitude)).toList()
+                    : <LatLng>[];
 
-                final bounds =
-                    polylinePoints.isNotEmpty
-                        ? RouteGeometryService.calculateBounds(polylinePoints)
-                        : null;
+                final bounds = polylinePoints.isNotEmpty
+                    ? RouteGeometryService.calculateBounds(polylinePoints)
+                    : null;
 
                 final corridor = RouteGeometryService.getHighwayCorridor(
                   ride.origin,
                   ride.destination,
                 );
-                final distanceKm =
-                    ride.route != null
-                        ? (ride.route!.distanceMeters / 1000).toStringAsFixed(0)
-                        : '219';
+                final distanceKm = ride.route != null
+                    ? (ride.route!.distanceMeters / 1000).toStringAsFixed(0)
+                    : '219';
                 final durationSec = ride.route?.durationSeconds ?? 11700;
                 final hours = durationSec ~/ 3600;
                 final minutes = (durationSec % 3600) ~/ 60;
-                final durationText =
-                    hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+                final durationText = hours > 0
+                    ? '${hours}h ${minutes}m'
+                    : '${minutes}m';
                 final detourKm = searchResult?.match != null
                     ? (searchResult!.match!.metrics.pickupDistanceKm +
-                        searchResult.match!.metrics.destinationDistanceKm)
+                          searchResult.match!.metrics.destinationDistanceKm)
                     : null;
 
                 return Column(
@@ -211,7 +208,8 @@ class RideDetailsScreen extends ConsumerWidget {
                                       destination: ride.destination,
                                       polylinePoints: polylinePoints,
                                       bounds: bounds,
-                                      corridorHighway: 'Gujarat Highway Corridor Active',
+                                      corridorHighway:
+                                          'Gujarat Highway Corridor Active',
                                       distanceKm: ride.route?.distanceKm,
                                     );
                                   },
@@ -234,7 +232,8 @@ class RideDetailsScreen extends ConsumerWidget {
                                       destination: ride.destination,
                                       polylinePoints: polylinePoints,
                                       bounds: bounds,
-                                      corridorHighway: 'Gujarat Highway Corridor Active',
+                                      corridorHighway:
+                                          'Gujarat Highway Corridor Active',
                                       distanceKm: ride.route?.distanceKm,
                                     );
                                   },
@@ -510,7 +509,9 @@ class RideDetailsScreen extends ConsumerWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.softForest,
-                                  borderRadius: BorderRadius.circular(AppRadii.full),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadii.full,
+                                  ),
                                 ),
                                 child: Text(
                                   'EV',

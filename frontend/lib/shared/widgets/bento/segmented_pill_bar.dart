@@ -6,10 +6,7 @@ class SegmentedPillBarItem {
   final String label;
   final int? badgeCount;
 
-  const SegmentedPillBarItem({
-    required this.label,
-    this.badgeCount,
-  });
+  const SegmentedPillBarItem({required this.label, this.badgeCount});
 }
 
 class SegmentedPillBar extends StatelessWidget {
@@ -95,8 +92,9 @@ class SegmentedPillBar extends StatelessWidget {
                                 item.label,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight:
-                                      isSelected ? FontWeight.w700 : FontWeight.w600,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
                                   color: isSelected
                                       ? SahyanColors.primaryDark
                                       : SahyanColors.textMuted,

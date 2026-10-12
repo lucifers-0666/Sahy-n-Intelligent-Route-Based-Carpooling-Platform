@@ -51,7 +51,8 @@ class GpsDiagnosticService {
         permissionStatus: LocationPermissionStatus.serviceDisabled,
         hasPosition: false,
         errorCode: 'LOCATION_SERVICES_DISABLED',
-        statusSummary: 'Device location services are disabled in system settings.',
+        statusSummary:
+            'Device location services are disabled in system settings.',
       );
     }
 
@@ -63,7 +64,8 @@ class GpsDiagnosticService {
         permissionStatus: permission,
         hasPosition: false,
         errorCode: 'PERMISSION_${permission.name.toUpperCase()}',
-        statusSummary: 'Location permission is not granted (${permission.name}).',
+        statusSummary:
+            'Location permission is not granted (${permission.name}).',
       );
     }
 
@@ -92,7 +94,8 @@ class GpsDiagnosticService {
         timestamp: pos.timestamp,
         speedAvailable: speedAvailable,
         headingAvailable: headingAvailable,
-        statusSummary: 'GPS provider healthy. Accuracy: ${pos.accuracy.toStringAsFixed(1)}m.',
+        statusSummary:
+            'GPS provider healthy. Accuracy: ${pos.accuracy.toStringAsFixed(1)}m.',
       );
     } catch (e) {
       return GpsDiagnosticResult(

@@ -42,7 +42,8 @@ class RouteGeometryService {
     LocationModel origin,
     LocationModel destination,
     List<LocationModel> stopovers,
-  )? mockRouteProvider;
+  )?
+  mockRouteProvider;
 
   /// Get the designated Gujarat highway corridor name for origin and destination
   static String getHighwayCorridor(LocationModel origin, LocationModel dest) {
@@ -77,11 +78,7 @@ class RouteGeometryService {
       });
 
       final res = await http
-          .post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: body,
-          )
+          .post(uri, headers: {'Content-Type': 'application/json'}, body: body)
           .timeout(const Duration(seconds: 8));
 
       if (res.statusCode == 200) {
@@ -103,8 +100,9 @@ class RouteGeometryService {
           final distKm = (distanceMeters / 1000).toStringAsFixed(0);
           final durHours = durationSeconds ~/ 3600;
           final durMins = (durationSeconds % 3600) ~/ 60;
-          final durStr =
-              durHours > 0 ? '${durHours}h ${durMins}m' : '${durMins}m';
+          final durStr = durHours > 0
+              ? '${durHours}h ${durMins}m'
+              : '${durMins}m';
 
           final wps = activeStopovers.isNotEmpty
               ? activeStopovers.map((s) => s.name).toList()
@@ -137,7 +135,10 @@ class RouteGeometryService {
     throw Exception('Route unavailable. Please try again.');
   }
 
-  static String _detectGujaratHighway(LocationModel origin, LocationModel dest) {
+  static String _detectGujaratHighway(
+    LocationModel origin,
+    LocationModel dest,
+  ) {
     final text =
         '${origin.city} ${dest.city} ${origin.name} ${dest.name} ${origin.address} ${dest.address}'
             .toLowerCase();
@@ -180,7 +181,10 @@ class RouteGeometryService {
     return 'NH47';
   }
 
-  static List<String> _suggestDefaultWaypoints(LocationModel origin, LocationModel dest) {
+  static List<String> _suggestDefaultWaypoints(
+    LocationModel origin,
+    LocationModel dest,
+  ) {
     final highway = _detectGujaratHighway(origin, dest);
     if (highway == 'NH47') {
       return ['Limbdi Toll Plaza', 'Chotila Bypass'];
@@ -200,30 +204,28 @@ class RouteGeometryService {
     LocationModel? destination,
   ]) {
     final validPoints = points
-        .where((p) =>
-            p.latitude >= -90.0 &&
-            p.latitude <= 90.0 &&
-            p.longitude >= -180.0 &&
-            p.longitude <= 180.0)
+        .where(
+          (p) =>
+              p.latitude >= -90.0 &&
+              p.latitude <= 90.0 &&
+              p.longitude >= -180.0 &&
+              p.longitude <= 180.0,
+        )
         .toList();
 
     if (validPoints.isEmpty) {
-      final minLat = math.min(
-        origin?.latitude ?? 22.0,
-        destination?.latitude ?? 23.5,
-      ).clamp(-90.0, 90.0);
-      final maxLat = math.max(
-        origin?.latitude ?? 22.0,
-        destination?.latitude ?? 23.5,
-      ).clamp(-90.0, 90.0);
-      final minLng = math.min(
-        origin?.longitude ?? 69.5,
-        destination?.longitude ?? 73.0,
-      ).clamp(-180.0, 180.0);
-      final maxLng = math.max(
-        origin?.longitude ?? 69.5,
-        destination?.longitude ?? 73.0,
-      ).clamp(-180.0, 180.0);
+      final minLat = math
+          .min(origin?.latitude ?? 22.0, destination?.latitude ?? 23.5)
+          .clamp(-90.0, 90.0);
+      final maxLat = math
+          .max(origin?.latitude ?? 22.0, destination?.latitude ?? 23.5)
+          .clamp(-90.0, 90.0);
+      final minLng = math
+          .min(origin?.longitude ?? 69.5, destination?.longitude ?? 73.0)
+          .clamp(-180.0, 180.0);
+      final maxLng = math
+          .max(origin?.longitude ?? 69.5, destination?.longitude ?? 73.0)
+          .clamp(-180.0, 180.0);
       return fmap.LatLngBounds(
         ll.LatLng(minLat, minLng),
         ll.LatLng(maxLat, maxLng),

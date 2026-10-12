@@ -1,9 +1,4 @@
-enum VehicleCategoryGroup {
-  car,
-  twoWheeler,
-  threeWheeler,
-  utility,
-}
+enum VehicleCategoryGroup { car, twoWheeler, threeWheeler, utility }
 
 extension VehicleCategoryGroupExtension on VehicleCategoryGroup {
   String get displayName {

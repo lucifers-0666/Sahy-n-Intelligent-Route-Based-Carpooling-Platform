@@ -10,7 +10,10 @@ final messagingRepositoryProvider = Provider<MessagingRepository>((ref) {
 
 abstract class MessagingRepository {
   Future<List<Conversation>> getConversations();
-  Future<List<ChatMessage>> getMessages(String bookingId, {String? currentUserId});
+  Future<List<ChatMessage>> getMessages(
+    String bookingId, {
+    String? currentUserId,
+  });
   Future<ChatMessage> sendMessage({
     required String bookingId,
     required String text,
@@ -40,12 +43,20 @@ class MessagingRepositoryImpl implements MessagingRepository {
   }
 
   @override
-  Future<List<ChatMessage>> getMessages(String bookingId, {String? currentUserId}) async {
+  Future<List<ChatMessage>> getMessages(
+    String bookingId, {
+    String? currentUserId,
+  }) async {
     try {
       final response = await apiClient.get('/messages/$bookingId');
       if (response['success'] == true && response['data'] is List) {
         return (response['data'] as List)
-            .map((item) => ChatMessage.fromJson(item as Map<String, dynamic>, currentUserId: currentUserId))
+            .map(
+              (item) => ChatMessage.fromJson(
+                item as Map<String, dynamic>,
+                currentUserId: currentUserId,
+              ),
+            )
             .toList();
       }
       return [];
@@ -63,10 +74,7 @@ class MessagingRepositoryImpl implements MessagingRepository {
     try {
       final response = await apiClient.post(
         '/messages',
-        body: {
-          'bookingId': bookingId,
-          'text': text,
-        },
+        body: {'bookingId': bookingId, 'text': text},
       );
       if (response['success'] == true && response['data'] != null) {
         return ChatMessage.fromJson(
@@ -97,7 +105,8 @@ class MessagingRepositoryImpl implements MessagingRepository {
         participantName: 'Karan Patel',
         participantRole: 'Driver',
         routeSummary: 'Ahmedabad to Vadodara',
-        lastMessage: 'I have arrived near Iscon Cross Roads service lane. Blue Creta.',
+        lastMessage:
+            'I have arrived near Iscon Cross Roads service lane. Blue Creta.',
         lastMessageTime: DateTime.now().subtract(const Duration(minutes: 5)),
         unreadCount: 1,
         phone: '+91 98765 43210',
@@ -122,7 +131,8 @@ class MessagingRepositoryImpl implements MessagingRepository {
         id: 'm-1',
         conversationId: bookingId,
         senderId: 'driver',
-        text: 'Hello! Please confirm if you will be at the pickup point by 08:30 AM.',
+        text:
+            'Hello! Please confirm if you will be at the pickup point by 08:30 AM.',
         timestamp: DateTime.now().subtract(const Duration(minutes: 25)),
         isMe: false,
         status: 'read',
@@ -131,7 +141,8 @@ class MessagingRepositoryImpl implements MessagingRepository {
         id: 'm-2',
         conversationId: bookingId,
         senderId: 'me',
-        text: 'Yes Karan, I am 2 minutes away, walking towards the bus shelter.',
+        text:
+            'Yes Karan, I am 2 minutes away, walking towards the bus shelter.',
         timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
         isMe: true,
         status: 'delivered',

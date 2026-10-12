@@ -14,11 +14,7 @@ class JourneyCompletedScreen extends StatelessWidget {
   final BookingModel? booking;
   final RideModel? ride;
 
-  const JourneyCompletedScreen({
-    super.key,
-    this.booking,
-    this.ride,
-  });
+  const JourneyCompletedScreen({super.key, this.booking, this.ride});
 
   bool get isDriver => ride != null;
 
@@ -45,7 +41,10 @@ class JourneyCompletedScreen extends StatelessWidget {
       personOrVehicleValue = ride!.vehicle.fullName.isNotEmpty
           ? '${ride!.vehicle.fullName} (${ride!.vehicle.registrationNumber})'
           : ride!.vehicle.registrationNumber;
-      final filledSeats = (ride!.totalSeats - ride!.availableSeats).clamp(1, ride!.totalSeats);
+      final filledSeats = (ride!.totalSeats - ride!.availableSeats).clamp(
+        1,
+        ride!.totalSeats,
+      );
       seatsLabel = 'Seats Shared';
       seatsValue = '$filledSeats of ${ride!.totalSeats} Seats';
       contributionLabel = 'Escrow Earnings';

@@ -64,7 +64,8 @@ class FullScreenRouteMapSheet extends StatefulWidget {
   }
 
   @override
-  State<FullScreenRouteMapSheet> createState() => _FullScreenRouteMapSheetState();
+  State<FullScreenRouteMapSheet> createState() =>
+      _FullScreenRouteMapSheetState();
 }
 
 class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
@@ -114,7 +115,10 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
         );
       } else {
         final p1 = ll.LatLng(widget.origin.latitude, widget.origin.longitude);
-        final p2 = ll.LatLng(widget.destination.latitude, widget.destination.longitude);
+        final p2 = ll.LatLng(
+          widget.destination.latitude,
+          widget.destination.longitude,
+        );
         _mapController.fitCamera(
           fmap.CameraFit.coordinates(
             coordinates: [p1, p2],
@@ -179,7 +183,10 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
     // Destination Marker (Mint Location Pin)
     markers.add(
       fmap.Marker(
-        point: ll.LatLng(widget.destination.latitude, widget.destination.longitude),
+        point: ll.LatLng(
+          widget.destination.latitude,
+          widget.destination.longitude,
+        ),
         width: 44,
         height: 44,
         child: Container(
@@ -297,16 +304,13 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                     ),
                     children: [
                       fmap.TileLayer(
-                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                         userAgentPackageName: 'com.sahyan.sahyan',
                         maxZoom: 19,
                       ),
-                      fmap.PolylineLayer(
-                        polylines: _buildPolylines(),
-                      ),
-                      fmap.MarkerLayer(
-                        markers: _buildMarkers(),
-                      ),
+                      fmap.PolylineLayer(polylines: _buildPolylines()),
+                      fmap.MarkerLayer(markers: _buildMarkers()),
                     ],
                   ),
           ),
@@ -320,11 +324,17 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                 children: [
                   // Corridor Active Capsule
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: SahyanColors.surface,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: SahyanColors.border, width: 0.8),
+                      border: Border.all(
+                        color: SahyanColors.border,
+                        width: 0.8,
+                      ),
                       boxShadow: const [
                         BoxShadow(
                           color: Color(0x1414241C),
@@ -392,7 +402,10 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                   color: SahyanColors.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: SahyanColors.border, width: 0.8),
+                    side: const BorderSide(
+                      color: SahyanColors.border,
+                      width: 0.8,
+                    ),
                   ),
                   elevation: 3,
                   shadowColor: const Color(0x1E14241C),
@@ -419,14 +432,18 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                 Material(
                   color: SahyanColors.surface,
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
                     side: BorderSide(color: SahyanColors.border, width: 0.8),
                   ),
                   elevation: 3,
                   shadowColor: const Color(0x1E14241C),
                   child: InkWell(
                     onTap: _zoomIn,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
                     child: const SizedBox(
                       width: 44,
                       height: 40,
@@ -442,14 +459,18 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                 Material(
                   color: SahyanColors.surface,
                   shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(12),
+                    ),
                     side: BorderSide(color: SahyanColors.border, width: 0.8),
                   ),
                   elevation: 3,
                   shadowColor: const Color(0x1E14241C),
                   child: InkWell(
                     onTap: _zoomOut,
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(12),
+                    ),
                     child: const SizedBox(
                       width: 44,
                       height: 40,
@@ -552,10 +573,14 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                             ],
                           ),
                         ),
-                        if (widget.distanceKm != null && widget.distanceKm! > 0) ...[
+                        if (widget.distanceKm != null &&
+                            widget.distanceKm! > 0) ...[
                           const SizedBox(width: 12),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: SahyanColors.primaryLight,
                               borderRadius: BorderRadius.circular(10),
@@ -576,7 +601,11 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
 
                     if (widget.stopovers.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      const Divider(color: SahyanColors.border, height: 1, thickness: 0.8),
+                      const Divider(
+                        color: SahyanColors.border,
+                        height: 1,
+                        thickness: 0.8,
+                      ),
                       const SizedBox(height: 10),
                       const Text(
                         'PLANNED WAYPOINTS & TOLLS',
@@ -594,11 +623,17 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                         runSpacing: 6,
                         children: widget.stopovers.map((s) {
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: SahyanColors.canvas,
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: SahyanColors.border, width: 0.8),
+                              border: Border.all(
+                                color: SahyanColors.border,
+                                width: 0.8,
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,

@@ -38,7 +38,8 @@ class VehicleRepositoryImpl implements VehicleRepository {
   Future<List<VehicleModel>> getVehicles() async {
     final response = await apiClient.get('/vehicles');
     if (response is Map<String, dynamic>) {
-      final dynamic rawList = response['vehicles'] ??
+      final dynamic rawList =
+          response['vehicles'] ??
           (response['data'] is Map ? response['data']['vehicles'] : null) ??
           (response['data'] is List ? response['data'] : null);
       if (rawList is List<dynamic>) {

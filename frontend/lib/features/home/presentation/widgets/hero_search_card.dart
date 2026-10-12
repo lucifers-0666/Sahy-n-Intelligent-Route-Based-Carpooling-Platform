@@ -75,8 +75,18 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
     }
     final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
   }
@@ -160,10 +170,7 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: SahyanColors.border,
-                width: 0.8,
-              ),
+              border: Border.all(color: SahyanColors.border, width: 0.8),
               boxShadow: [
                 BoxShadow(
                   color: SahyanColors.textMain.withValues(alpha: 0.03),
@@ -238,12 +245,17 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                                   topRight: Radius.circular(20),
                                 ),
                                 child: Container(
-                                  constraints: const BoxConstraints(minHeight: 57),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  constraints: const BoxConstraints(
+                                    minHeight: 57,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   alignment: Alignment.centerLeft,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       const Text(
@@ -272,7 +284,8 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                                           isDense: true,
                                           border: InputBorder.none,
                                           contentPadding: EdgeInsets.zero,
-                                          hintText: 'Enter pickup hub or address…',
+                                          hintText:
+                                              'Enter pickup hub or address…',
                                           hintStyle: TextStyle(
                                             fontFamily: 'Plus Jakarta Sans',
                                             color: SahyanColors.textDisabled,
@@ -300,12 +313,17 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                                   bottomRight: Radius.circular(20),
                                 ),
                                 child: Container(
-                                  constraints: const BoxConstraints(minHeight: 57),
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
+                                  constraints: const BoxConstraints(
+                                    minHeight: 57,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
                                   alignment: Alignment.centerLeft,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       const Text(
@@ -320,9 +338,11 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                                       ),
                                       const SizedBox(height: 2),
                                       TextField(
-                                        controller: widget.destinationController,
+                                        controller:
+                                            widget.destinationController,
                                         onTap: widget.onTapDestination,
-                                        readOnly: widget.onTapDestination != null,
+                                        readOnly:
+                                            widget.onTapDestination != null,
                                         style: const TextStyle(
                                           fontFamily: 'Plus Jakarta Sans',
                                           fontSize: 14.5,
@@ -374,7 +394,9 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                           ),
                         ),
                         elevation: 2.0,
-                        shadowColor: SahyanColors.textMain.withValues(alpha: 0.08),
+                        shadowColor: SahyanColors.textMain.withValues(
+                          alpha: 0.08,
+                        ),
                         child: InkWell(
                           onTap: _handleSwap,
                           customBorder: const CircleBorder(),
@@ -452,7 +474,9 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                         widget.onSelectCorridor(c);
                       },
                       borderRadius: BorderRadius.circular(12),
-                      splashColor: SahyanColors.primaryMint.withValues(alpha: 0.12),
+                      splashColor: SahyanColors.primaryMint.withValues(
+                        alpha: 0.12,
+                      ),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 11,
@@ -682,11 +706,7 @@ class _ParamsBarState extends State<_ParamsBar> {
           ),
 
           // Vertical Hairline Divider
-          Container(
-            width: 1,
-            height: 26,
-            color: SahyanColors.border,
-          ),
+          Container(width: 1, height: 26, color: SahyanColors.border),
 
           // Right Cell — Seat Count Stepper
           ConstrainedBox(

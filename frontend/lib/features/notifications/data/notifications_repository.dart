@@ -3,7 +3,9 @@ import '../../../../core/network/api_client.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import '../domain/notification_model.dart';
 
-final notificationsRepositoryProvider = Provider<NotificationsRepository>((ref) {
+final notificationsRepositoryProvider = Provider<NotificationsRepository>((
+  ref,
+) {
   final apiClient = ref.watch(apiClientProvider);
   return NotificationsRepositoryImpl(apiClient: apiClient);
 });
@@ -31,7 +33,9 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       if (response['success'] == true && response['data'] != null) {
         final list = response['data']['notifications'] as List? ?? [];
         return list
-            .map((item) => NotificationItem.fromJson(item as Map<String, dynamic>))
+            .map(
+              (item) => NotificationItem.fromJson(item as Map<String, dynamic>),
+            )
             .toList();
       }
       return [];
@@ -66,7 +70,8 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       NotificationItem(
         id: 'notif-1',
         title: 'Booking Approved',
-        message: 'Your seat request for Ahmedabad to Vadodara has been accepted by driver Karan Patel.',
+        message:
+            'Your seat request for Ahmedabad to Vadodara has been accepted by driver Karan Patel.',
         category: 'booking',
         timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
         routeTarget: '/active-journey',
@@ -74,7 +79,8 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       NotificationItem(
         id: 'notif-2',
         title: 'Driver Started Boarding',
-        message: 'Vehicle Hyundai Creta (GJ-01-AB-1234) is preparing for departure at Iscon Cross Roads.',
+        message:
+            'Vehicle Hyundai Creta (GJ-01-AB-1234) is preparing for departure at Iscon Cross Roads.',
         category: 'ride',
         timestamp: DateTime.now().subtract(const Duration(hours: 1)),
         routeTarget: '/active-journey',
@@ -82,7 +88,8 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       NotificationItem(
         id: 'notif-3',
         title: 'Safety Check Reminder',
-        message: 'Remember to verify the driver vehicle number and pin before boarding your carpool.',
+        message:
+            'Remember to verify the driver vehicle number and pin before boarding your carpool.',
         category: 'safety',
         timestamp: DateTime.now().subtract(const Duration(hours: 4)),
         routeTarget: '/trip-safety',
@@ -90,7 +97,8 @@ class NotificationsRepositoryImpl implements NotificationsRepository {
       NotificationItem(
         id: 'notif-4',
         title: 'New Corridor Added',
-        message: 'Frequent daily routes are now available between Gandhinagar and GIFT City.',
+        message:
+            'Frequent daily routes are now available between Gandhinagar and GIFT City.',
         category: 'system',
         timestamp: DateTime.now().subtract(const Duration(days: 1)),
         isRead: true,

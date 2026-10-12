@@ -117,3 +117,27 @@ abstract class AppColors {
   static const Color errorContainer = softRust;
   static const Color transparent = Colors.transparent;
 }
+
+/// Canonical backward compatibility alias for legacy widgets referencing SahyanColors.
+abstract class SahyanColors {
+  // Brand Greens
+  static const Color primaryDark = AppColors.brand;
+  static const Color primaryMint = AppColors.mint;
+  static const Color primaryLight = AppColors.primaryLight;
+
+  // Canvas & Surfaces
+  static const Color canvas = AppColors.canvasLight;
+  static const Color surface = AppColors.cardLight;
+  static const Color border = AppColors.border;
+  static const Color chipBackground = AppColors.chipBackground;
+
+  // Typography Tokens
+  static const Color textMain = AppColors.ink;
+  static const Color textMuted = AppColors.mutedLight;
+  static const Color textDisabled = AppColors.textDisabled;
+
+  // Status & Highlights
+  static const Color goldStar = AppColors.marigold;
+  static const Color urgentCoral = AppColors.error;
+  static const Color bluePolyline = AppColors.bluePolyline;
+}

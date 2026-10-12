@@ -4,13 +4,15 @@ import '../../domain/models/location_point.dart';
 
 /// Mock GPS Provider for automated tests, preview environments, and web
 class MockLocationProvider implements GpsProvider {
-  final StreamController<LocationPoint> _controller = StreamController<LocationPoint>.broadcast();
+  final StreamController<LocationPoint> _controller =
+      StreamController<LocationPoint>.broadcast();
   LocationPoint? _currentPoint;
   bool _serviceEnabled = true;
   LocationPermissionStatus _permissionStatus = LocationPermissionStatus.granted;
 
   MockLocationProvider({LocationPoint? initialPoint}) {
-    _currentPoint = initialPoint ??
+    _currentPoint =
+        initialPoint ??
         LocationPoint(
           latitude: 23.0225,
           longitude: 72.5714,
@@ -51,7 +53,8 @@ class MockLocationProvider implements GpsProvider {
   Future<LocationPermissionStatus> checkPermission() async => _permissionStatus;
 
   @override
-  Future<LocationPermissionStatus> requestPermission() async => _permissionStatus;
+  Future<LocationPermissionStatus> requestPermission() async =>
+      _permissionStatus;
 
   @override
   Future<void> dispose() async {

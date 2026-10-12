@@ -112,8 +112,16 @@ class _GpsDiagnosticScreenState extends State<GpsDiagnosticScreen> {
             _buildSectionHeader('Provider & Permissions'),
             const SizedBox(height: 8),
             _buildCard([
-              _buildRow('Location Services', result?.locationServicesEnabled == true ? 'Enabled' : 'Disabled'),
-              _buildRow('Permission State', result?.permissionStatus.name.toUpperCase() ?? 'CHECKING'),
+              _buildRow(
+                'Location Services',
+                result?.locationServicesEnabled == true
+                    ? 'Enabled'
+                    : 'Disabled',
+              ),
+              _buildRow(
+                'Permission State',
+                result?.permissionStatus.name.toUpperCase() ?? 'CHECKING',
+              ),
               _buildRow('Provider Type', _provider.runtimeType.toString()),
             ]),
             const SizedBox(height: 16),
@@ -122,13 +130,64 @@ class _GpsDiagnosticScreenState extends State<GpsDiagnosticScreen> {
             _buildSectionHeader('Live Raw Coordinate Stream'),
             const SizedBox(height: 8),
             _buildCard([
-              _buildRow('Latitude', _latestRawPoint?.latitude.toStringAsFixed(6) ?? result?.lastPosition?.latitude.toStringAsFixed(6) ?? 'Awaiting Fix'),
-              _buildRow('Longitude', _latestRawPoint?.longitude.toStringAsFixed(6) ?? result?.lastPosition?.longitude.toStringAsFixed(6) ?? 'Awaiting Fix'),
-              _buildRow('Accuracy', _latestRawPoint != null ? '${_latestRawPoint!.accuracy.toStringAsFixed(1)} m' : (result?.lastPosition != null ? '${result!.lastPosition!.accuracy.toStringAsFixed(1)} m' : '--')),
-              _buildRow('Accuracy Tier', _latestRawPoint != null ? LocationAccuracyPolicy.getTierLabel(LocationAccuracyPolicy.classify(_latestRawPoint!.accuracy)) : (result?.lastPosition != null ? LocationAccuracyPolicy.getTierLabel(LocationAccuracyPolicy.classify(result!.lastPosition!.accuracy)) : '--')),
-              _buildRow('Speed', _latestRawPoint != null ? '${_latestRawPoint!.speed.toStringAsFixed(1)} km/h' : (result?.lastPosition != null ? '${result!.lastPosition!.speed.toStringAsFixed(1)} km/h' : '--')),
-              _buildRow('Heading', _latestRawPoint != null ? '${_latestRawPoint!.heading.toStringAsFixed(1)} deg' : (result?.lastPosition != null ? '${result!.lastPosition!.heading.toStringAsFixed(1)} deg' : '--')),
-              _buildRow('Timestamp', _latestRawPoint?.timestamp.toIso8601String() ?? result?.lastPosition?.timestamp.toIso8601String() ?? '--'),
+              _buildRow(
+                'Latitude',
+                _latestRawPoint?.latitude.toStringAsFixed(6) ??
+                    result?.lastPosition?.latitude.toStringAsFixed(6) ??
+                    'Awaiting Fix',
+              ),
+              _buildRow(
+                'Longitude',
+                _latestRawPoint?.longitude.toStringAsFixed(6) ??
+                    result?.lastPosition?.longitude.toStringAsFixed(6) ??
+                    'Awaiting Fix',
+              ),
+              _buildRow(
+                'Accuracy',
+                _latestRawPoint != null
+                    ? '${_latestRawPoint!.accuracy.toStringAsFixed(1)} m'
+                    : (result?.lastPosition != null
+                          ? '${result!.lastPosition!.accuracy.toStringAsFixed(1)} m'
+                          : '--'),
+              ),
+              _buildRow(
+                'Accuracy Tier',
+                _latestRawPoint != null
+                    ? LocationAccuracyPolicy.getTierLabel(
+                        LocationAccuracyPolicy.classify(
+                          _latestRawPoint!.accuracy,
+                        ),
+                      )
+                    : (result?.lastPosition != null
+                          ? LocationAccuracyPolicy.getTierLabel(
+                              LocationAccuracyPolicy.classify(
+                                result!.lastPosition!.accuracy,
+                              ),
+                            )
+                          : '--'),
+              ),
+              _buildRow(
+                'Speed',
+                _latestRawPoint != null
+                    ? '${_latestRawPoint!.speed.toStringAsFixed(1)} km/h'
+                    : (result?.lastPosition != null
+                          ? '${result!.lastPosition!.speed.toStringAsFixed(1)} km/h'
+                          : '--'),
+              ),
+              _buildRow(
+                'Heading',
+                _latestRawPoint != null
+                    ? '${_latestRawPoint!.heading.toStringAsFixed(1)} deg'
+                    : (result?.lastPosition != null
+                          ? '${result!.lastPosition!.heading.toStringAsFixed(1)} deg'
+                          : '--'),
+              ),
+              _buildRow(
+                'Timestamp',
+                _latestRawPoint?.timestamp.toIso8601String() ??
+                    result?.lastPosition?.timestamp.toIso8601String() ??
+                    '--',
+              ),
             ]),
             const SizedBox(height: 16),
 
@@ -136,10 +195,26 @@ class _GpsDiagnosticScreenState extends State<GpsDiagnosticScreen> {
             _buildSectionHeader('Normalized Preprocessor Output'),
             const SizedBox(height: 8),
             _buildCard([
-              _buildRow('Smoothed Lat', _latestSmoothedPoint?.latitude.toStringAsFixed(6) ?? '--'),
-              _buildRow('Smoothed Lng', _latestSmoothedPoint?.longitude.toStringAsFixed(6) ?? '--'),
-              _buildRow('Smoothed Heading', _latestSmoothedPoint != null ? '${_latestSmoothedPoint!.heading.toStringAsFixed(1)} deg' : '--'),
-              _buildRow('Outlier Status', _latestSmoothedPoint != null ? 'Passed Sanity Check' : 'Rejected / Awaiting'),
+              _buildRow(
+                'Smoothed Lat',
+                _latestSmoothedPoint?.latitude.toStringAsFixed(6) ?? '--',
+              ),
+              _buildRow(
+                'Smoothed Lng',
+                _latestSmoothedPoint?.longitude.toStringAsFixed(6) ?? '--',
+              ),
+              _buildRow(
+                'Smoothed Heading',
+                _latestSmoothedPoint != null
+                    ? '${_latestSmoothedPoint!.heading.toStringAsFixed(1)} deg'
+                    : '--',
+              ),
+              _buildRow(
+                'Outlier Status',
+                _latestSmoothedPoint != null
+                    ? 'Passed Sanity Check'
+                    : 'Rejected / Awaiting',
+              ),
             ]),
             const SizedBox(height: 24),
 
@@ -152,10 +227,15 @@ class _GpsDiagnosticScreenState extends State<GpsDiagnosticScreen> {
                       foregroundColor: SahyanColors.primaryDark,
                       side: const BorderSide(color: SahyanColors.border),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     icon: const Icon(Icons.settings_outlined, size: 18),
-                    label: const Text('Open App Settings', style: TextStyle(fontWeight: FontWeight.w600)),
+                    label: const Text(
+                      'Open App Settings',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     onPressed: () => Geolocator.openAppSettings(),
                   ),
                 ),
@@ -166,10 +246,15 @@ class _GpsDiagnosticScreenState extends State<GpsDiagnosticScreen> {
                       backgroundColor: SahyanColors.primaryDark,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     icon: const Icon(Icons.location_on, size: 18),
-                    label: const Text('Location Settings', style: TextStyle(fontWeight: FontWeight.w600)),
+                    label: const Text(
+                      'Location Settings',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     onPressed: () => Geolocator.openLocationSettings(),
                   ),
                 ),
@@ -205,7 +290,9 @@ class _GpsDiagnosticScreenState extends State<GpsDiagnosticScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            isHealthy ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+            isHealthy
+                ? Icons.check_circle_outline
+                : Icons.warning_amber_rounded,
             color: textColor,
             size: 24,
           ),
@@ -215,7 +302,9 @@ class _GpsDiagnosticScreenState extends State<GpsDiagnosticScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isHealthy ? 'GPS Subsystem Healthy' : 'GPS Diagnostics Warning',
+                  isHealthy
+                      ? 'GPS Subsystem Healthy'
+                      : 'GPS Diagnostics Warning',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -270,7 +359,12 @@ class _GpsDiagnosticScreenState extends State<GpsDiagnosticScreen> {
             children: [
               rows[index],
               if (index < rows.length - 1)
-                const Divider(height: 1, indent: 16, endIndent: 16, color: SahyanColors.border),
+                const Divider(
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: SahyanColors.border,
+                ),
             ],
           );
         }),

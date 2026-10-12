@@ -29,21 +29,20 @@ class GeolocatorProvider implements GpsProvider {
     if (kIsWeb) return;
 
     _positionSubscription?.cancel();
-    _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: _defaultSettings,
-    ).listen(
-      (Position pos) {
-        if (_streamController != null && !_streamController!.isClosed) {
-          _streamController!.add(_positionToLocationPoint(pos));
-        }
-      },
-      onError: (Object error) {
-        if (kDebugMode) {
-          debugPrint('[GeolocatorProvider] Position stream error: $error');
-        }
-      },
-      cancelOnError: false,
-    );
+    _positionSubscription =
+        Geolocator.getPositionStream(locationSettings: _defaultSettings).listen(
+          (Position pos) {
+            if (_streamController != null && !_streamController!.isClosed) {
+              _streamController!.add(_positionToLocationPoint(pos));
+            }
+          },
+          onError: (Object error) {
+            if (kDebugMode) {
+              debugPrint('[GeolocatorProvider] Position stream error: $error');
+            }
+          },
+          cancelOnError: false,
+        );
   }
 
   void _stopListening() {

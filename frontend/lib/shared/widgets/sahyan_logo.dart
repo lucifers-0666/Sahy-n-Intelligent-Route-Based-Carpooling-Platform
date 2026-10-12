@@ -133,8 +133,9 @@ class SahyanLogo extends StatelessWidget {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-          centerAlign ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      crossAxisAlignment: centerAlign
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
@@ -170,8 +171,6 @@ class SahyanLogo extends StatelessWidget {
   }
 }
 
-
-
 /// Supporting visual language widget for Sahyān's Route Match Score (e.g. 94% Match)
 class SahyanRouteMatchBadge extends StatelessWidget {
   final int matchScore;
@@ -201,7 +200,9 @@ class SahyanRouteMatchBadge extends StatelessWidget {
               child: CircularProgressIndicator(
                 value: progress,
                 strokeWidth: radius * 0.18,
-                backgroundColor: SahyanBrandColors.accentMint.withValues(alpha: 0.3),
+                backgroundColor: SahyanBrandColors.accentMint.withValues(
+                  alpha: 0.3,
+                ),
                 valueColor: const AlwaysStoppedAnimation<Color>(
                   SahyanBrandColors.primary,
                 ),

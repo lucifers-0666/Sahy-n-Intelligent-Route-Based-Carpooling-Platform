@@ -205,7 +205,8 @@ class BookingModel extends Equatable {
       passengerNote: json['passengerNote']?.toString() ?? '',
       pickup: resolvedPickup,
       drop: resolvedDrop,
-      pin: (json['pin'] ?? json['securityPin'] ?? json['pickupPin'])?.toString(),
+      pin: (json['pin'] ?? json['securityPin'] ?? json['pickupPin'])
+          ?.toString(),
       createdAt:
           DateTime.tryParse(
             json['createdAt']?.toString() ??
