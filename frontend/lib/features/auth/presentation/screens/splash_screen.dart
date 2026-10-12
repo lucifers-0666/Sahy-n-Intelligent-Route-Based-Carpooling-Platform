@@ -1,11 +1,20 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sahyan/app/providers/app_startup_provider.dart';
-import 'package:sahyan/core/theme/app_theme.dart';
-import 'package:sahyan/shared/widgets/sahyan_logo.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../app/providers/app_startup_provider.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../shared/widgets/feedback/sahyan_loader.dart';
+import '../../../../shared/widgets/sahyan_route_convergence_logo.dart';
 
+/// Redesigned 2026 Production Launch & Splash Screen for Sahyān.
+///
+/// Implements:
+/// - Rich forest-green-to-emerald gradient with restrained depth
+/// - Radial mint glow behind the converging corridor brand mark
+/// - Unique animated route-convergence logo (~1.8s) with static reduced-motion fallback
+/// - Seamless startup state resolution without false delays or navigation traps
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -14,22 +23,50 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  bool _isAnimationFinished = false;
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
   }
 
-  void _handleNavigation(AppStartupStatus status) {
+  void _onAnimationCompleted() {
     if (!mounted) return;
-    switch (status) {
+    setState(() {
+      _isAnimationFinished = true;
+    });
+    _evaluateAndNavigate();
+  }
+
+  void _evaluateAndNavigate() {
+    if (_hasNavigated || !mounted) return;
+
+    final startupState = ref.read(appStartupProvider);
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+    // Wait until animation completes (unless reduced motion is enabled)
+    if (!_isAnimationFinished && !disableAnimations) {
+      return;
+    }
+
+    // Still initializing backend session / storage
+    if (startupState.status == AppStartupStatus.initializing) {
+      return;
+    }
+
+    _hasNavigated = true;
+
+    switch (startupState.status) {
+      case AppStartupStatus.ready:
+        context.go('/home');
+        break;
       case AppStartupStatus.onboardingRequired:
         context.go('/onboarding');
         break;
       case AppStartupStatus.authEntryRequired:
-        context.go('/auth-entry');
-        break;
-      case AppStartupStatus.ready:
-        context.go('/home');
+        context.go('/welcome');
         break;
       case AppStartupStatus.initializing:
         break;
@@ -38,34 +75,57 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen for startup changes
     ref.listen<AppStartupState>(appStartupProvider, (previous, next) {
       if (next.status != AppStartupStatus.initializing) {
-        _handleNavigation(next.status);
+        _evaluateAndNavigate();
       }
     });
 
     final startupState = ref.watch(appStartupProvider);
-    if (startupState.status != AppStartupStatus.initializing) {
+    final disableAnimations =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+
+    // If reduced motion is requested, immediately evaluate once startup resolves
+    if (disableAnimations &&
+        startupState.status != AppStartupStatus.initializing) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _handleNavigation(startupState.status);
+        _evaluateAndNavigate();
       });
     }
 
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final logoSize = (screenWidth * 0.22).clamp(80.0, 108.0);
+    final logoSize = (screenWidth * 0.28).clamp(96.0, 120.0);
+    final isStillInitializing =
+        startupState.status == AppStartupStatus.initializing &&
+        _isAnimationFinished;
 
     return Scaffold(
-      backgroundColor: SahyanColors.canvas,
+      backgroundColor: AppColors.darkBg,
       body: Stack(
         children: [
-          // Ambient radial glow in soft mint
+          // 1. Rich Forest-Green to Emerald Canvas Gradient
           Positioned.fill(
-            child: CustomPaint(
-              painter: _AmbientGlowPainter(),
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF07382D), // Deep Forest Night
+                    Color(0xFF0B5D4B), // Approved Sahyān Brand Green
+                    Color(0xFF0F7A5F), // Brand Bright Emerald
+                  ],
+                  stops: [0.0, 0.45, 1.0],
+                ),
+              ),
             ),
           ),
 
-          // Center Brand Lockup with Responsive Clamping & Fluid Layout
+          // 2. Restrained Mint Radial Depth Glow behind Logo
+          Positioned.fill(child: CustomPaint(painter: _SplashGlowPainter())),
+
+          // 3. Centered Brand Lockup (Route Convergence Symbol + Wordmark + Tagline)
           Center(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -74,101 +134,81 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Official Sahyān Brand Identity (Converging Corridor Symbol + Wordmark + Tagline)
-                  Container(
-                    padding: EdgeInsets.all((logoSize * 0.16).clamp(16.0, 24.0)),
-                    decoration: BoxDecoration(
-                      color: SahyanColors.surface,
-                      borderRadius: BorderRadius.circular(logoSize * 0.28),
-                      border: Border.all(
-                        color: SahyanColors.border,
-                        width: 1.0,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: SahyanColors.primaryDark.withValues(alpha: 0.08),
-                          blurRadius: 32,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
-                    ),
-                    child: SahyanLogo(
-                      variant: SahyanLogoVariant.stacked,
-                      theme: SahyanLogoTheme.primaryGreen,
-                      size: (logoSize * 0.72).clamp(72.0, 100.0),
-                      showTagline: true,
-                    ),
-                  )
-                      .animate()
-                      .fadeIn(duration: 800.ms, curve: Curves.easeOut)
-                      .slideY(begin: 0.12, end: 0, duration: 800.ms, curve: Curves.easeOut)
-                      .scale(
-                        begin: const Offset(0.9, 0.9),
-                        end: const Offset(1.0, 1.0),
-                        duration: 800.ms,
-                        curve: Curves.easeOut,
-                      ),
+                  SahyanAnimatedRouteLogo(
+                    size: logoSize,
+                    isDark: true,
+                    showWordmark: true,
+                    showTagline: true,
+                    wordmarkColor: Colors.white,
+                    taglineColor: AppColors.darkMuted,
+                    onComplete: _onAnimationCompleted,
+                  ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 36),
 
-                  // Discreet 3-dot mint animated pulse
-                  const _PulsingMintDots()
-                      .animate()
-                      .fadeIn(delay: 500.ms, duration: 600.ms),
+                  // 4. Subtle Branded Loader only when startup work is still pending
+                  AnimatedOpacity(
+                    opacity: isStillInitializing ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: const SizedBox(
+                      height: 32,
+                      child: SahyanLoader(size: 26, isDark: true),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
 
-          // Bottom Pinned Zone (SafeArea constrained)
+          // 5. Pinned Bottom Micro Trust Tag
           Positioned(
             left: 16,
             right: 16,
             bottom: 24,
             child: SafeArea(
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: SahyanColors.surface,
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: SahyanColors.border, width: 0.8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: SahyanColors.textMain.withValues(alpha: 0.04),
-                        blurRadius: 14,
-                        offset: const Offset(0, 4),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.shield_rounded,
-                        size: 14,
-                        color: SahyanColors.primaryMint,
-                      ),
-                      SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Verified Intercity Corridors · Gujarat 2026',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: SahyanColors.textMuted,
-                          ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.07),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.14),
+                          width: 1.0,
                         ),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.shield_rounded,
+                            size: 14,
+                            color: AppColors.mint,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Verified Intercity Corridors · Gujarat',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.darkMuted,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                )
-                    .animate()
-                    .fadeIn(delay: 600.ms, duration: 700.ms)
-                    .slideY(begin: 0.3, end: 0, curve: Curves.easeOut),
+                ),
               ),
             ),
           ),
@@ -178,57 +218,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 }
 
-/// Discreet 3 small mint dots oscillating gently
-class _PulsingMintDots extends StatelessWidget {
-  const _PulsingMintDots();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(3, (index) {
-        return Container(
-          width: 6,
-          height: 6,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          decoration: const BoxDecoration(
-            color: SahyanColors.primaryMint,
-            shape: BoxShape.circle,
-          ),
-        )
-            .animate(
-              onPlay: (controller) => controller.repeat(reverse: true),
-              delay: (index * 180).ms,
-            )
-            .scale(
-              begin: const Offset(0.7, 0.7),
-              end: const Offset(1.3, 1.3),
-              duration: 600.ms,
-              curve: Curves.easeInOut,
-            )
-            .fade(begin: 0.35, end: 1.0);
-      }),
-    );
-  }
-}
-
-class _AmbientGlowPainter extends CustomPainter {
+class _SplashGlowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height * 0.46);
+    final center = Offset(size.width * 0.5, size.height * 0.46);
+    final radius = size.width * 0.55;
+
     final paint = Paint()
       ..shader = RadialGradient(
         colors: [
-          SahyanColors.primaryLight.withValues(alpha: 0.9),
-          SahyanColors.primaryLight.withValues(alpha: 0.0),
+          AppColors.mint.withValues(alpha: 0.22),
+          AppColors.mint.withValues(alpha: 0.08),
+          AppColors.mint.withValues(alpha: 0.0),
         ],
-        radius: 0.85,
-      ).createShader(Rect.fromCircle(center: center, radius: size.width * 0.7));
+        stops: const [0.0, 0.45, 1.0],
+      ).createShader(Rect.fromCircle(center: center, radius: radius));
 
-    canvas.drawCircle(center, size.width * 0.7, paint);
+    canvas.drawCircle(center, radius, paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

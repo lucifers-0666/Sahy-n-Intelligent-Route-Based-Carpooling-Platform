@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sahyan/core/theme/app_theme.dart';
-import 'package:sahyan/core/widgets/app_text_field.dart';
-import 'package:sahyan/core/widgets/primary_button.dart';
-import 'package:sahyan/features/auth/presentation/auth_provider.dart';
-import 'package:sahyan/shared/widgets/sahyan_logo.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/theme/app_radii.dart';
+import '../../../../app/theme/app_theme.dart';
+import '../../../../core/widgets/sahyan_button.dart';
+import '../../../../core/widgets/sahyan_text_field.dart';
+import '../../../../shared/widgets/feedback/feedback_service.dart';
+import '../../../../shared/widgets/sahyan_route_convergence_logo.dart';
+import '../auth_provider.dart';
+
+/// Redesigned 2026 Production Registration Screen for Sahyān.
+/// Features Gujarat corridor identity, live security checklist, frosted card styling,
+/// responsive keyboard avoidance, and custom feedback architecture.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -24,7 +30,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  // Live password validation state
+  // Password rules validation state
   bool _hasMinLength = false;
   bool _hasUppercase = false;
   bool _hasLowercase = false;
@@ -92,12 +98,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return 'Strong';
   }
 
-  Color get _passwordStrengthColor {
+  Color _passwordStrengthColor(SahyanThemeTokens tokens) {
     final score = _passwordStrengthScore;
-    if (score <= 1) return SahyanColors.urgentCoral;
-    if (score == 2) return SahyanColors.goldStar;
-    if (score == 3) return SahyanColors.primaryDark;
-    return SahyanColors.primaryMint;
+    if (score <= 1) return tokens.error;
+    if (score == 2) return tokens.marigold;
+    if (score == 3) return tokens.brand;
+    return tokens.mint;
   }
 
   @override
@@ -113,49 +119,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) {
+      FeedbackService.warning(
+        context,
+        'Please complete all required fields correctly',
+      );
+      return;
+    }
 
     if (!_isPasswordFullyValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: SahyanColors.textMain,
-          content: const Text(
-            'Please satisfy all password security requirements',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
+      FeedbackService.warning(
+        context,
+        'Please meet all password security rules',
       );
       return;
     }
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: SahyanColors.urgentCoral,
-          content: const Text(
-            'Passwords do not match',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      );
+      FeedbackService.error(context, 'Passwords do not match');
       return;
     }
 
     if (!_agreedToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: SahyanColors.urgentCoral,
-          content: const Text(
-            'Please agree to the Terms of Service to continue',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
+      FeedbackService.warning(
+        context,
+        'Please agree to the Terms of Service to proceed',
       );
       return;
     }
@@ -166,7 +156,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ? cleanDigits.substring(2)
         : cleanDigits;
 
-    final success = await ref.read(authProvider.notifier).register(
+    final success = await ref
+        .read(authProvider.notifier)
+        .register(
           name: _nameController.text.trim(),
           email: _emailController.text.trim().toLowerCase(),
           phone: localPhone,
@@ -174,72 +166,51 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         );
 
     if (success && mounted) {
+      FeedbackService.success(
+        context,
+        'Account created. Verification code sent.',
+      );
       context.push('/otp');
     } else if (mounted) {
       final errorMsg = ref.read(authProvider).errorMessage;
-      if (errorMsg != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: SahyanColors.urgentCoral,
-            content: Text(
-              errorMsg,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      }
+      FeedbackService.error(
+        context,
+        errorMsg ?? 'Failed to create account. Please try again.',
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.sahyanTokens;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: SahyanColors.canvas,
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
+            constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 14.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 14.0,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Top Navigation Header: Circle Back Button + Step Badge + Animated Progress Line
-                    _buildTopNav()
-                        .animate()
-                        .fadeIn(duration: 350.ms, curve: Curves.easeOut),
-
+                    _buildTopNav(tokens),
                     const SizedBox(height: 16),
-
-                    // Header Gateway
-                    _buildHeaderBanner()
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 50.ms, curve: Curves.easeOut)
-                        .slideY(begin: -0.05, end: 0),
-
+                    _buildHeaderBanner(tokens, isDark),
                     const SizedBox(height: 16),
-
-                    // Bento Form Container
-                    _buildFormBentoCard(authState.isLoading)
-                        .animate()
-                        .fadeIn(duration: 450.ms, delay: 100.ms, curve: Curves.easeOut)
-                        .slideY(begin: 0.05, end: 0),
-
+                    _buildFormCard(tokens, isDark, authState.isLoading),
                     const SizedBox(height: 18),
-
-                    // Bottom Navigation Dock
-                    _buildBottomDock()
-                        .animate()
-                        .fadeIn(duration: 400.ms, delay: 150.ms),
+                    _buildBottomDock(tokens),
                   ],
                 ),
               ),
@@ -250,8 +221,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  /// Top Navigation Bar: Circle Back Button + Step Pill with Progress Line
-  Widget _buildTopNav() {
+  Widget _buildTopNav(SahyanThemeTokens tokens) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -265,55 +235,57 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: SahyanColors.surface,
+                  color: tokens.card,
                   shape: BoxShape.circle,
-                  border: Border.all(color: SahyanColors.border, width: 0.8),
-                  boxShadow: const [
+                  border: Border.all(color: tokens.border, width: 0.8),
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x0614241C),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
+                      color: tokens.ink.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back_ios_new_rounded,
                   size: 16,
-                  color: SahyanColors.textMain,
+                  color: tokens.ink,
                 ),
               ),
             ),
             const SizedBox(width: 8),
             Flexible(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: SahyanColors.primaryLight,
+                  color: tokens.brand.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
-                    color: SahyanColors.primaryMint.withValues(alpha: 0.35),
+                    color: tokens.brand.withValues(alpha: 0.2),
                     width: 0.8,
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.person_pin_circle_rounded,
                       size: 14,
-                      color: SahyanColors.primaryDark,
+                      color: tokens.brand,
                     ),
-                    SizedBox(width: 6),
+                    const SizedBox(width: 6),
                     Flexible(
                       child: Text(
                         'Step 1 of 2: Profile Essentials',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: 'Plus Jakarta Sans',
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: SahyanColors.primaryDark,
+                          color: tokens.brand,
                         ),
                       ),
                     ),
@@ -324,12 +296,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ],
         ),
         const SizedBox(height: 10),
-        // 2-Step Animated Progress Bar (50% progress for Step 1)
         Container(
           height: 3,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: SahyanColors.border,
+            color: tokens.border,
             borderRadius: BorderRadius.circular(2),
           ),
           child: Align(
@@ -338,7 +309,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               widthFactor: 0.5,
               child: Container(
                 decoration: BoxDecoration(
-                  color: SahyanColors.primaryMint,
+                  color: tokens.brand,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -349,49 +320,57 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  /// Header Banner
-  Widget _buildHeaderBanner() {
+  Widget _buildHeaderBanner(SahyanThemeTokens tokens, bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: SahyanColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: SahyanColors.border, width: 0.8),
-        boxShadow: const [
+        color: tokens.card,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: tokens.border, width: 0.8),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0614241C),
-            blurRadius: 12,
-            offset: Offset(0, 3),
+            color: tokens.ink.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SahyanLogo(
-            variant: SahyanLogoVariant.horizontal,
-            size: 26,
+          Row(
+            children: [
+              SahyanRouteConvergenceMark(size: 32, isDark: isDark),
+              const SizedBox(width: 10),
+              Text(
+                'SAHYĀN',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2.2,
+                  color: tokens.brand,
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             'Join Sahyān',
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: SahyanColors.textMain,
+              color: tokens.ink,
               letterSpacing: -0.4,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
-            'Connect with verified professionals travelling along your daily route.',
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
+            'Connect with verified travellers along major Gujarat highway corridors.',
+            style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              color: SahyanColors.textMuted,
+              color: tokens.muted,
               height: 1.4,
             ),
           ),
@@ -400,34 +379,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  /// Main Form Bento Card
-  Widget _buildFormBentoCard(bool isLoading) {
+  Widget _buildFormCard(SahyanThemeTokens tokens, bool isDark, bool isLoading) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: SahyanColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: SahyanColors.border, width: 0.8),
-        boxShadow: const [
+        color: tokens.card,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        border: Border.all(color: tokens.border, width: 0.8),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0614241C),
+            color: tokens.ink.withValues(alpha: isDark ? 0.25 : 0.05),
             blurRadius: 16,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 0: Full Name
-          AppTextField(
+          SahyanTextField(
             label: 'Full Name',
             hint: 'e.g. Arjun Patel',
             controller: _nameController,
-            prefixIcon: const Icon(
+            textCapitalization: TextCapitalization.words,
+            prefixIcon: Icon(
               Icons.person_outline_rounded,
-              color: SahyanColors.primaryDark,
+              color: tokens.brand,
               size: 20,
             ),
             validator: (v) {
@@ -445,15 +423,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
           const SizedBox(height: 14),
 
-          // 1: Email Address
-          AppTextField(
+          SahyanTextField(
             label: 'Email Address',
             hint: 'arjun@example.com',
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               Icons.alternate_email_rounded,
-              color: SahyanColors.primaryDark,
+              color: tokens.brand,
               size: 20,
             ),
             validator: (v) {
@@ -469,8 +446,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
           const SizedBox(height: 14),
 
-          // 2: Mobile Number
-          AppTextField(
+          SahyanTextField(
             label: 'Mobile Number',
             hint: '9876543210',
             controller: _phoneController,
@@ -480,21 +456,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     '+91',
-                    style: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
+                    style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w700,
-                      color: SahyanColors.textMain,
+                      color: tokens.ink,
                       fontSize: 15,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Container(
-                    width: 1,
-                    height: 18,
-                    color: SahyanColors.border,
-                  ),
+                  Container(width: 1, height: 18, color: tokens.border),
                 ],
               ),
             ),
@@ -503,30 +474,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 return 'Mobile number is required';
               }
               final clean = v.trim().replaceAll(RegExp(r'\D'), '');
-              final local =
-                  clean.length == 12 && clean.startsWith('91')
-                      ? clean.substring(2)
-                      : clean;
+              final local = clean.length == 12 && clean.startsWith('91')
+                  ? clean.substring(2)
+                  : clean;
               if (local.length != 10) {
                 return 'Enter a valid 10-digit mobile number';
               }
               if (!RegExp(r'^[6-9]\d{9}$').hasMatch(local)) {
-                return 'Enter a valid Indian mobile number starting with 6-9';
+                return 'Enter a valid mobile starting with 6-9';
               }
               return null;
             },
           ),
           const SizedBox(height: 14),
 
-          // 3: Password
-          AppTextField(
+          SahyanTextField(
             label: 'Password',
-            hint: 'Min. 8 characters with special character',
+            hint: 'Min. 8 characters with special symbol',
             controller: _passwordController,
             isPassword: true,
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               Icons.lock_outline_rounded,
-              color: SahyanColors.primaryDark,
+              color: tokens.brand,
               size: 20,
             ),
             validator: (v) {
@@ -534,26 +503,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 return 'Password is required';
               }
               if (!_isPasswordFullyValid) {
-                return 'Password must satisfy all security rules below';
+                return 'Password must satisfy all security rules';
               }
               return null;
             },
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
-          // Interactive Dynamic Strength Meter + Inline Requirements
-          _buildPasswordStrengthCard(),
+          _buildPasswordStrengthCard(tokens),
           const SizedBox(height: 14),
 
-          // 4: Confirm Password
-          AppTextField(
+          SahyanTextField(
             label: 'Confirm Password',
             hint: 'Re-enter your password',
             controller: _confirmPasswordController,
             isPassword: true,
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               Icons.lock_reset_rounded,
-              color: SahyanColors.primaryDark,
+              color: tokens.brand,
               size: 20,
             ),
             validator: (v) {
@@ -567,7 +534,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             },
           ),
 
-          // Real-time Confirm Password Match Feedback
           if (_isConfirmTouched) ...[
             const SizedBox(height: 8),
             Row(
@@ -577,20 +543,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ? Icons.check_circle_rounded
                       : Icons.cancel_outlined,
                   size: 15,
-                  color: _doPasswordsMatch
-                      ? SahyanColors.primaryMint
-                      : SahyanColors.urgentCoral,
+                  color: _doPasswordsMatch ? tokens.mint : tokens.error,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   _doPasswordsMatch
                       ? 'Passwords match'
                       : 'Passwords do not match',
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    color: _doPasswordsMatch
-                        ? SahyanColors.primaryDark
-                        : SahyanColors.urgentCoral,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: _doPasswordsMatch ? tokens.brand : tokens.error,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
                   ),
@@ -600,16 +561,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ],
 
           const SizedBox(height: 16),
-
-          // Terms & Privacy Agreement
-          _buildTermsCheckbox(),
-
+          _buildTermsCheckbox(tokens),
           const SizedBox(height: 20),
 
-          // Primary CTA Button: Height 50-52dp, Rounded 16px, Pine #1B4D3E
-          PrimaryButton(
+          SahyanButton(
             text: 'Register & Verify OTP',
             isLoading: isLoading,
+            isFullWidth: true,
             onPressed: _handleRegister,
           ),
         ],
@@ -617,43 +575,52 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  /// Dynamic Strength Meter & Policy Checklist
-  Widget _buildPasswordStrengthCard() {
+  Widget _buildPasswordStrengthCard(SahyanThemeTokens tokens) {
     final score = _passwordStrengthScore;
-    final color = _passwordStrengthColor;
+    final color = _passwordStrengthColor(tokens);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: SahyanColors.canvas,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: SahyanColors.border, width: 0.8),
+        color: tokens.canvas,
+        borderRadius: BorderRadius.circular(AppRadii.input),
+        border: Border.all(color: tokens.border, width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Security Level:',
-                style: TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: SahyanColors.textMuted,
+              Expanded(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Security Level:',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: tokens.muted,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        _passwordStrengthLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: color,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                _passwordStrengthLabel,
-                style: TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                ),
-              ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Icon(
                 _isPasswordFullyValid
                     ? Icons.verified_rounded
@@ -665,7 +632,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
           const SizedBox(height: 8),
 
-          // 4-Segment Dynamic Color Bar
           Row(
             children: List.generate(4, (index) {
               final isFilled = index < score;
@@ -674,9 +640,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   height: 4,
                   margin: EdgeInsets.only(right: index < 3 ? 4 : 0),
                   decoration: BoxDecoration(
-                    color: isFilled
-                        ? color
-                        : SahyanColors.border,
+                    color: isFilled ? color : tokens.border,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -685,16 +649,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Inline Requirements Checklist
           Wrap(
             spacing: 12,
             runSpacing: 6,
             children: [
-              _buildPolicyChip('8+ characters', _hasMinLength),
-              _buildPolicyChip('Uppercase (A-Z)', _hasUppercase),
-              _buildPolicyChip('Lowercase (a-z)', _hasLowercase),
-              _buildPolicyChip('Number (0-9)', _hasNumber),
-              _buildPolicyChip('Special character', _hasSpecialChar),
+              _buildPolicyChip(tokens, '8+ characters', _hasMinLength),
+              _buildPolicyChip(tokens, 'Uppercase (A-Z)', _hasUppercase),
+              _buildPolicyChip(tokens, 'Lowercase (a-z)', _hasLowercase),
+              _buildPolicyChip(tokens, 'Number (0-9)', _hasNumber),
+              _buildPolicyChip(tokens, 'Special character', _hasSpecialChar),
             ],
           ),
         ],
@@ -702,7 +665,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  Widget _buildPolicyChip(String label, bool isMet) {
+  Widget _buildPolicyChip(SahyanThemeTokens tokens, String label, bool isMet) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -711,26 +674,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ? Icons.check_circle_rounded
               : Icons.radio_button_unchecked_rounded,
           size: 13,
-          color: isMet
-              ? SahyanColors.primaryMint
-              : SahyanColors.textDisabled,
+          color: isMet ? tokens.mint : tokens.muted.withValues(alpha: 0.5),
         ),
         const SizedBox(width: 5),
-        Text(
-          label,
-          style: TextStyle(
-            fontFamily: 'Plus Jakarta Sans',
-            fontSize: 11,
-            color: isMet ? SahyanColors.textMain : SahyanColors.textMuted,
-            fontWeight: isMet ? FontWeight.w700 : FontWeight.w500,
+        Flexible(
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              color: isMet ? tokens.ink : tokens.muted,
+              fontWeight: isMet ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
         ),
       ],
     );
   }
 
-  /// Terms & Privacy Agreement Row
-  Widget _buildTermsCheckbox() {
+  Widget _buildTermsCheckbox(SahyanThemeTokens tokens) {
     return InkWell(
       onTap: () {
         setState(() {
@@ -748,14 +709,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               height: 20,
               margin: const EdgeInsets.only(top: 2, right: 10),
               decoration: BoxDecoration(
-                color: _agreedToTerms
-                    ? SahyanColors.primaryDark
-                    : SahyanColors.surface,
+                color: _agreedToTerms ? tokens.brand : tokens.card,
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                  color: _agreedToTerms
-                      ? SahyanColors.primaryDark
-                      : SahyanColors.border,
+                  color: _agreedToTerms ? tokens.brand : tokens.border,
                   width: 1.2,
                 ),
               ),
@@ -769,31 +726,32 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             Expanded(
               child: RichText(
-                text: const TextSpan(
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
+                text: TextSpan(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
-                    color: SahyanColors.textMuted,
+                    color: tokens.muted,
                     height: 1.4,
                   ),
                   children: [
-                    TextSpan(text: 'By continuing, you agree to Sahyān\'s '),
+                    const TextSpan(
+                      text: 'By continuing, you agree to Sahyān\'s ',
+                    ),
                     TextSpan(
                       text: 'Terms of Service',
                       style: TextStyle(
-                        color: SahyanColors.primaryDark,
+                        color: tokens.brand,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    TextSpan(text: ' and '),
+                    const TextSpan(text: ' and '),
                     TextSpan(
                       text: 'Community Safety Guidelines',
                       style: TextStyle(
-                        color: SahyanColors.primaryDark,
+                        color: tokens.brand,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    TextSpan(text: '.'),
+                    const TextSpan(text: '.'),
                   ],
                 ),
               ),
@@ -804,19 +762,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  /// Bottom Alternate Link & Trust Dock
-  Widget _buildBottomDock() {
+  Widget _buildBottomDock(SahyanThemeTokens tokens) {
     return Column(
       children: [
         Wrap(
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const Text(
+            Text(
               'Already part of the community?',
-              style: TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                color: SahyanColors.textMuted,
+              style: GoogleFonts.plusJakartaSans(
+                color: tokens.muted,
                 fontSize: 13,
               ),
             ),
@@ -826,11 +782,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 minimumSize: const Size(48, 48),
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
               ),
-              child: const Text(
+              child: Text(
                 'Sign In',
-                style: TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  color: SahyanColors.primaryDark,
+                style: GoogleFonts.plusJakartaSans(
+                  color: tokens.brand,
                   fontWeight: FontWeight.w800,
                   fontSize: 13,
                 ),
@@ -844,28 +799,39 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           spacing: 12,
           runSpacing: 6,
           children: [
-            _buildTrustBadge(Icons.verified_user_rounded, '100% ID Verified'),
-            _buildTrustBadge(Icons.shield_outlined, 'Safe Travel Ring'),
-            _buildTrustBadge(Icons.currency_rupee_rounded, 'Fair Cost Split'),
+            _buildTrustBadge(
+              tokens,
+              Icons.verified_user_rounded,
+              '100% ID Verified',
+            ),
+            _buildTrustBadge(tokens, Icons.shield_outlined, 'Safe Travel Ring'),
+            _buildTrustBadge(
+              tokens,
+              Icons.currency_rupee_rounded,
+              'Fair Cost Split',
+            ),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildTrustBadge(IconData icon, String label) {
+  Widget _buildTrustBadge(
+    SahyanThemeTokens tokens,
+    IconData icon,
+    String label,
+  ) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: SahyanColors.primaryMint),
+        Icon(icon, size: 13, color: tokens.mint),
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(
-            fontFamily: 'Plus Jakarta Sans',
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: SahyanColors.textMuted,
+            color: tokens.muted,
           ),
         ),
       ],

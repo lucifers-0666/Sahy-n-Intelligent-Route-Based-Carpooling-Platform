@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sahyan/app/theme/app_colors.dart';
-import 'package:sahyan/app/theme/app_typography.dart';
-import 'package:sahyan/core/widgets/primary_button.dart';
-import 'package:sahyan/core/widgets/app_text_field.dart';
-import 'package:sahyan/features/auth/presentation/auth_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../app/theme/app_radii.dart';
+import '../../../../app/theme/app_theme.dart';
+import '../../../../core/widgets/sahyan_button.dart';
+import '../../../../core/widgets/sahyan_text_field.dart';
+import '../../../../shared/widgets/feedback/feedback_service.dart';
+import '../../../../shared/widgets/sahyan_route_convergence_logo.dart';
+import '../auth_provider.dart';
+
+/// Redesigned 2026 Production Reset Password Screen for Sahyān.
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   final String? initialToken;
 
@@ -39,12 +44,11 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   }
 
   void _handleReset() async {
+    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
     if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Passwords do not match')));
+      FeedbackService.error(context, 'Passwords do not match');
       return;
     }
 
@@ -56,137 +60,208 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         );
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Password reset successful. Please sign in.'),
-        ),
+      FeedbackService.success(
+        context,
+        'Password updated successfully. Please sign in.',
       );
       context.go('/login');
     } else if (mounted) {
       final errorMsg = ref.read(authProvider).errorMessage;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMsg ?? 'Failed to reset password')),
+      FeedbackService.error(
+        context,
+        errorMsg ?? 'Failed to reset password. Please verify your token.',
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.sahyanTokens;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => context.pop(),
-        ),
-      ),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
+            constraints: const BoxConstraints(maxWidth: 480),
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 12.0,
+                horizontal: 20.0,
+                vertical: 16.0,
               ),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'Reset Password',
-                      style: AppTypography.screenTitle.copyWith(
-                        color: AppColors.deepForest,
-                        fontSize: 26,
-                      ),
+                    // Top Navigation
+                    Row(
+                      children: [
+                        InkWell(
+                          onTap: () => context.pop(),
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: tokens.card,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: tokens.border,
+                                width: 0.8,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: tokens.ink.withValues(alpha: 0.04),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.arrow_back_ios_new_rounded,
+                              size: 16,
+                              color: tokens.ink,
+                            ),
+                          ),
+                        ),
+                        const Spacer(),
+                        SahyanRouteConvergenceMark(size: 30, isDark: isDark),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Enter your verification token and choose a secure new password.',
-                      style: AppTypography.secondary.copyWith(height: 1.4),
-                    ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
-                    AppTextField(
-                      label: 'Reset Token',
-                      hint: 'Paste your reset token',
-                      controller: _tokenController,
-                      prefixIcon: const Icon(
-                        Icons.vpn_key_outlined,
-                        color: AppColors.primaryForest,
-                        size: 20,
+                    // Main Card
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: tokens.card,
+                        borderRadius: BorderRadius.circular(AppRadii.card),
+                        border: Border.all(color: tokens.border, width: 0.8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: tokens.ink.withValues(
+                              alpha: isDark ? 0.25 : 0.05,
+                            ),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      validator: (v) => v == null || v.trim().isEmpty
-                          ? 'Token is required'
-                          : null,
-                    ),
-                    const SizedBox(height: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: tokens.brand.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: tokens.brand.withValues(alpha: 0.2),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.key_rounded,
+                              color: tokens.brand,
+                              size: 26,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Reset Password',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: tokens.ink,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Enter your reset token and select a new secure password.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: tokens.muted,
+                              height: 1.45,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
 
-                    AppTextField(
-                      label: 'New Password',
-                      hint: 'Min. 8 characters with special character',
-                      controller: _passwordController,
-                      isPassword: true,
-                      prefixIcon: const Icon(
-                        Icons.lock_outline_rounded,
-                        color: AppColors.primaryForest,
-                        size: 20,
+                          SahyanTextField(
+                            label: 'Reset Token',
+                            hint: 'Paste the reset token from your email',
+                            controller: _tokenController,
+                            prefixIcon: Icon(
+                              Icons.vpn_key_outlined,
+                              color: tokens.brand,
+                              size: 20,
+                            ),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) {
+                                return 'Reset token is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+
+                          SahyanTextField(
+                            label: 'New Password',
+                            hint: 'Min. 8 characters',
+                            controller: _passwordController,
+                            isPassword: true,
+                            prefixIcon: Icon(
+                              Icons.lock_outline_rounded,
+                              color: tokens.brand,
+                              size: 20,
+                            ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) {
+                                return 'New password is required';
+                              }
+                              if (v.length < 8) {
+                                return 'Password must be at least 8 characters';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+
+                          SahyanTextField(
+                            label: 'Confirm New Password',
+                            hint: 'Re-enter your new password',
+                            controller: _confirmPasswordController,
+                            isPassword: true,
+                            prefixIcon: Icon(
+                              Icons.lock_reset_rounded,
+                              color: tokens.brand,
+                              size: 20,
+                            ),
+                            validator: (v) {
+                              if (v == null || v.isEmpty) {
+                                return 'Please confirm your new password';
+                              }
+                              if (v != _passwordController.text) {
+                                return 'Passwords do not match';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+
+                          SahyanButton(
+                            text: 'Update Password',
+                            isLoading: authState.isLoading,
+                            isFullWidth: true,
+                            onPressed: _handleReset,
+                          ),
+                        ],
                       ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'New password is required';
-                        }
-                        if (v.length < 8) {
-                          return 'Password must be at least 8 characters';
-                        }
-                        if (!RegExp(r'[A-Z]').hasMatch(v)) {
-                          return 'Must include at least one uppercase letter';
-                        }
-                        if (!RegExp(r'[a-z]').hasMatch(v)) {
-                          return 'Must include at least one lowercase letter';
-                        }
-                        if (!RegExp(r'\d').hasMatch(v)) {
-                          return 'Must include at least one number';
-                        }
-                        if (!RegExp(r'[\W_]').hasMatch(v)) {
-                          return 'Must include at least one special character';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    AppTextField(
-                      label: 'Confirm New Password',
-                      hint: 'Re-enter new password',
-                      controller: _confirmPasswordController,
-                      isPassword: true,
-                      prefixIcon: const Icon(
-                        Icons.lock_reset_rounded,
-                        color: AppColors.primaryForest,
-                        size: 20,
-                      ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) {
-                          return 'Please confirm your new password';
-                        }
-                        if (v != _passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 28),
-
-                    PrimaryButton(
-                      text: 'Update Password',
-                      isLoading: authState.isLoading,
-                      onPressed: _handleReset,
                     ),
                   ],
                 ),

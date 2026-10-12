@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_radii.dart';
 import '../../app/theme/app_spacing.dart';
@@ -9,8 +10,9 @@ enum SahyanButtonVariant { primary, secondary, outline, ghost, destructive }
 enum SahyanButtonSize { regular, compact, small }
 
 /// Standardized Sahyān Brand Button component.
-/// Provides consistent touch target height, typography, loading states, and visual hierarchy.
-class SahyanButton extends StatelessWidget {
+/// Provides consistent touch target height, typography, loading states,
+/// press scale (0.97x) micro-interaction, haptic feedback, and visual hierarchy.
+class SahyanButton extends StatefulWidget {
   final String text;
   final VoidCallback? onPressed;
   final SahyanButtonVariant variant;
@@ -34,19 +36,26 @@ class SahyanButton extends StatelessWidget {
     this.isFullWidth = true,
   });
 
+  @override
+  State<SahyanButton> createState() => _SahyanButtonState();
+}
+
+class _SahyanButtonState extends State<SahyanButton> {
+  bool _isPressed = false;
+
   double get _height {
-    switch (size) {
+    switch (widget.size) {
       case SahyanButtonSize.regular:
-        return 50.0;
+        return 52.0;
       case SahyanButtonSize.compact:
-        return 42.0;
+        return 44.0;
       case SahyanButtonSize.small:
-        return 34.0;
+        return 36.0;
     }
   }
 
   EdgeInsets get _padding {
-    switch (size) {
+    switch (widget.size) {
       case SahyanButtonSize.regular:
         return AppSpacing.paddingButton;
       case SahyanButtonSize.compact:
@@ -57,7 +66,7 @@ class SahyanButton extends StatelessWidget {
   }
 
   TextStyle get _textStyle {
-    switch (size) {
+    switch (widget.size) {
       case SahyanButtonSize.regular:
         return AppTypography.button;
       case SahyanButtonSize.compact:
@@ -67,45 +76,47 @@ class SahyanButton extends StatelessWidget {
     }
   }
 
-  Color get _backgroundColor {
-    if (isDisabled) {
-      return AppColors.border;
+  Color _backgroundColor(bool isDark) {
+    if (widget.isDisabled) {
+      return isDark ? AppColors.darkSurfaceHigh : AppColors.border;
     }
-    switch (variant) {
+    switch (widget.variant) {
       case SahyanButtonVariant.primary:
-        return AppColors.primaryForest;
+        return isDark ? AppColors.brandBright : AppColors.brand;
       case SahyanButtonVariant.secondary:
-        return AppColors.softForest;
+        return isDark ? AppColors.darkSurfaceHigh : AppColors.softForest;
       case SahyanButtonVariant.outline:
       case SahyanButtonVariant.ghost:
         return Colors.transparent;
       case SahyanButtonVariant.destructive:
-        return AppColors.mutedRust;
+        return AppColors.error;
     }
   }
 
-  Color get _foregroundColor {
-    if (isDisabled) {
-      return AppColors.textTertiary;
+  Color _foregroundColor(bool isDark) {
+    if (widget.isDisabled) {
+      return isDark ? AppColors.darkMuted : AppColors.textTertiary;
     }
-    switch (variant) {
+    switch (widget.variant) {
       case SahyanButtonVariant.primary:
-        return AppColors.white;
+        return Colors.white;
       case SahyanButtonVariant.secondary:
-        return AppColors.deepForest;
+        return isDark ? AppColors.mint : AppColors.brand;
       case SahyanButtonVariant.outline:
-        return AppColors.primaryForest;
+        return isDark ? AppColors.mint : AppColors.brand;
       case SahyanButtonVariant.ghost:
-        return AppColors.primaryForest;
+        return isDark ? AppColors.mint : AppColors.brand;
       case SahyanButtonVariant.destructive:
-        return AppColors.white;
+        return Colors.white;
     }
   }
 
-  BorderSide? get _borderSide {
-    if (variant == SahyanButtonVariant.outline) {
+  BorderSide? _borderSide(bool isDark) {
+    if (widget.variant == SahyanButtonVariant.outline) {
       return BorderSide(
-        color: isDisabled ? AppColors.border : AppColors.primaryForest,
+        color: widget.isDisabled
+            ? (isDark ? AppColors.darkSurfaceHigh : AppColors.border)
+            : (isDark ? AppColors.mint : AppColors.brand),
         width: 1.5,
       );
     }
@@ -114,67 +125,158 @@ class SahyanButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveOnPressed = (isLoading || isDisabled) ? null : onPressed;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isInteractive =
+        !widget.isLoading && !widget.isDisabled && widget.onPressed != null;
 
-    Widget content = isLoading
+    final bgColor = _backgroundColor(isDark);
+    final fgColor = _foregroundColor(isDark);
+    final border = _borderSide(isDark);
+
+    Widget content = widget.isLoading
         ? SizedBox(
-            width: size == SahyanButtonSize.small ? 16 : 20,
-            height: size == SahyanButtonSize.small ? 16 : 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2.2,
-              color: _foregroundColor,
-            ),
+            width: widget.size == SahyanButtonSize.small ? 16 : 22,
+            height: widget.size == SahyanButtonSize.small ? 16 : 22,
+            child: _MiniBrandProgressRing(color: fgColor),
           )
         : Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisSize: widget.isFullWidth
+                ? MainAxisSize.max
+                : MainAxisSize.min,
             children: [
-              if (icon != null && iconLeading) ...[
+              if (widget.icon != null && widget.iconLeading) ...[
                 Icon(
-                  icon,
-                  size: size == SahyanButtonSize.small ? 16 : 18,
-                  color: _foregroundColor,
+                  widget.icon,
+                  size: widget.size == SahyanButtonSize.small ? 16 : 18,
+                  color: fgColor,
                 ),
                 const SizedBox(width: AppSpacing.sm),
               ],
               Flexible(
                 child: Text(
-                  text,
-                  style: _textStyle.copyWith(color: _foregroundColor),
+                  widget.text,
+                  style: _textStyle.copyWith(color: fgColor),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                 ),
               ),
-              if (icon != null && !iconLeading) ...[
+              if (widget.icon != null && !widget.iconLeading) ...[
                 const SizedBox(width: AppSpacing.sm),
                 Icon(
-                  icon,
-                  size: size == SahyanButtonSize.small ? 16 : 18,
-                  color: _foregroundColor,
+                  widget.icon,
+                  size: widget.size == SahyanButtonSize.small ? 16 : 18,
+                  color: fgColor,
                 ),
               ],
             ],
           );
 
-    return SizedBox(
-      height: _height,
-      width: isFullWidth ? double.infinity : null,
-      child: Material(
-        color: _backgroundColor,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          side: _borderSide ?? BorderSide.none,
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: effectiveOnPressed,
-          child: Padding(
-            padding: _padding,
-            child: Center(child: content),
+    return AnimatedScale(
+      scale: _isPressed ? 0.97 : 1.0,
+      duration: const Duration(milliseconds: 120),
+      curve: Curves.easeOutCubic,
+      child: SizedBox(
+        height: _height,
+        width: widget.isFullWidth ? double.infinity : null,
+        child: Material(
+          color: bgColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.md),
+            side: border ?? BorderSide.none,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: isInteractive
+                ? () {
+                    HapticFeedback.lightImpact();
+                    widget.onPressed?.call();
+                  }
+                : null,
+            onTapDown: isInteractive
+                ? (_) {
+                    setState(() => _isPressed = true);
+                  }
+                : null,
+            onTapUp: isInteractive
+                ? (_) {
+                    setState(() => _isPressed = false);
+                  }
+                : null,
+            onTapCancel: isInteractive
+                ? () {
+                    setState(() => _isPressed = false);
+                  }
+                : null,
+            child: Padding(
+              padding: _padding,
+              child: Center(child: content),
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Branded micro progress ring for button loading states
+class _MiniBrandProgressRing extends StatefulWidget {
+  final Color color;
+
+  const _MiniBrandProgressRing({required this.color});
+
+  @override
+  State<_MiniBrandProgressRing> createState() => _MiniBrandProgressRingState();
+}
+
+class _MiniBrandProgressRingState extends State<_MiniBrandProgressRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _ctrl,
+      child: CustomPaint(painter: _MiniRingPainter(color: widget.color)),
+    );
+  }
+}
+
+class _MiniRingPainter extends CustomPainter {
+  final Color color;
+
+  _MiniRingPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round
+      ..color = color;
+
+    final rect = Rect.fromLTWH(1, 1, size.width - 2, size.height - 2);
+    // Draw 270 degree arc
+    canvas.drawArc(rect, 0, 4.71, false, stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant _MiniRingPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

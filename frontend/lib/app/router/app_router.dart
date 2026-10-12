@@ -57,6 +57,7 @@ import 'package:sahyan/features/trip/presentation/screens/safety_center_screen.d
 import 'package:sahyan/features/settings/presentation/screens/help_support_screen.dart';
 import 'package:sahyan/features/home/presentation/screens/system_states_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:sahyan/features/auth/presentation/screens/welcome_back_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/account_suspended_screen.dart';
 import 'package:sahyan/features/trip/presentation/screens/gps_diagnostic_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/privacy_permissions_screen.dart';
@@ -81,12 +82,10 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>?;
         final reason =
-            extra?['reason'] as String? ?? 'Account suspended by administration.';
+            extra?['reason'] as String? ??
+            'Account suspended by administration.';
         final suspendedAt = extra?['suspendedAt'] as String?;
-        return AccountSuspendedScreen(
-          reason: reason,
-          suspendedAt: suspendedAt,
-        );
+        return AccountSuspendedScreen(reason: reason, suspendedAt: suspendedAt);
       },
     ),
     GoRoute(
@@ -100,6 +99,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/welcome',
       builder: (context, state) => const WelcomeScreen(),
+    ),
+    GoRoute(
+      path: '/welcome-back',
+      builder: (context, state) => const WelcomeBackScreen(),
     ),
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),

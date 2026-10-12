@@ -1,20 +1,33 @@
-import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 export 'auth_screen.dart';
-import 'package:sahyan/app/providers/user_mode_provider.dart';
-import 'package:sahyan/core/theme/app_theme.dart';
-import 'package:sahyan/core/widgets/app_text_field.dart';
-import 'package:sahyan/features/auth/presentation/auth_provider.dart';
-import 'package:sahyan/core/services/biometric_service.dart';
-import 'package:sahyan/shared/widgets/sahyan_logo.dart';
+import '../../../../app/providers/user_mode_provider.dart';
+import '../../../../app/theme/app_colors.dart';
+import '../../../../app/theme/app_radii.dart';
+import '../../../../core/services/biometric_service.dart';
+import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/sahyan_button.dart';
+import '../../../../shared/models/user_model.dart';
+import '../../../../shared/widgets/feedback/feedback_service.dart';
+import '../../../../shared/widgets/feedback/sahyan_dialog.dart';
+import '../../../../shared/widgets/sahyan_route_convergence_logo.dart';
+import '../auth_provider.dart';
 
-enum _LoginMethod { password, otp }
-enum _OtpStep { enterPhone, enterOtp }
+enum _LoginTab { phoneOtp, password }
 
+/// Redesigned 2026 Production Sign-In Screen for Sahyān.
+///
+/// Features:
+/// - Phone OTP as the primary passwordless experience
+/// - Indian mobile number input with +91 country prefix chip
+/// - Clean secondary password/email flow
+/// - Enrolled-session biometric gating (hides biometric when no valid session exists)
+/// - Integrated with real AuthNotifier and AuthRepository
+/// - Full light/dark mode support with 2026 design tokens
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -23,56 +36,106 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  GlobalKey<FormState> _passwordFormKey = GlobalKey<FormState>();
-  GlobalKey<FormState> _otpPhoneFormKey = GlobalKey<FormState>();
+  final _phoneFormKey = GlobalKey<FormState>();
+  final _passwordFormKey = GlobalKey<FormState>();
 
+  final _phoneController =
+      TextEditingController(); // Empty initial state; no sample prefill
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _otpPhoneController = TextEditingController(text: '9876543210');
 
-  _LoginMethod _selectedMethod = _LoginMethod.password;
-  _OtpStep _otpStep = _OtpStep.enterPhone;
+  _LoginTab _activeTab = _LoginTab.phoneOtp;
+  bool _isRequestingOtp = false;
+  bool _isSigningIn = false;
 
-  Timer? _countdownTimer;
-  int _countdownSeconds = 24;
+  UserModel? _savedUser;
+  bool _hasSavedEnrolledBiometrics = false;
 
-  final List<TextEditingController> _otpDigitControllers =
-      List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _otpDigitFocusNodes =
-      List.generate(4, (_) => FocusNode());
+  @override
+  void initState() {
+    super.initState();
+    _checkSavedSessionForBiometrics();
+  }
+
+  Future<void> _checkSavedSessionForBiometrics() async {
+    try {
+      final storage = ref.read(secureStorageServiceProvider);
+      final biometric = ref.read(biometricServiceProvider);
+
+      final user = await storage.getUser();
+      final token = await storage.getToken();
+      final canBio = await biometric.canAuthenticate();
+
+      if (mounted &&
+          user != null &&
+          token != null &&
+          token.isNotEmpty &&
+          canBio) {
+        setState(() {
+          _savedUser = user;
+          _hasSavedEnrolledBiometrics = true;
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
+    _phoneController.dispose();
     _identifierController.dispose();
     _passwordController.dispose();
-    _otpPhoneController.dispose();
-    for (final c in _otpDigitControllers) {
-      c.dispose();
-    }
-    for (final f in _otpDigitFocusNodes) {
-      f.dispose();
-    }
     super.dispose();
   }
 
-  void _startCountdown() {
-    _countdownTimer?.cancel();
-    setState(() {
-      _countdownSeconds = 24;
-    });
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_countdownSeconds > 1) {
-        if (mounted) setState(() => _countdownSeconds--);
+  Future<void> _handleGetOtp() async {
+    if (!(_phoneFormKey.currentState?.validate() ?? false)) return;
+
+    final rawPhone = _phoneController.text.trim();
+    final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
+    final cleanPhone = digits.length == 12 && digits.startsWith('91')
+        ? digits.substring(2)
+        : digits;
+
+    if (cleanPhone.length != 10) {
+      FeedbackService.error(
+        context,
+        'Please enter a valid 10-digit Indian mobile number',
+      );
+      return;
+    }
+
+    setState(() => _isRequestingOtp = true);
+
+    try {
+      final success = await ref.read(authProvider.notifier).sendOtp(cleanPhone);
+
+      if (!mounted) return;
+      setState(() => _isRequestingOtp = false);
+
+      if (success) {
+        FeedbackService.success(
+          context,
+          'Verification code sent to +91 $cleanPhone',
+        );
+        context.push('/otp');
       } else {
-        timer.cancel();
-        if (mounted) setState(() => _countdownSeconds = 0);
+        final errorMsg = ref.read(authProvider).errorMessage;
+        FeedbackService.error(
+          context,
+          errorMsg ??
+              'Failed to send verification code. Please check your network.',
+        );
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isRequestingOtp = false);
+        FeedbackService.error(context, e.toString());
+      }
+    }
   }
 
-  void _handlePasswordLogin() async {
-    if (!_passwordFormKey.currentState!.validate()) return;
+  Future<void> _handlePasswordLogin() async {
+    if (!(_passwordFormKey.currentState?.validate() ?? false)) return;
 
     final rawIdentifier = _identifierController.text.trim();
     final password = _passwordController.text;
@@ -88,271 +151,312 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       cleanIdentifier = rawIdentifier;
     }
 
-    final success = await ref
-        .read(authProvider.notifier)
-        .login(identifier: cleanIdentifier, password: password);
+    setState(() => _isSigningIn = true);
 
-    if (success && mounted) {
-      final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
-      ref.read(userModeProvider.notifier).setAuthenticatedMode();
-      ref.read(userModeProvider.notifier).clearPendingIntent();
-      if (pendingIntent != null && pendingIntent.isNotEmpty) {
-        context.go(pendingIntent);
-      } else {
-        context.go('/home');
-      }
-    } else if (mounted) {
-      final authState = ref.read(authProvider);
-      if (authState.status == AuthStatus.suspended) {
-        context.go(
-          '/account-suspended',
-          extra: {
-            'reason': authState.suspensionReason ?? 'Account suspended by administration.',
-            'suspendedAt': authState.suspendedAt,
-          },
-        );
-        return;
-      }
-      final errorMsg = authState.errorMessage;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: SahyanColors.textMain,
-          content: Text(
-            errorMsg ?? 'Invalid credentials',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-    }
-  }
+    try {
+      final success = await ref
+          .read(authProvider.notifier)
+          .login(identifier: cleanIdentifier, password: password);
 
-  void _handleGetVerificationCode() async {
-    if (!(_otpPhoneFormKey.currentState?.validate() ?? false)) return;
+      if (!mounted) return;
+      setState(() => _isSigningIn = false);
 
-    final rawPhone = _otpPhoneController.text.trim();
-    final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
-    final localPhone = digits.length == 12 && digits.startsWith('91')
-        ? digits.substring(2)
-        : digits;
-
-    if (localPhone.length != 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: SahyanColors.urgentCoral,
-          content: const Text(
-            'Please enter a valid 10-digit Indian mobile number',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-      return;
-    }
-
-    HapticFeedback.lightImpact();
-    for (final c in _otpDigitControllers) {
-      c.clear();
-    }
-
-    final success = await ref.read(authProvider.notifier).sendOtp(localPhone);
-
-    if (mounted) {
-      _startCountdown();
-      setState(() {
-        _otpStep = _OtpStep.enterOtp;
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _otpDigitFocusNodes.isNotEmpty) {
-          _otpDigitFocusNodes[0].requestFocus();
-        }
-      });
-
-      if (!success) {
-        // Mock/demo fallback notice
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: SahyanColors.primaryDark,
-            content: const Text(
-              'Demo Mode: Verification code sent to phone (Use 1234)',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      }
-    }
-  }
-
-  void _handleResendOtp() async {
-    HapticFeedback.lightImpact();
-    final rawPhone = _otpPhoneController.text.trim();
-    final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
-    final localPhone = digits.length == 12 && digits.startsWith('91')
-        ? digits.substring(2)
-        : digits;
-
-    _startCountdown();
-    for (final c in _otpDigitControllers) {
-      c.clear();
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _otpDigitFocusNodes.isNotEmpty) {
-        _otpDigitFocusNodes[0].requestFocus();
-      }
-    });
-
-    await ref.read(authProvider.notifier).sendOtp(localPhone);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: SahyanColors.primaryDark,
-          content: const Text(
-            'Verification code resent to your phone',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-    }
-  }
-
-  void _handleVerifyAndSignIn() async {
-    final otpCode = _otpDigitControllers.map((c) => c.text.trim()).join();
-    if (otpCode.length < 4) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          backgroundColor: SahyanColors.urgentCoral,
-          content: const Text(
-            'Please enter the complete 4-digit verification code',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-      return;
-    }
-
-    HapticFeedback.mediumImpact();
-    final success = await ref.read(authProvider.notifier).verifyOtp(otpCode);
-
-    if (mounted) {
       if (success) {
+        FeedbackService.success(context, 'Signed in successfully');
         final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
         ref.read(userModeProvider.notifier).setAuthenticatedMode();
         ref.read(userModeProvider.notifier).clearPendingIntent();
-        if (pendingIntent != null && pendingIntent.isNotEmpty) {
-          context.go(pendingIntent);
-        } else {
-          context.go('/home');
-        }
+        context.go(
+          pendingIntent != null && pendingIntent.isNotEmpty
+              ? pendingIntent
+              : '/home',
+        );
       } else {
-        // Fallback for demo testing
-        final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
-        ref.read(userModeProvider.notifier).setAuthenticatedMode();
-        ref.read(userModeProvider.notifier).clearPendingIntent();
-        if (pendingIntent != null && pendingIntent.isNotEmpty) {
-          context.go(pendingIntent);
-        } else {
-          context.go('/home');
+        final authState = ref.read(authProvider);
+        if (authState.status == AuthStatus.suspended) {
+          context.go(
+            '/account-suspended',
+            extra: {
+              'reason':
+                  authState.suspensionReason ??
+                  'Account suspended by administration.',
+              'suspendedAt': authState.suspendedAt,
+            },
+          );
+          return;
         }
+        FeedbackService.error(
+          context,
+          authState.errorMessage ?? 'Invalid phone/email or password',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSigningIn = false);
+        FeedbackService.error(context, e.toString());
       }
     }
   }
 
-  void _handleBiometricPass() async {
-    HapticFeedback.selectionClick();
-    final biometricService = ref.read(biometricServiceProvider);
-    final didAuth = await biometricService.authenticate(
+  Future<void> _handleExpressBiometrics() async {
+    final biometric = ref.read(biometricServiceProvider);
+    final didAuth = await biometric.authenticate(
       localizedReason: 'Scan fingerprint or face to authenticate instantly',
     );
 
+    if (!mounted || !didAuth) return;
+
+    final success = await ref.read(authProvider.notifier).loginWithBiometrics();
     if (!mounted) return;
 
-    if (didAuth) {
-      HapticFeedback.mediumImpact();
-      final success = await ref.read(authProvider.notifier).loginWithBiometrics();
-      if (!mounted) return;
-      if (success) {
-        final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
-        ref.read(userModeProvider.notifier).setAuthenticatedMode();
-        ref.read(userModeProvider.notifier).clearPendingIntent();
-        if (pendingIntent != null && pendingIntent.isNotEmpty) {
-          context.go(pendingIntent);
-        } else {
-          context.go('/home');
-        }
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            backgroundColor: SahyanColors.urgentCoral,
-            content: const Text(
-              'No saved session found. Please sign in once with password to enable biometrics.',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        );
-      }
+    if (success) {
+      FeedbackService.success(
+        context,
+        'Welcome back, ${_savedUser?.name ?? 'User'}!',
+      );
+      final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
+      ref.read(userModeProvider.notifier).setAuthenticatedMode();
+      ref.read(userModeProvider.notifier).clearPendingIntent();
+      context.go(
+        pendingIntent != null && pendingIntent.isNotEmpty
+            ? pendingIntent
+            : '/home',
+      );
+    } else {
+      FeedbackService.error(
+        context,
+        'Biometric authentication could not resolve session. Please sign in with OTP or password.',
+      );
     }
+  }
+
+  void _showTermsDialog() {
+    SahyanDialog.show(
+      context: context,
+      title: 'Terms & Privacy',
+      message:
+          'Sahyān is Gujarat\'s community-driven verified intercity carpooling network. By signing in, you agree to our fair cost-sharing policies, community safety standards, and verified identity requirements.',
+      primaryActionText: 'Understood',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark
+        ? AppColors.darkSurface.withValues(alpha: 0.94)
+        : Colors.white.withValues(alpha: 0.96);
+    final borderColor = isDark ? AppColors.darkSurfaceHigh : AppColors.border;
+    final textColor = isDark ? AppColors.darkText : AppColors.ink;
+    final mutedColor = isDark ? AppColors.darkMuted : AppColors.mutedLight;
 
     return Scaffold(
-      backgroundColor: SahyanColors.canvas,
+      backgroundColor: isDark ? AppColors.darkBg : AppColors.canvasLight,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            size: 20,
+            color: isDark ? AppColors.darkText : AppColors.ink,
+          ),
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-              padding: const EdgeInsets.only(
-                top: 24,
-                bottom: 24,
-                left: 16,
-                right: 16,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 8.0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Top Header Bento Card (22px rounded, hairline border)
-                  _buildHeroHeader()
-                      .animate()
-                      .fadeIn(duration: 400.ms, curve: Curves.easeOut)
-                      .slideY(begin: -0.05, end: 0),
+                  // Brand Header Lockup
+                  Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SahyanRouteConvergenceMark(size: 28, isDark: isDark),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sahyān',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: isDark
+                                ? AppColors.darkText
+                                : AppColors.brand,
+                            letterSpacing: -0.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
 
-                  const SizedBox(height: 16),
+                  // Title: "Sign In"
+                  Text(
+                    'Sign In',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: textColor,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    _activeTab == _LoginTab.phoneOtp
+                        ? 'Enter your mobile number to receive a secure one-time passcode.'
+                        : 'Access your account with your phone or email credentials.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w400,
+                      color: mutedColor,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
 
-                  // Main Interactive Form Bento Card
-                  _buildMainBentoCard(authState.isLoading)
-                      .animate()
-                      .fadeIn(duration: 450.ms, delay: 100.ms, curve: Curves.easeOut)
-                      .slideY(begin: 0.05, end: 0),
+                  // Enrolled Biometric Express Pass (ONLY rendered if session is verified)
+                  if (_hasSavedEnrolledBiometrics && _savedUser != null) ...[
+                    _buildEnrolledBiometricBar(isDark),
+                    const SizedBox(height: 16),
+                  ],
 
-                  const SizedBox(height: 16),
-
-                  // Biometric Express Pass Bar
-                  _buildBiometricPassBar()
-                      .animate()
-                      .fadeIn(duration: 400.ms, delay: 150.ms, curve: Curves.easeOut),
-
+                  // Method Segmented Tab Switcher (Phone OTP vs Password)
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.darkSurfaceHigh.withValues(alpha: 0.6)
+                          : AppColors.chipBackground,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      border: Border.all(color: borderColor, width: 1.0),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildTabButton(
+                            title: 'Phone OTP',
+                            icon: Icons.phone_android_rounded,
+                            isSelected: _activeTab == _LoginTab.phoneOtp,
+                            isDark: isDark,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _activeTab = _LoginTab.phoneOtp);
+                            },
+                          ),
+                        ),
+                        Expanded(
+                          child: _buildTabButton(
+                            title: 'Password',
+                            icon: Icons.lock_outline_rounded,
+                            isSelected: _activeTab == _LoginTab.password,
+                            isDark: isDark,
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              setState(() => _activeTab = _LoginTab.password);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   const SizedBox(height: 20),
 
-                  // Bottom Alternate Link & Trust Dock
-                  _buildBottomTrustDock()
-                      .animate()
-                      .fadeIn(duration: 400.ms, delay: 200.ms),
+                  // Main Card Form Container
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadii.xl),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      child: Container(
+                        padding: const EdgeInsets.all(22.0),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(AppRadii.xl),
+                          border: Border.all(color: borderColor, width: 1.2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(
+                                alpha: isDark ? 0.35 : 0.05,
+                              ),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: _activeTab == _LoginTab.phoneOtp
+                            ? _buildPhoneOtpForm(isDark)
+                            : _buildPasswordForm(isDark),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+
+                  // Don't have an account? Sign up
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        'Don\'t have an account?',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w500,
+                          color: mutedColor,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
+                          context.push('/register');
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: isDark
+                              ? AppColors.mint
+                              : AppColors.brand,
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          minimumSize: const Size(48, 48),
+                        ),
+                        child: Text(
+                          'Register',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Terms & Privacy Note
+                  Center(
+                    child: GestureDetector(
+                      onTap: _showTermsDialog,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Terms of Service & Privacy Policy',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: mutedColor,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -362,265 +466,56 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Top Header Bento Card
-  Widget _buildHeroHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: SahyanColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: SahyanColors.border, width: 0.8),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0814241C),
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row: Icon Squircle + Corridor Summary Chip
-          Wrap(
-            spacing: 8,
-            runSpacing: 6,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              const SahyanLogo(
-                variant: SahyanLogoVariant.symbolOnly,
-                size: 32,
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: SahyanColors.primaryLight,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: SahyanColors.primaryMint.withValues(alpha: 0.3),
-                    width: 0.8,
-                  ),
-                ),
-                child: const Text(
-                  'Ahmedabad ⇄ Rajkot ⇄ Surat',
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: SahyanColors.primaryDark,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Tagline Headline
-          const Text(
-            'Share the journey, not just the ride.',
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: SahyanColors.textMain,
-              letterSpacing: -0.5,
-              height: 1.25,
-            ),
-          ),
-          const SizedBox(height: 6),
-
-          // Subtitle
-          const Text(
-            'Verified intercity carpooling across Gujarat corridors.',
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: SahyanColors.textMuted,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Main Interactive Form Bento Card
-  Widget _buildMainBentoCard(bool isLoading) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-      decoration: BoxDecoration(
-        color: SahyanColors.surface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: SahyanColors.border, width: 0.8),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0614241C),
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section Title: Clean, crisp, and unclipped
-          const Text(
-            'Sign In',
-            style: TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: SahyanColors.textMain,
-              letterSpacing: -0.4,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Animated Sliding Pill Switcher
-          _buildSegmentedSwitcher(),
-
-          const SizedBox(height: 20),
-
-          // Animated Form Body based on selected tab with smooth cross-fade
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: child,
-            ),
-            child: _selectedMethod == _LoginMethod.password
-                ? KeyedSubtree(
-                    key: const ValueKey('password_form'),
-                    child: _buildPasswordForm(isLoading),
-                  )
-                : KeyedSubtree(
-                    key: const ValueKey('otp_form'),
-                    child: _buildOtpForm(isLoading),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Animated Sliding Pill Switcher [ Password ] and [ Phone OTP ]
-  Widget _buildSegmentedSwitcher() {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: const Color(0xFFEEF2EF),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: SahyanColors.border, width: 0.8),
-      ),
-      child: Stack(
-        children: [
-          // Smooth Animated Sliding White Pill Indicator
-          AnimatedAlign(
-            duration: const Duration(milliseconds: 280),
-            curve: Curves.easeOutCubic,
-            alignment: _selectedMethod == _LoginMethod.password
-                ? Alignment.centerLeft
-                : Alignment.centerRight,
-            child: FractionallySizedBox(
-              widthFactor: 0.5,
-              child: Container(
-                height: 40,
-                margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1214241C),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Clickable Tab Labels
-          Positioned.fill(
-            child: Row(
-              children: [
-                Expanded(
-                  child: _buildSwitcherTab(
-                    label: 'Password',
-                    icon: Icons.lock_outline_rounded,
-                    isSelected: _selectedMethod == _LoginMethod.password,
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      setState(() {
-                        _passwordFormKey = GlobalKey<FormState>();
-                        _selectedMethod = _LoginMethod.password;
-                      });
-                    },
-                  ),
-                ),
-                Expanded(
-                  child: _buildSwitcherTab(
-                    label: 'Phone OTP',
-                    icon: Icons.phone_android_rounded,
-                    isSelected: _selectedMethod == _LoginMethod.otp,
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      setState(() {
-                        _otpPhoneFormKey = GlobalKey<FormState>();
-                        _selectedMethod = _LoginMethod.otp;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSwitcherTab({
-    required String label,
+  Widget _buildTabButton({
+    required String title,
     required IconData icon,
     required bool isSelected,
+    required bool isDark,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    final activeBg = isDark ? AppColors.brandBright : Colors.white;
+    final activeText = isDark ? Colors.white : AppColors.ink;
+    final inactiveText = isDark ? AppColors.darkMuted : AppColors.mutedLight;
+
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(999),
-      child: Center(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? activeBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadii.md),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 15,
+              size: 16,
               color: isSelected
-                  ? SahyanColors.primaryDark
-                  : SahyanColors.textMuted,
+                  ? (isDark ? Colors.white : AppColors.brand)
+                  : inactiveText,
             ),
             const SizedBox(width: 6),
             Flexible(
               child: Text(
-                label,
+                title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  color: isSelected
-                      ? SahyanColors.primaryDark
-                      : SahyanColors.textMuted,
-                  fontSize: 13,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? activeText : inactiveText,
                 ),
               ),
             ),
@@ -630,48 +525,183 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Password Mode Form
-  Widget _buildPasswordForm(bool isLoading) {
+  Widget _buildEnrolledBiometricBar(bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? AppColors.darkSurfaceHigh
+            : AppColors.primaryLight.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        border: Border.all(
+          color: isDark
+              ? AppColors.mint.withValues(alpha: 0.3)
+              : AppColors.brand.withValues(alpha: 0.2),
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+        onTap: _handleExpressBiometrics,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.darkBg : AppColors.brand,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.fingerprint_rounded,
+                  color: AppColors.mint,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Welcome back, ${_savedUser?.name ?? 'Traveller'}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? AppColors.darkText : AppColors.ink,
+                      ),
+                    ),
+                    Text(
+                      'Tap for one-touch biometric unlock',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? AppColors.darkMuted
+                            : AppColors.mutedLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 14,
+                color: isDark ? AppColors.darkMuted : AppColors.mutedLight,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPhoneOtpForm(bool isDark) {
     return Form(
-      key: _passwordFormKey,
+      key: _phoneFormKey,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Mobile Number Input with +91 Prefix
           AppTextField(
-            label: 'Mobile Number or Email',
-            hint: '9876543210 or name@example.com',
-            controller: _identifierController,
-            keyboardType: TextInputType.emailAddress,
-            prefixIcon: const Icon(
-              Icons.person_outline_rounded,
-              color: SahyanColors.primaryDark,
-              size: 20,
+            label: 'Mobile Number',
+            hint: '98765 43210',
+            controller: _phoneController,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ],
+            prefixIcon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color: isDark
+                        ? AppColors.darkSurfaceHigh
+                        : AppColors.border,
+                    width: 1.0,
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.phone_rounded,
+                    size: 16,
+                    color: AppColors.mint,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '+91',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? AppColors.darkText : AppColors.ink,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) {
-                return 'Please enter email or mobile number';
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter your mobile number';
               }
-              final input = v.trim();
-              if (input.contains('@')) {
-                final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-                if (!emailRegex.hasMatch(input)) {
-                  return 'Please enter a valid email address';
-                }
-              } else {
-                final digits = input.replaceAll(RegExp(r'\D'), '');
-                final localPhone =
-                    digits.length == 12 && digits.startsWith('91')
-                        ? digits.substring(2)
-                        : digits;
-                if (localPhone.length != 10) {
-                  return 'Please enter a valid 10-digit mobile number';
-                }
+              final digits = value.replaceAll(RegExp(r'\D'), '');
+              if (digits.length != 10) {
+                return 'Enter a valid 10-digit Indian mobile number';
+              }
+              if (!RegExp(r'^[6-9]').hasMatch(digits)) {
+                return 'Indian mobile numbers start with 6, 7, 8, or 9';
               }
               return null;
             },
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 24),
 
+          // Primary Action: Get Verification Code
+          SahyanButton(
+            text: 'Get Verification Code',
+            icon: Icons.send_rounded,
+            variant: SahyanButtonVariant.primary,
+            size: SahyanButtonSize.regular,
+            isLoading: _isRequestingOtp,
+            onPressed: _handleGetOtp,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPasswordForm(bool isDark) {
+    return Form(
+      key: _passwordFormKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Identifier: Email or Phone
+          AppTextField(
+            label: 'Email or Mobile Number',
+            hint: 'name@example.com or 9876543210',
+            controller: _identifierController,
+            keyboardType: TextInputType.emailAddress,
+            prefixIcon: const Icon(
+              Icons.person_outline_rounded,
+              size: 18,
+              color: AppColors.mint,
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Please enter your email or phone number';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Password Field
           AppTextField(
             label: 'Password',
             hint: 'Enter your password',
@@ -679,504 +709,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             isPassword: true,
             prefixIcon: const Icon(
               Icons.lock_outline_rounded,
-              color: SahyanColors.primaryDark,
-              size: 20,
+              size: 18,
+              color: AppColors.mint,
             ),
-            validator: (v) {
-              if (v == null || v.isEmpty) {
+            validator: (value) {
+              if (value == null || value.isEmpty) {
                 return 'Please enter your password';
               }
               return null;
             },
           ),
+          const SizedBox(height: 8),
 
+          // Forgot Password Link
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: () => context.push('/forgot-password'),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                context.push('/forgot-password');
+              },
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                minimumSize: const Size(48, 48),
+                foregroundColor: isDark ? AppColors.mint : AppColors.brand,
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
               ),
-              child: const Text(
+              child: Text(
                 'Forgot Password?',
-                style: TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  color: SahyanColors.primaryDark,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
           ),
+          const SizedBox(height: 16),
 
-          const SizedBox(height: 8),
-
-          _buildResponsiveCtaButton(
-            label: 'Sign In',
-            isLoading: isLoading,
+          // Primary Action: Sign In
+          SahyanButton(
+            text: 'Sign In',
+            icon: Icons.login_rounded,
+            variant: SahyanButtonVariant.primary,
+            size: SahyanButtonSize.regular,
+            isLoading: _isSigningIn,
             onPressed: _handlePasswordLogin,
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Phone OTP Mode Form (Clean 2-Step Flow)
-  Widget _buildOtpForm(bool isLoading) {
-    return _otpStep == _OtpStep.enterPhone
-        ? Form(
-            key: _otpPhoneFormKey,
-            child: _buildOtpPhoneStep(isLoading),
-          )
-        : _buildOtpCodeStep(isLoading);
-  }
-
-  /// State A: Enter Phone Number
-  Widget _buildOtpPhoneStep(bool isLoading) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppTextField(
-          label: 'Mobile Number',
-          hint: '9876543210',
-          controller: _otpPhoneController,
-          keyboardType: TextInputType.phone,
-          prefixIcon: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  '+91',
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontWeight: FontWeight.w700,
-                    color: SahyanColors.textMain,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  width: 1,
-                  height: 18,
-                  color: SahyanColors.border,
-                ),
-              ],
-            ),
-          ),
-          validator: (v) {
-            if (v == null || v.trim().isEmpty) {
-              return 'Please enter your mobile number';
-            }
-            final digits = v.trim().replaceAll(RegExp(r'\D'), '');
-            final localPhone = digits.length == 12 && digits.startsWith('91')
-                ? digits.substring(2)
-                : digits;
-            if (localPhone.length != 10) {
-              return 'Please enter a valid 10-digit Indian mobile number';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 12),
-
-        const Text(
-          'We will send a 4-digit verification code to your phone.',
-          style: TextStyle(
-            fontFamily: 'Plus Jakarta Sans',
-            fontSize: 12,
-            color: SahyanColors.textMuted,
-          ),
-        ),
-        const SizedBox(height: 18),
-
-        _buildResponsiveCtaButton(
-          label: 'Get Verification Code',
-          isLoading: isLoading,
-          onPressed: _handleGetVerificationCode,
-        ),
-      ],
-    );
-  }
-
-  /// State B: Enter 4-Digit OTP Code
-  Widget _buildOtpCodeStep(bool isLoading) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Phone preview capsule with Edit link
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: SahyanColors.canvas,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: SahyanColors.border, width: 0.8),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.phone_android_rounded,
-                    size: 16,
-                    color: SahyanColors.primaryDark,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '+91 ${_otpPhoneController.text.trim()}',
-                    style: const TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: SahyanColors.textMain,
-                    ),
-                  ),
-                ],
-              ),
-              InkWell(
-                onTap: () {
-                  _countdownTimer?.cancel();
-                  setState(() {
-                    _otpStep = _OtpStep.enterPhone;
-                  });
-                },
-                borderRadius: BorderRadius.circular(6),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Text(
-                    'Edit',
-                    style: TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: SahyanColors.primaryMint,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // 4 Discrete auto-advancing OTP digit boxes (52x56dp, #FFFFFF, #2EC486 focus ring)
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: List.generate(4, (index) {
-            return SizedBox(
-              width: 52,
-              height: 56,
-              child: Focus(
-                onFocusChange: (_) => setState(() {}),
-                child: TextFormField(
-                  controller: _otpDigitControllers[index],
-                  focusNode: _otpDigitFocusNodes[index],
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(1),
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
-                  style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: SahyanColors.textMain,
-                  ),
-                  decoration: InputDecoration(
-                    counterText: '',
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: EdgeInsets.zero,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: SahyanColors.border,
-                        width: 0.8,
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(
-                        color: SahyanColors.primaryMint,
-                        width: 1.5,
-                      ),
-                    ),
-                  ),
-                  onChanged: (val) {
-                    if (val.isNotEmpty) {
-                      if (index < 3) {
-                        _otpDigitFocusNodes[index + 1].requestFocus();
-                      } else {
-                        _otpDigitFocusNodes[index].unfocus();
-                      }
-                    } else if (val.isEmpty && index > 0) {
-                      _otpDigitFocusNodes[index - 1].requestFocus();
-                    }
-                  },
-                ),
-              ),
-            );
-          }),
-        ),
-        const SizedBox(height: 14),
-
-        // Active countdown timer / resend action
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.schedule_rounded,
-                  size: 14,
-                  color: SahyanColors.textMuted,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _countdownSeconds > 0
-                      ? 'Resend code in 00:${_countdownSeconds.toString().padLeft(2, '0')}s'
-                      : 'Code expired',
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: SahyanColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-            if (_countdownSeconds == 0)
-              TextButton(
-                onPressed: _handleResendOtp,
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(50, 24),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text(
-                  'Resend Code',
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: SahyanColors.primaryMint,
-                  ),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 18),
-
-        // Action Button: Verify & Sign In →
-        _buildResponsiveCtaButton(
-          label: 'Verify & Sign In',
-          isLoading: isLoading,
-          onPressed: _handleVerifyAndSignIn,
-        ),
-      ],
-    );
-  }
-
-  /// Full-Width Responsive CTA Button: Height 52dp, Pine #1B4D3E, Rounded 16px
-  Widget _buildResponsiveCtaButton({
-    required String label,
-    required bool isLoading,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: SahyanColors.primaryDark,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: isLoading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
-            : FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded, size: 18),
-                  ],
-                ),
-              ),
-      ),
-    );
-  }
-
-  /// Biometric Express Pass Bar
-  Widget _buildBiometricPassBar() {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _handleBiometricPass,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: SahyanColors.primaryLight.withValues(alpha: 0.6),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: SahyanColors.primaryMint.withValues(alpha: 0.35),
-              width: 0.8,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: SahyanColors.primaryDark,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.fingerprint_rounded,
-                  color: SahyanColors.primaryMint,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Biometric Pass',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: SahyanColors.textMain,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      'Tap to sign in with Face ID / Fingerprint',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: SahyanColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: SahyanColors.primaryDark,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Bottom Alternate Link & Trust Dock
-  Widget _buildBottomTrustDock() {
-    return Column(
-      children: [
-        Wrap(
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            const Text(
-              "Don't have an account?",
-              style: TextStyle(
-                fontFamily: 'Plus Jakarta Sans',
-                color: SahyanColors.textMuted,
-                fontSize: 13,
-              ),
-            ),
-            TextButton(
-              onPressed: () => context.push('/register'),
-              style: TextButton.styleFrom(
-                minimumSize: const Size(48, 48),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-              ),
-              child: const Text(
-                'Register Now',
-                style: TextStyle(
-                  fontFamily: 'Plus Jakarta Sans',
-                  color: SahyanColors.primaryDark,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        const Divider(color: SahyanColors.border, height: 1),
-        const SizedBox(height: 14),
-        Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 12,
-          runSpacing: 8,
-          children: [
-            _buildMicroTrustPill(Icons.verified_user_rounded, '100% ID Verified'),
-            _buildMicroTrustPill(Icons.shield_outlined, 'Safe Travel Ring'),
-            _buildMicroTrustPill(Icons.currency_rupee_rounded, 'Fair Cost Split'),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMicroTrustPill(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: SahyanColors.surface,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: SahyanColors.border, width: 0.8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: SahyanColors.primaryMint),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: 'Plus Jakarta Sans',
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: SahyanColors.textMuted,
-            ),
           ),
         ],
       ),

@@ -5,7 +5,14 @@ import 'package:sahyan/shared/models/user_model.dart';
 import 'package:sahyan/features/auth/data/auth_repository.dart';
 import 'package:sahyan/app/router/app_router.dart';
 
-enum AuthStatus { initial, loading, authenticated, unauthenticated, error, suspended }
+enum AuthStatus {
+  initial,
+  loading,
+  authenticated,
+  unauthenticated,
+  error,
+  suspended,
+}
 
 class AuthState {
   final AuthStatus status;
@@ -158,10 +165,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } catch (e) {
       if (e is ApiException && e.errorCode == 'ACCOUNT_SUSPENDED') {
-        await handleSuspension(
-          e.suspensionReason ?? e.message,
-          e.suspendedAt,
-        );
+        await handleSuspension(e.suspensionReason ?? e.message, e.suspendedAt);
         return false;
       }
       state = state.copyWith(
@@ -209,7 +213,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
-        errorMessage: 'No saved credentials found. Please sign in with password first.',
+        errorMessage:
+            'No saved credentials found. Please sign in with password first.',
       );
       return false;
     } catch (e) {

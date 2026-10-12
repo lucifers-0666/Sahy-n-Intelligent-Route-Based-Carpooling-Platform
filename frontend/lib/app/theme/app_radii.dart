@@ -24,8 +24,14 @@ abstract class AppRadii {
   /// 9999dp - Fully rounded pill shape for status badges and chip selectors
   static const double full = 9999.0;
 
+  /// 28dp - Master Brief 2026 Bottom Sheet & Dialog Radius
+  static const double sheet = 28.0;
+
+  /// 16dp - Master Brief 2026 Input Radius
+  static const double input = 16.0;
+
   /// Standard component aliases
-  static const double card = lg;
+  static const double card = xl; // 20dp
   static const double button = md;
 
   /// BorderRadius presets

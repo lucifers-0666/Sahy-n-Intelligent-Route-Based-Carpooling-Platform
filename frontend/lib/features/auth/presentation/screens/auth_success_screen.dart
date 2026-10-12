@@ -1,321 +1,326 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/theme/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import '../../../../app/theme/app_radii.dart';
-import '../../../../app/theme/app_spacing.dart';
-import '../../../../app/theme/app_typography.dart';
-import '../../../../core/widgets/sahyan_app_bar.dart';
+import '../../../../app/theme/app_theme.dart';
 import '../../../../core/widgets/sahyan_button.dart';
-import '../../../../core/widgets/sahyan_card.dart';
 import '../auth_provider.dart';
 
+/// Redesigned 2026 Production Auth Success Screen for Sahyān.
 class AuthSuccessScreen extends ConsumerWidget {
   const AuthSuccessScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final tokens = context.sahyanTokens;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final authState = ref.watch(authProvider);
     final user = authState.user;
-    final phone = authState.otpSentToPhone ?? user?.phone ?? '+91 98765 43210';
+    final phone =
+        authState.otpSentToPhone ?? user?.phone ?? 'Member Phone Verified';
 
     return Scaffold(
-      backgroundColor: AppColors.warmBackground,
-      appBar: const SahyanAppBar(
-        title: 'Identity Verification',
-        showBackButton: false,
-      ),
+      backgroundColor: tokens.canvas,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.containerMargin,
-            vertical: AppSpacing.md,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: AppSpacing.md),
-
-              // Shield Badge with Ambient Halo
-              Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 96,
-                      height: 96,
-                      decoration: BoxDecoration(
-                        color: AppColors.softForest.withValues(alpha: 0.6),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    Container(
-                      width: 76,
-                      height: 76,
-                      decoration: const BoxDecoration(
-                        color: AppColors.softForest,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.verified_user_rounded,
-                        color: AppColors.primaryForest,
-                        size: 40,
-                      ),
-                    ),
-                  ],
-                ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 20.0,
               ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // Main Verified Card
-              SahyanCard(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  children: [
-                    // Step Monogram Tag
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.warmBackground,
-                        borderRadius: BorderRadius.circular(AppRadii.full),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primaryForest,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Flexible(
-                            child: Text(
-                              'Step 2 of 3 · Verified',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.primaryForest,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.md),
-
-                    Text(
-                      "You're all set",
-                      style: AppTypography.screenTitle.copyWith(fontSize: 24),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: AppSpacing.sm),
-
-                    Text(
-                      'Your Sahyan account has been successfully verified. You are now part of a mindful community sharing everyday journeys across highway corridors.',
-                      style: AppTypography.secondary,
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Verification Trust Pillars
-                    _buildTrustPillar(
-                      Icons.check_rounded,
-                      'Phone Authenticated ($phone)',
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildTrustPillar(
-                      Icons.check_rounded,
-                      'Zero-Spam Direct Messaging Active',
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildTrustPillar(
-                      Icons.check_rounded,
-                      'SafePass Trust Protocol Enabled',
-                    ),
-
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Unified Account Ethos Card
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: AppColors.softForest.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(AppRadii.md),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(
-                            Icons.eco_rounded,
-                            color: AppColors.primaryForest,
-                            size: 20,
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Expanded(
-                            child: Text(
-                              'Sahyan is a unified ecosystem. Whether choosing to travel as a passenger or share vacant seats as a carpool host, your validated trust tier travels with you everywhere.',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.deepForest,
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Corridor Ambient Visual Banner
-                    Container(
-                      constraints: const BoxConstraints(minHeight: 72),
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.deepForest,
-                            AppColors.primaryForest,
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(AppRadii.md),
-                      ),
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(AppSpacing.sm),
-                            decoration: BoxDecoration(
-                              color: AppColors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(AppRadii.sm),
-                            ),
-                            child: const Icon(
-                              Icons.alt_route_rounded,
-                              color: AppColors.white,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Western Ghats & Intercity Transit',
-                                  style: AppTypography.cardTitle.copyWith(
-                                    color: AppColors.white,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Real-time corridor matching active',
-                                  style: AppTypography.caption.copyWith(
-                                    color: AppColors.softForest,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Actions
-                    SahyanButton(
-                      text: 'Complete Your Profile',
-                      icon: Icons.arrow_forward_rounded,
-                      isFullWidth: true,
-                      onPressed: () => context.push('/personal-details'),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    SahyanButton(
-                      text: 'Explore Routes First',
-                      variant: SahyanButtonVariant.outline,
-                      isFullWidth: true,
-                      onPressed: () => context.go('/home'),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.lg),
-
-              // Security Footnote
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.security_rounded,
-                    size: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  Flexible(
-                    child: Text(
-                      '256-bit Encrypted Member Identity',
-                      style: AppTypography.caption.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  const SizedBox(height: 12),
+
+                  // Brand Hero Shield with Mint Ambient Halo
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: tokens.mint.withValues(
+                              alpha: isDark ? 0.15 : 0.2,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            color: tokens.brand.withValues(
+                              alpha: isDark ? 0.3 : 0.12,
+                            ),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: tokens.mint.withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.verified_user_rounded,
+                            color: tokens.brand,
+                            size: 38,
+                          ),
+                        ),
+                      ],
                     ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Main Verified Card
+                  Container(
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: tokens.card,
+                      borderRadius: BorderRadius.circular(AppRadii.card),
+                      border: Border.all(color: tokens.border, width: 0.8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: tokens.ink.withValues(
+                            alpha: isDark ? 0.25 : 0.05,
+                          ),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Step Monogram Tag
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: tokens.brand.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                              color: tokens.brand.withValues(alpha: 0.2),
+                              width: 0.8,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: tokens.mint,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Step 2 of 3 · Verified',
+                                style: GoogleFonts.plusJakartaSans(
+                                  color: tokens.brand,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11,
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        Text(
+                          'You are all set',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            color: tokens.ink,
+                            letterSpacing: -0.4,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        Text(
+                          'Your Sahyān account is confirmed. You can now discover, request and share trusted highway journeys.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            color: tokens.muted,
+                            height: 1.45,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Verification Pillars
+                        _buildTrustPillar(
+                          tokens,
+                          Icons.phone_android_rounded,
+                          'Phone Authenticated ($phone)',
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTrustPillar(
+                          tokens,
+                          Icons.chat_bubble_outline_rounded,
+                          'Zero-Spam Direct Messaging Active',
+                        ),
+                        const SizedBox(height: 8),
+                        _buildTrustPillar(
+                          tokens,
+                          Icons.shield_outlined,
+                          'SafePass Trust Protocol Enabled',
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Gujarat Highway Corridor Banner
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: isDark
+                                  ? [tokens.surfaceHigh, tokens.card]
+                                  : [tokens.brand, tokens.brandBright],
+                            ),
+                            borderRadius: BorderRadius.circular(AppRadii.input),
+                          ),
+                          padding: const EdgeInsets.all(14),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.alt_route_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Gujarat Highway Transit Network',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Real-time corridor matching active',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        color: tokens.mint,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 22),
+
+                        // Actions
+                        SahyanButton(
+                          text: 'Complete Your Profile',
+                          icon: Icons.arrow_forward_rounded,
+                          isFullWidth: true,
+                          onPressed: () => context.push('/personal-details'),
+                        ),
+                        const SizedBox(height: 10),
+                        SahyanButton(
+                          text: 'Explore Routes First',
+                          variant: SahyanButtonVariant.outline,
+                          isFullWidth: true,
+                          onPressed: () => context.go('/home'),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Security Footnote
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.security_rounded,
+                        size: 14,
+                        color: tokens.muted,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '256-bit Encrypted Member Identity',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: tokens.muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.md),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTrustPillar(IconData icon, String text) {
+  Widget _buildTrustPillar(
+    SahyanThemeTokens tokens,
+    IconData icon,
+    String text,
+  ) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.warmBackground,
-        borderRadius: BorderRadius.circular(AppRadii.md),
-        border: Border.all(color: AppColors.border),
+        color: tokens.canvas,
+        borderRadius: BorderRadius.circular(AppRadii.input),
+        border: Border.all(color: tokens.border, width: 0.8),
       ),
       child: Row(
         children: [
           Container(
-            width: 22,
-            height: 22,
-            decoration: const BoxDecoration(
-              color: AppColors.softForest,
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: tokens.brand.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppColors.primaryForest, size: 14),
+            child: Icon(icon, color: tokens.brand, size: 14),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
-              style: AppTypography.bodyMedium.copyWith(
-                fontSize: 13,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
+                color: tokens.ink,
               ),
             ),
           ),

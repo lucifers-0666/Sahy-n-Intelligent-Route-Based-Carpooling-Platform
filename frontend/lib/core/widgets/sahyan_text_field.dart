@@ -99,12 +99,26 @@ class _SahyanTextFieldState extends State<SahyanTextField> {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.darkText : AppColors.ink;
+    final hintColor = isDark ? AppColors.darkMuted : AppColors.mutedLight;
+    final fillColor = widget.enabled
+        ? (isDark ? AppColors.darkSurface : Colors.white)
+        : (isDark ? AppColors.darkSurfaceHigh : AppColors.surfaceContainerLow);
+    final borderColor = isDark ? AppColors.darkSurfaceHigh : AppColors.border;
+    final focusColor = isDark ? AppColors.mint : AppColors.brand;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         if (widget.label != null) ...[
-          Text(widget.label!, style: AppTypography.fieldLabel),
+          Text(
+            widget.label!,
+            style: AppTypography.fieldLabel.copyWith(
+              color: isDark ? AppColors.darkText : AppColors.ink,
+            ),
+          ),
           const SizedBox(height: AppSpacing.sm),
         ],
         TextFormField(
@@ -123,52 +137,47 @@ class _SahyanTextFieldState extends State<SahyanTextField> {
           onFieldSubmitted: widget.onFieldSubmitted,
           maxLines: widget.isPassword ? 1 : widget.maxLines,
           minLines: widget.minLines,
-          style: AppTypography.bodyLarge.copyWith(color: AppColors.textPrimary),
+          style: AppTypography.bodyLarge.copyWith(color: textColor),
           decoration: InputDecoration(
             hintText: widget.hint,
+            hintStyle: AppTypography.secondary.copyWith(color: hintColor),
             helperText: widget.helperText,
-            helperStyle: AppTypography.caption,
+            helperStyle: AppTypography.caption.copyWith(color: hintColor),
             errorText: widget.errorText,
-            errorStyle: AppTypography.validationMessage,
+            errorStyle: AppTypography.validationMessage.copyWith(
+              color: AppColors.error,
+            ),
             prefixIcon: widget.prefixIcon,
             suffixIcon: effectiveSuffixIcon,
             filled: true,
-            fillColor: widget.enabled
-                ? AppColors.white
-                : AppColors.surfaceContainerLow,
+            fillColor: fillColor,
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.base,
-              vertical: AppSpacing.md,
+              horizontal: 16,
+              vertical: 14,
             ),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderRadius: BorderRadius.circular(AppRadii.input),
+              borderSide: BorderSide(color: borderColor),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              borderSide: const BorderSide(color: AppColors.border),
+              borderRadius: BorderRadius.circular(AppRadii.input),
+              borderSide: BorderSide(color: borderColor),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              borderSide: const BorderSide(
-                color: AppColors.primaryForest,
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(AppRadii.input),
+              borderSide: BorderSide(color: focusColor, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              borderSide: const BorderSide(color: AppColors.mutedRust),
+              borderRadius: BorderRadius.circular(AppRadii.input),
+              borderSide: const BorderSide(color: AppColors.error),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              borderSide: const BorderSide(
-                color: AppColors.mutedRust,
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(AppRadii.input),
+              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
             ),
             disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              borderSide: const BorderSide(color: AppColors.borderLight),
+              borderRadius: BorderRadius.circular(AppRadii.input),
+              borderSide: BorderSide(color: borderColor.withValues(alpha: 0.5)),
             ),
             prefixIconConstraints: const BoxConstraints(
               minWidth: 44,
