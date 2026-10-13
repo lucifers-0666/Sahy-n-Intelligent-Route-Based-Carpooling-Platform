@@ -136,7 +136,15 @@ class _OtpScreenState extends ConsumerState<OtpScreen>
     setState(() => _isVerifying = true);
 
     try {
-      final success = await ref.read(authProvider.notifier).verifyOtp(otp);
+      final authState = ref.read(authProvider);
+      final bool success;
+      if (authState.firebaseVerificationId != null) {
+        success = await ref
+            .read(authProvider.notifier)
+            .verifyFirebasePhoneOtp(otp);
+      } else {
+        success = await ref.read(authProvider.notifier).verifyOtp(otp);
+      }
 
       if (!mounted) return;
 
@@ -200,7 +208,15 @@ class _OtpScreenState extends ConsumerState<OtpScreen>
     }
     _digitFocusNodes[0].requestFocus();
 
-    final success = await ref.read(authProvider.notifier).sendOtp(phone);
+    final authState = ref.read(authProvider);
+    final bool success;
+    if (authState.firebaseVerificationId != null) {
+      success = await ref
+          .read(authProvider.notifier)
+          .sendFirebasePhoneOtp(phone);
+    } else {
+      success = await ref.read(authProvider.notifier).sendOtp(phone);
+    }
     if (mounted) {
       if (success) {
         _startTimer();

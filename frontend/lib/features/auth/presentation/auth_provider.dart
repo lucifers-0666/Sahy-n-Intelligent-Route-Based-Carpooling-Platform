@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahyan/core/network/api_client.dart';
 import 'package:sahyan/core/storage/secure_storage_service.dart';
@@ -20,8 +21,12 @@ class AuthState {
   final String? token;
   final String? errorMessage;
   final String? otpSentToPhone;
+  final String? firebaseVerificationId;
+  final int? resendToken;
   final String? suspensionReason;
   final String? suspendedAt;
+  final bool isPhoneVerified;
+  final bool isEmailVerified;
 
   const AuthState({
     this.status = AuthStatus.initial,
@@ -29,14 +34,24 @@ class AuthState {
     this.token,
     this.errorMessage,
     this.otpSentToPhone,
+    this.firebaseVerificationId,
+    this.resendToken,
     this.suspensionReason,
     this.suspendedAt,
+    this.isPhoneVerified = false,
+    this.isEmailVerified = false,
   });
 
-  bool get isAuthenticated => status == AuthStatus.authenticated;
+  bool get isAuthenticated =>
+      status == AuthStatus.authenticated && user != null;
   bool get isSuspended => status == AuthStatus.suspended;
   bool get isGuest => !isAuthenticated || user == null;
   bool get isLoading => status == AuthStatus.loading;
+  bool get isProfileComplete =>
+      user != null &&
+      user!.name.trim().isNotEmpty &&
+      user!.name != 'Sahyān Traveler' &&
+      user!.phone.isNotEmpty;
 
   AuthState copyWith({
     AuthStatus? status,
@@ -44,8 +59,12 @@ class AuthState {
     String? token,
     String? errorMessage,
     String? otpSentToPhone,
+    String? firebaseVerificationId,
+    int? resendToken,
     String? suspensionReason,
     String? suspendedAt,
+    bool? isPhoneVerified,
+    bool? isEmailVerified,
   }) {
     return AuthState(
       status: status ?? this.status,
@@ -53,8 +72,13 @@ class AuthState {
       token: token ?? this.token,
       errorMessage: errorMessage,
       otpSentToPhone: otpSentToPhone ?? this.otpSentToPhone,
+      firebaseVerificationId:
+          firebaseVerificationId ?? this.firebaseVerificationId,
+      resendToken: resendToken ?? this.resendToken,
       suspensionReason: suspensionReason ?? this.suspensionReason,
       suspendedAt: suspendedAt ?? this.suspendedAt,
+      isPhoneVerified: isPhoneVerified ?? this.isPhoneVerified,
+      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
     );
   }
 }
@@ -63,6 +87,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository repository;
   final SecureStorageService storageService;
   final ApiClient apiClient;
+
+  FirebaseAuthRepository? get _firebaseRepo =>
+      repository is FirebaseAuthRepository
+      ? repository as FirebaseAuthRepository
+      : null;
 
   AuthNotifier({
     required this.repository,
@@ -132,6 +161,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             status: AuthStatus.authenticated,
             token: token,
             user: user,
+            isPhoneVerified: user.phone.isNotEmpty,
           );
           return;
         }
@@ -142,6 +172,332 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(status: AuthStatus.unauthenticated);
     }
   }
+
+  // -------------------------------------------------------------
+  // Firebase Authentication Actions
+  // -------------------------------------------------------------
+
+  /// Dispatches Phone OTP using Firebase Authentication SDK
+  Future<bool> sendFirebasePhoneOtp(String phoneNumber) async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) {
+      return await sendOtp(phoneNumber);
+    }
+
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    final completer = Completer<bool>();
+
+    try {
+      await fbRepo.sendFirebasePhoneOtp(
+        phoneNumber: phoneNumber,
+        forceResendingToken: state.resendToken,
+        onCodeSent: (verificationId, resendToken) {
+          state = state.copyWith(
+            status: AuthStatus.unauthenticated,
+            otpSentToPhone: phoneNumber,
+            firebaseVerificationId: verificationId,
+            resendToken: resendToken,
+          );
+          if (!completer.isCompleted) completer.complete(true);
+        },
+        onVerificationFailed: (errorMessage) {
+          state = state.copyWith(
+            status: AuthStatus.error,
+            errorMessage: errorMessage,
+          );
+          if (!completer.isCompleted) completer.complete(false);
+        },
+        onVerificationCompleted: (credential) async {
+          if (credential.smsCode != null &&
+              state.firebaseVerificationId != null) {
+            await verifyFirebasePhoneOtp(credential.smsCode!);
+          }
+        },
+        onCodeAutoRetrievalTimeout: (verificationId) {
+          state = state.copyWith(firebaseVerificationId: verificationId);
+        },
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+      if (!completer.isCompleted) completer.complete(false);
+    }
+
+    return completer.future;
+  }
+
+  /// Verifies Phone OTP and provisions/syncs MongoDB profile
+  Future<bool> verifyFirebasePhoneOtp(String smsCode, {String? name}) async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) {
+      return await verifyOtp(smsCode);
+    }
+
+    final verificationId = state.firebaseVerificationId;
+    if (verificationId == null) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Missing verification ID. Please request a new code.',
+      );
+      return false;
+    }
+
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+
+    try {
+      final result = await fbRepo.verifyFirebasePhoneOtp(
+        verificationId: verificationId,
+        smsCode: smsCode,
+        name: name,
+      );
+
+      final token = result['token'] as String;
+      final user = result['user'] as UserModel;
+
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        token: token,
+        user: user,
+        isPhoneVerified: true,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  /// Sign In with Google and bootstrap/sync MongoDB profile
+  Future<bool> signInWithGoogle() async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: 'Google Sign-In is not supported in this environment.',
+      );
+      return false;
+    }
+
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+
+    try {
+      final result = await fbRepo.signInWithGoogle();
+
+      if (result['cancelled'] == true) {
+        state = state.copyWith(status: AuthStatus.unauthenticated);
+        return false;
+      }
+
+      final token = result['token'] as String;
+      final user = result['user'] as UserModel;
+
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        token: token,
+        user: user,
+        isEmailVerified: true,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  /// Register with Email and Password via Firebase
+  Future<bool> registerWithEmail({
+    required String name,
+    required String email,
+    required String password,
+    String? phone,
+  }) async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) {
+      return await register(
+        name: name,
+        email: email,
+        phone: phone ?? '',
+        password: password,
+      );
+    }
+
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+
+    try {
+      final result = await fbRepo.registerWithEmailPassword(
+        name: name,
+        email: email,
+        password: password,
+        phone: phone,
+      );
+
+      final token = result['token'] as String;
+      final user = result['user'] as UserModel;
+
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        token: token,
+        user: user,
+        isEmailVerified: false,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  /// Sign In with Email and Password via Firebase
+  Future<bool> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) {
+      return await login(identifier: email, password: password);
+    }
+
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+
+    try {
+      final result = await fbRepo.signInWithEmailPassword(
+        email: email,
+        password: password,
+      );
+
+      final token = result['token'] as String;
+      final user = result['user'] as UserModel;
+
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        token: token,
+        user: user,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  /// Send email verification link
+  Future<bool> sendEmailVerification() async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) return false;
+    try {
+      await fbRepo.sendEmailVerification();
+      return true;
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+      return false;
+    }
+  }
+
+  /// Send password reset link via Firebase
+  Future<bool> sendPasswordReset(String email) async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) {
+      return await forgotPassword(email);
+    }
+
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      await fbRepo.sendPasswordResetEmail(email);
+      state = state.copyWith(status: AuthStatus.unauthenticated);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  /// Link Phone number to currently authenticated profile
+  Future<bool> linkPhone(String smsCode) async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) {
+      state = state.copyWith(
+        errorMessage: 'Account linking not supported in this environment.',
+      );
+      return false;
+    }
+
+    final verificationId = state.firebaseVerificationId;
+    if (verificationId == null) {
+      state = state.copyWith(errorMessage: 'No pending phone verification');
+      return false;
+    }
+
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      final result = await fbRepo.linkPhoneCredential(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      final user = result['user'] as UserModel;
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        user: user,
+        isPhoneVerified: true,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  /// Link Google account to currently authenticated profile
+  Future<bool> linkGoogle() async {
+    final fbRepo = _firebaseRepo;
+    if (fbRepo == null) {
+      state = state.copyWith(
+        errorMessage: 'Google linking not supported in this environment.',
+      );
+      return false;
+    }
+
+    state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
+    try {
+      final result = await fbRepo.linkGoogleAccount();
+      if (result['cancelled'] == true) {
+        state = state.copyWith(status: AuthStatus.authenticated);
+        return false;
+      }
+      final user = result['user'] as UserModel;
+      state = state.copyWith(status: AuthStatus.authenticated, user: user);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.authenticated,
+        errorMessage: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Legacy / Direct API Endpoints (Preserved for compatibility)
+  // -------------------------------------------------------------
 
   Future<bool> login({
     required String identifier,
@@ -344,8 +700,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await storageService.clearSession();
-    apiClient.setAuthToken(null);
+    if (repository is FirebaseAuthRepository) {
+      await (repository as FirebaseAuthRepository).signOut();
+    } else {
+      await storageService.clearSession();
+      apiClient.setAuthToken(null);
+    }
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 }

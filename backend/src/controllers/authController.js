@@ -417,6 +417,202 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+
+/**
+ * POST /api/v1/auth/firebase-sync
+ * Idempotently provisions or updates a MongoDB user record from a verified Firebase ID token.
+ */
+const firebaseSync = async (req, res, next) => {
+  try {
+    const firebaseUser = req.firebaseUser;
+    if (!firebaseUser || !firebaseUser.uid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Firebase authentication session.',
+      });
+    }
+
+    const {
+      uid,
+      email,
+      email_verified: emailVerified,
+      phone_number: phoneNumber,
+      name: fbName,
+      picture,
+      firebase: fbMeta,
+    } = firebaseUser;
+
+    const provider = fbMeta?.sign_in_provider || 'custom';
+
+    // 1. Check if user already exists by firebaseUid
+    let user = await User.findOne({ firebaseUid: uid });
+    if (user) {
+      let modified = false;
+      if (req.body.name && req.body.name.trim().length >= 2 && user.name === 'Sahyān Traveler') {
+        user.name = req.body.name.trim();
+        modified = true;
+      }
+      if (phoneNumber && !user.phone) {
+        user.phone = phoneNumber;
+        user.isVerified = true;
+        modified = true;
+      }
+      if (email && emailVerified && !user.email) {
+        user.email = email.toLowerCase().trim();
+        modified = true;
+      }
+      if (picture && !user.profileImage) {
+        user.profileImage = picture;
+        modified = true;
+      }
+      if (modified) {
+        await user.save();
+      }
+
+      if (user.accountStatus === 'suspended' && user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          errorCode: 'ACCOUNT_SUSPENDED',
+          message: 'Your account has been suspended by the Sahyān administration team.',
+          suspensionReason: user.suspensionReason || 'Account suspended by administration.',
+          suspendedAt: user.suspendedAt,
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Profile synchronized successfully.',
+        isNewUser: false,
+        user: user.toJSON(),
+      });
+    }
+
+    // 2. Safe account association by verified email
+    if (email && emailVerified) {
+      const existingByEmail = await User.findOne({ email: email.toLowerCase().trim() });
+      if (existingByEmail) {
+        existingByEmail.firebaseUid = uid;
+        const alreadyLinked = existingByEmail.firebaseProviders.some((p) => p.providerId === provider);
+        if (!alreadyLinked) {
+          existingByEmail.firebaseProviders.push({ providerId: provider, uid, linkedAt: new Date() });
+        }
+        await existingByEmail.save();
+        return res.status(200).json({
+          success: true,
+          message: 'Existing account linked with Firebase credentials.',
+          isNewUser: false,
+          user: existingByEmail.toJSON(),
+        });
+      }
+    }
+
+    // 3. Safe account association by verified phone number
+    if (phoneNumber) {
+      const cleanPhone = phoneNumber.replace(/\D/g, '').slice(-10);
+      const formattedPhone = `+91${cleanPhone}`;
+      const existingByPhone = await User.findOne({ phone: formattedPhone });
+      if (existingByPhone && !existingByPhone.firebaseUid) {
+        existingByPhone.firebaseUid = uid;
+        existingByPhone.isVerified = true;
+        existingByPhone.firebaseProviders.push({ providerId: 'phone', uid, linkedAt: new Date() });
+        await existingByPhone.save();
+        return res.status(200).json({
+          success: true,
+          message: 'Existing mobile account linked with Firebase credentials.',
+          isNewUser: false,
+          user: existingByPhone.toJSON(),
+        });
+      }
+    }
+
+    // 4. Create new user profile in MongoDB
+    const clientName = req.body.name && req.body.name.trim().length >= 2
+      ? req.body.name.trim()
+      : (fbName || 'Sahyān Traveler');
+
+    const cleanPhone = phoneNumber
+      ? `+91${phoneNumber.replace(/\D/g, '').slice(-10)}`
+      : (req.body.phone ? `+91${req.body.phone.toString().replace(/\D/g, '').slice(-10)}` : undefined);
+
+    let authProviderType = 'local';
+    if (provider.includes('phone')) authProviderType = 'firebase_phone';
+    else if (provider.includes('google')) authProviderType = 'firebase_google';
+    else if (provider.includes('password')) authProviderType = 'firebase_email';
+    else authProviderType = 'firebase_mixed';
+
+    user = await User.create({
+      firebaseUid: uid,
+      name: clientName,
+      email: email ? email.toLowerCase().trim() : undefined,
+      phone: cleanPhone,
+      profileImage: picture || req.body.profileImage || '',
+      city: req.body.city || 'Ahmedabad',
+      isVerified: !!phoneNumber,
+      authProvider: authProviderType,
+      firebaseProviders: [
+        {
+          providerId: provider,
+          uid,
+          linkedAt: new Date(),
+        },
+      ],
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account provisioned successfully.',
+      isNewUser: true,
+      user: user.toJSON(),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/auth/link-provider
+ */
+const linkProvider = async (req, res, next) => {
+  try {
+    const { providerId, providerUid } = req.body;
+    if (!providerId || !providerUid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Provider details are required for account linking.',
+      });
+    }
+
+    const user = req.user;
+    const alreadyLinked = user.firebaseProviders.some(
+      (p) => p.providerId === providerId || p.uid === providerUid
+    );
+
+    if (alreadyLinked) {
+      return res.status(200).json({
+        success: true,
+        message: 'Provider already linked to this profile.',
+        user: user.toJSON(),
+      });
+    }
+
+    user.firebaseProviders.push({
+      providerId,
+      uid: providerUid,
+      linkedAt: new Date(),
+    });
+    user.authProvider = 'firebase_mixed';
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Provider linked successfully.',
+      user: user.toJSON(),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -426,4 +622,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   validatePasswordPolicy,
+  firebaseSync,
+  linkProvider,
 };
+

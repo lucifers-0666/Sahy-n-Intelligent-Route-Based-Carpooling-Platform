@@ -50,6 +50,7 @@ temp/
 .firebase/
 firestore-debug.log
 firebase-debug.log
+*service-account*.json
 
 # Android
 **/android/**/gradle-wrapper.jar

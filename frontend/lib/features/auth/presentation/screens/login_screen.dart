@@ -14,6 +14,7 @@ import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../shared/models/user_model.dart';
 import '../../../../shared/widgets/feedback/feedback_service.dart';
 import '../../../../shared/widgets/feedback/sahyan_dialog.dart';
+import '../../../../shared/widgets/feedback/sahyan_loader.dart';
 import '../../../../shared/widgets/sahyan_route_convergence_logo.dart';
 import '../auth_provider.dart';
 
@@ -47,6 +48,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   _LoginTab _activeTab = _LoginTab.phoneOtp;
   bool _isRequestingOtp = false;
   bool _isSigningIn = false;
+  bool _isSigningInWithGoogle = false;
 
   UserModel? _savedUser;
   bool _hasSavedEnrolledBiometrics = false;
@@ -107,7 +109,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _isRequestingOtp = true);
 
     try {
-      final success = await ref.read(authProvider.notifier).sendOtp(cleanPhone);
+      final success = await ref
+          .read(authProvider.notifier)
+          .sendFirebasePhoneOtp(cleanPhone);
 
       if (!mounted) return;
       setState(() => _isRequestingOtp = false);
@@ -129,6 +133,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isRequestingOtp = false);
+        FeedbackService.error(context, e.toString());
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    if (_isSigningInWithGoogle) return;
+    setState(() => _isSigningInWithGoogle = true);
+
+    try {
+      final success = await ref.read(authProvider.notifier).signInWithGoogle();
+
+      if (!mounted) return;
+      setState(() => _isSigningInWithGoogle = false);
+
+      if (success) {
+        HapticFeedback.mediumImpact();
+        FeedbackService.success(context, 'Signed in with Google successfully');
+        ref.read(userModeProvider.notifier).clearGuestMode();
+        final destination =
+            ref.read(userModeProvider).pendingProtectedIntent ?? '/home';
+        ref.read(userModeProvider.notifier).clearPendingIntent();
+        context.go(destination);
+      } else {
+        final errorMsg = ref.read(authProvider).errorMessage;
+        if (errorMsg != null && errorMsg.isNotEmpty) {
+          FeedbackService.error(context, errorMsg);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSigningInWithGoogle = false);
         FeedbackService.error(context, e.toString());
       }
     }
@@ -397,6 +433,113 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: _activeTab == _LoginTab.phoneOtp
                             ? _buildPhoneOtpForm(isDark)
                             : _buildPasswordForm(isDark),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Alternative Auth Divider
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(color: borderColor, thickness: 1),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          'OR CONTINUE WITH',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.5,
+                            color: mutedColor,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(color: borderColor, thickness: 1),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Bespoke Google Sign-In Button
+                  Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.darkSurface : Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadii.lg),
+                      border: Border.all(color: borderColor, width: 1.2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                            alpha: isDark ? 0.25 : 0.04,
+                          ),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _isSigningInWithGoogle
+                            ? null
+                            : () {
+                                HapticFeedback.lightImpact();
+                                _handleGoogleSignIn();
+                              },
+                        borderRadius: BorderRadius.circular(AppRadii.lg),
+                        child: Center(
+                          child: _isSigningInWithGoogle
+                              ? const SahyanLoader(size: 20)
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.white,
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'G',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w900,
+                                              color: const Color(0xFF4285F4),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Flexible(
+                                        child: Text(
+                                          'Continue with Google',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark
+                                                ? AppColors.darkText
+                                                : AppColors.ink,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        ),
                       ),
                     ),
                   ),

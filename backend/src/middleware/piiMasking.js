@@ -84,8 +84,9 @@ function maskLicense(docId) {
 function maskSingleItem(item) {
   if (!item || typeof item !== 'object') return item;
 
-  // Plain copy
-  const masked = { ...item };
+  // Plain copy, safely converting Mongoose documents if applicable
+  const raw = typeof item.toObject === 'function' ? item.toObject() : item;
+  const masked = { ...raw };
 
   if (typeof masked.phone === 'string') {
     masked.phone = maskPhone(masked.phone);

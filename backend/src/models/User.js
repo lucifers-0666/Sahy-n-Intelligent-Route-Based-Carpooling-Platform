@@ -3,6 +3,25 @@ const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
+    firebaseUid: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+      trim: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'firebase_phone', 'firebase_google', 'firebase_email', 'firebase_mixed'],
+      default: 'local',
+    },
+    firebaseProviders: [
+      {
+        providerId: { type: String },
+        uid: { type: String },
+        linkedAt: { type: Date, default: Date.now },
+      },
+    ],
     name: {
       type: String,
       required: [true, 'Name is required'],
@@ -10,23 +29,23 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
     },
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
       unique: true,
+      sparse: true,
       trim: true,
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
       minlength: [8, 'Password must be at least 8 characters'],
       validate: {
         validator: function (v) {
+          if (!v) return true;
           return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_\-+={}\[\]:;"'<>,.~`|\\])/.test(v);
         },
         message: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
@@ -142,7 +161,7 @@ const userSchema = new mongoose.Schema(
 
 // Hash password before saving if modified
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.password || !this.isModified('password')) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);
@@ -152,6 +171,7 @@ userSchema.pre('save', async function (next) {
 
 // Instance method to compare candidate password
 userSchema.methods.matchPassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return await bcrypt.compare(candidatePassword, this.password);
 };
 

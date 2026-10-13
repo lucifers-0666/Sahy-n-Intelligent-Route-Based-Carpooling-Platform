@@ -1,8 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { authenticate } = require('../middleware/authMiddleware');
+const { authenticate, verifyFirebaseTokenOnly } = require('../middleware/authMiddleware');
 
+// Firebase-authenticated canonical endpoints
+router.post('/firebase-sync', verifyFirebaseTokenOnly, authController.firebaseSync);
+router.post('/link-provider', authenticate, authController.linkProvider);
+
+// Canonical & legacy authentication endpoints
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/me', authenticate, authController.getMe);
