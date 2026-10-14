@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahyan/app/theme/app_theme.dart';
+import 'package:sahyan/core/localization/sahyan_localizations.dart';
 import 'package:sahyan/features/auth/presentation/screens/login_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/register_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/otp_screen.dart';
@@ -9,12 +10,14 @@ import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:sahyan/features/auth/presentation/widgets/sahyan_highway_hero.dart';
+import 'package:sahyan/shared/widgets/sahyan_route_convergence_logo.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/auth/data/auth_repository.dart';
 import 'package:sahyan/core/storage/secure_storage_service.dart';
 import 'package:sahyan/core/network/api_client.dart';
 import 'package:sahyan/shared/models/user_model.dart';
 import 'package:sahyan/core/widgets/app_text_field.dart';
+import 'package:sahyan/l10n/generated/app_localizations.dart';
 
 class MockSecureStorageService implements SecureStorageService {
   @override
@@ -100,6 +103,11 @@ Widget createTestApp(
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        SahyanLocalizations.delegate,
+      ],
+      supportedLocales: SahyanLocalizations.supportedLocales,
       home: MediaQuery(
         data: MediaQueryData(
           size: Size(width, height),
@@ -135,24 +143,24 @@ void main() {
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 100));
 
-          expect(find.text('Sign In'), findsWidgets);
-          expect(find.text('Password'), findsWidgets);
-          expect(find.text('Phone OTP'), findsOneWidget);
-
-          // Switch to OTP tab
-          await tester.tap(find.text('Phone OTP'));
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 250));
-
-          expect(find.text('Get Verification Code'), findsOneWidget);
+          expect(find.text("What's your number?"), findsOneWidget);
           expect(find.text('+91'), findsOneWidget);
+          expect(find.text('Sign in with password instead'), findsOneWidget);
 
-          // Switch back to Password tab
-          await tester.tap(find.text('Password').first);
+          // Switch to password mode
+          await tester.tap(find.text('Sign in with password instead'));
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 250));
 
-          expect(find.text('Forgot Password?'), findsOneWidget);
+          expect(find.text('Welcome back'), findsOneWidget);
+          expect(find.text('Forgot password?'), findsOneWidget);
+
+          // Switch back to OTP mode
+          await tester.tap(find.text('Sign in with phone OTP instead'));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 250));
+
+          expect(find.text("What's your number?"), findsOneWidget);
         },
       );
     }
@@ -173,8 +181,8 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        expect(find.text('Sign In'), findsWidgets);
-        expect(find.text('Password'), findsWidgets);
+        expect(find.text("What's your number?"), findsOneWidget);
+        expect(find.text('+91'), findsOneWidget);
       },
     );
 
@@ -198,7 +206,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        expect(find.text('Sign In'), findsWidgets);
+        expect(find.text("What's your number?"), findsOneWidget);
       },
     );
 
@@ -217,13 +225,25 @@ void main() {
 
       final toggleFinder = find.byType(IconButton);
       expect(toggleFinder, findsOneWidget);
-      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility), findsOneWidget);
 
       await tester.tap(toggleFinder);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+    });
+
+    testWidgets('valid phone entry does not add a green status dot', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createTestApp(const LoginScreen()));
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField), '9876543210');
+      await tester.pump();
+
+      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
     });
   });
 
@@ -245,10 +265,10 @@ void main() {
           await tester.pump();
           await tester.pump(const Duration(milliseconds: 100));
 
-          expect(find.text('Join Sahyān'), findsOneWidget);
-          expect(find.text('Register & Verify OTP'), findsOneWidget);
-          expect(find.text('8+ characters'), findsOneWidget);
-          expect(find.text('Special character'), findsOneWidget);
+          expect(find.text('Create your account'), findsOneWidget);
+          expect(find.text('Full name'), findsOneWidget);
+          expect(find.text('+91'), findsOneWidget);
+          expect(find.text('Continue'), findsOneWidget);
         },
       );
     }
@@ -273,51 +293,43 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        expect(find.text('Join Sahyān'), findsOneWidget);
-        expect(find.text('Register & Verify OTP'), findsOneWidget);
+        expect(find.text('Create your account'), findsOneWidget);
+        expect(find.text('Continue'), findsOneWidget);
       },
     );
 
-    testWidgets('RegisterScreen live password checklist updates on input', (
+    testWidgets('RegisterScreen step progression works from Step 1 to Step 2', (
       tester,
     ) async {
       await tester.pumpWidget(createTestApp(const RegisterScreen()));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      final passwordFields = find.byType(TextFormField);
-      final passwordInput = passwordFields.at(3);
-
-      await tester.enterText(passwordInput, 'StrongPassword123!');
+      // Enter name
+      final nameFinder = find.byType(TextFormField).first;
+      await tester.enterText(nameFinder, 'Zaid Patel');
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byIcon(Icons.check_circle_rounded), findsWidgets);
-    });
-
-    testWidgets('RegisterScreen confirm password match indicator works', (
-      tester,
-    ) async {
-      await tester.pumpWidget(createTestApp(const RegisterScreen()));
+      // Enter phone
+      final phoneFinder = find.widgetWithText(TextField, '98765 43210');
+      await tester.enterText(phoneFinder, '9876543210');
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
 
-      final passwordFields = find.byType(TextFormField);
-      final passwordInput = passwordFields.at(3);
-      final confirmInput = passwordFields.at(4);
-
-      await tester.enterText(passwordInput, 'StrongPassword123!');
-      await tester.enterText(confirmInput, 'DifferentPassword123!');
+      // Tick consent checkbox
+      final checkboxFinder = find.byType(Checkbox);
+      await tester.tap(checkboxFinder);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Passwords do not match'), findsOneWidget);
-
-      await tester.enterText(confirmInput, 'StrongPassword123!');
+      // Scroll to and tap Continue
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Passwords match'), findsOneWidget);
+      // Verifies Step 2 is shown
+      expect(find.text('Preferences & Role'), findsOneWidget);
+      expect(find.text('Complete Registration'), findsOneWidget);
     });
   });
 
@@ -341,10 +353,39 @@ void main() {
 
           expect(find.text('Verify your phone'), findsOneWidget);
           expect(find.text('Verify & Proceed'), findsOneWidget);
-          expect(find.text('Resend Code'), findsOneWidget);
+          expect(find.textContaining('Resend'), findsOneWidget);
         },
       );
     }
+
+    testWidgets('OTP accepts a multi-digit paste in one accessible field', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(320, 844);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(createTestApp(const OtpScreen(), width: 320));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(TextField), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '12345');
+      await tester.pump();
+
+      for (final digit in ['1', '2', '3', '4', '5']) {
+        expect(find.text(digit), findsOneWidget);
+      }
+
+      await tester.tap(find.text('Verify & Proceed'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Enter all 6 digits to verify.'), findsOneWidget);
+    });
 
     testWidgets(
       'OtpScreen with 1.5x accessibility text scale renders cleanly',
@@ -446,13 +487,12 @@ void main() {
           await tester.pump(const Duration(milliseconds: 100));
 
           expect(
-            find.text('Share the journey, not just the ride.'),
+            find.text('Share the journey,\nnot just the ride.'),
             findsOneWidget,
           );
           expect(find.text('Continue with phone'), findsOneWidget);
-          expect(find.text('Verified'), findsOneWidget);
-          expect(find.text('Fair cost'), findsOneWidget);
-          expect(find.text('Direct routes'), findsOneWidget);
+          expect(find.text('Use email or password instead'), findsOneWidget);
+          expect(find.text('Explore as guest · Browse rides'), findsOneWidget);
         },
       );
     }
@@ -474,5 +514,21 @@ void main() {
         expect(find.byType(SahyanHighwaySunriseHero), findsNWidgets(2));
       },
     );
+  });
+
+  testWidgets('Splash lockup shows its wordmark and tagline on first frame', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      createTestApp(
+        const Scaffold(body: Center(child: SahyanAnimatedRouteLogo())),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Where journeys find company'), findsOneWidget);
+    for (final letter in ['S', 'a', 'h', 'y', 'ā', 'n']) {
+      expect(find.text(letter), findsOneWidget);
+    }
   });
 }

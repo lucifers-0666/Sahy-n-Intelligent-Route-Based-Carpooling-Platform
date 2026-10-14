@@ -120,7 +120,7 @@ class SahyanSheet extends StatelessWidget {
                           ?trailing,
                           if (showCloseButton)
                             IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 20),
+                              icon: const Icon(Icons.close, size: 20),
                               onPressed: () => Navigator.of(context).pop(),
                               splashRadius: 20,
                             ),

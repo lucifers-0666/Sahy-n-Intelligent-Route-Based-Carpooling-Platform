@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/config/app_region.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/location/data/providers/geolocator_provider.dart';
+import '../../../../core/location/domain/gps_provider.dart';
 import '../../../../shared/models/location_model.dart';
 import '../../../../shared/models/ride_model.dart';
 import '../../../../shared/widgets/bento/bento_widgets.dart';
@@ -28,21 +31,21 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with TickerProviderStateMixin {
   final TextEditingController _originController = TextEditingController(
-    text: 'SG Highway, Ahmedabad',
+    text: AppRegion.fallbackCity,
   );
   final TextEditingController _destinationController = TextEditingController(
-    text: 'Rajkot, Kalawad Road',
+    text: '',
   );
 
   LocationModel _originLocation = LocationModel.fromCoordinates(
-    name: 'SG Highway, Ahmedabad',
-    latitude: 23.0225,
-    longitude: 72.5714,
+    name: AppRegion.fallbackCity,
+    latitude: AppRegion.fallbackLatitude,
+    longitude: AppRegion.fallbackLongitude,
   );
   LocationModel _destinationLocation = LocationModel.fromCoordinates(
-    name: 'Rajkot, Kalawad Road',
-    latitude: 22.3039,
-    longitude: 70.8022,
+    name: '',
+    latitude: AppRegion.fallbackLatitude,
+    longitude: AppRegion.fallbackLongitude,
   );
 
   int _selectedSeats = 2;
@@ -55,53 +58,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   static const List<Map<String, dynamic>> _quickCorridors = [
     {
-      'from': 'Bhuj',
-      'to': 'Ahmedabad',
-      'price': 388,
-      'fromLat': 23.2420,
-      'fromLng': 69.6669,
-      'toLat': 23.0225,
-      'toLng': 72.5714,
-      'viaHighway': 'NH47',
+      'from': 'Ahmedabad',
+      'to': 'Vadodara',
+      'price': 150,
+      'fromLat': 23.0225,
+      'fromLng': 72.5714,
+      'toLat': 22.3072,
+      'toLng': 73.1812,
+      'viaHighway': 'NE1',
       'avgSpeedKmh': 92,
       'activeDriversCount': 14,
       'matchScore': 95,
     },
     {
-      'from': 'Rajkot',
-      'to': 'Surat',
-      'price': 520,
-      'fromLat': 22.3039,
-      'fromLng': 70.8022,
-      'toLat': 21.1702,
-      'toLng': 72.8311,
+      'from': 'Mumbai',
+      'to': 'Pune',
+      'price': 320,
+      'fromLat': 19.0760,
+      'fromLng': 72.8777,
+      'toLat': 18.5204,
+      'toLng': 73.8567,
       'viaHighway': 'NH48',
       'avgSpeedKmh': 88,
       'activeDriversCount': 9,
       'matchScore': 92,
     },
     {
-      'from': 'Vadodara',
-      'to': 'Ahmedabad',
-      'price': 210,
-      'fromLat': 22.3072,
-      'fromLng': 73.1812,
-      'toLat': 23.0225,
-      'toLng': 72.5714,
-      'viaHighway': 'NE1',
+      'from': 'Delhi',
+      'to': 'Jaipur',
+      'price': 450,
+      'fromLat': 28.6139,
+      'fromLng': 77.2090,
+      'toLat': 26.9124,
+      'toLng': 75.7873,
+      'viaHighway': 'NH48',
       'avgSpeedKmh': 105,
       'activeDriversCount': 21,
       'matchScore': 98,
     },
     {
-      'from': 'Morbi',
-      'to': 'Rajkot',
-      'price': 120,
-      'fromLat': 22.8120,
-      'fromLng': 70.8370,
-      'toLat': 22.3039,
-      'toLng': 70.8022,
-      'viaHighway': 'SH27',
+      'from': 'Bengaluru',
+      'to': 'Mysuru',
+      'price': 280,
+      'fromLat': 12.9716,
+      'fromLng': 77.5946,
+      'toLat': 12.2958,
+      'toLng': 76.6394,
+      'viaHighway': 'NH275',
       'avgSpeedKmh': 78,
       'activeDriversCount': 6,
       'matchScore': 89,
@@ -126,6 +129,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _pulseAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadGrantedUserLocation();
+    });
+  }
+
+  Future<void> _loadGrantedUserLocation() async {
+    final locationProvider = GeolocatorProvider();
+    try {
+      final permission = await locationProvider.checkPermission();
+      if (permission != LocationPermissionStatus.granted ||
+          !await locationProvider.isServiceEnabled()) {
+        return;
+      }
+
+      final point = await locationProvider.getCurrentPosition().timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => null,
+      );
+      if (point == null || !mounted) return;
+
+      setState(() {
+        _originLocation = LocationModel.fromCoordinates(
+          name: 'Current location',
+          latitude: point.latitude,
+          longitude: point.longitude,
+        );
+        _originController.text = _originLocation.name;
+      });
+    } finally {
+      await locationProvider.dispose();
+    }
   }
 
   @override
@@ -156,13 +190,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _destinationController.text = corridor['to'] as String;
       _originLocation = LocationModel.fromCoordinates(
         name: corridor['from'] as String,
-        latitude: (corridor['fromLat'] as num?)?.toDouble() ?? 23.0225,
-        longitude: (corridor['fromLng'] as num?)?.toDouble() ?? 72.5714,
+        latitude:
+            (corridor['fromLat'] as num?)?.toDouble() ??
+            AppRegion.fallbackLatitude,
+        longitude:
+            (corridor['fromLng'] as num?)?.toDouble() ??
+            AppRegion.fallbackLongitude,
       );
       _destinationLocation = LocationModel.fromCoordinates(
         name: corridor['to'] as String,
-        latitude: (corridor['toLat'] as num?)?.toDouble() ?? 22.3039,
-        longitude: (corridor['toLng'] as num?)?.toDouble() ?? 70.8022,
+        latitude:
+            (corridor['toLat'] as num?)?.toDouble() ??
+            AppRegion.fallbackLatitude,
+        longitude:
+            (corridor['toLng'] as num?)?.toDouble() ??
+            AppRegion.fallbackLongitude,
       );
     });
   }
@@ -392,58 +434,59 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           ),
                           const SizedBox(height: 6),
                           // Active Regional Transit Hub Pill
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Current corridor anchor: Ahmedabad Hub',
-                                    ),
-                                    duration: Duration(seconds: 2),
-                                    backgroundColor: SahyanColors.primaryDark,
-                                  ),
-                                );
-                              },
-                              borderRadius: BorderRadius.circular(999),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 9,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: SahyanColors.primaryLight,
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: SahyanColors.primaryMint.withValues(
-                                      alpha: 0.4,
-                                    ),
-                                    width: 0.8,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: const BoxDecoration(
-                                        color: SahyanColors.primaryMint,
-                                        shape: BoxShape.circle,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Current corridor anchor: ${AppRegion.fallbackCity}',
                                       ),
+                                      duration: Duration(seconds: 2),
+                                      backgroundColor: SahyanColors.primaryDark,
                                     ),
-                                    const SizedBox(width: 5),
-                                    const Icon(
-                                      Icons.location_on_rounded,
-                                      size: 12,
-                                      color: SahyanColors.primaryDark,
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(999),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 9,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: SahyanColors.primaryLight,
+                                    borderRadius: BorderRadius.circular(999),
+                                    border: Border.all(
+                                      color: SahyanColors.primaryMint
+                                          .withValues(alpha: 0.4),
+                                      width: 0.8,
                                     ),
-                                    const SizedBox(width: 4),
-                                    const Flexible(
-                                      child: Text(
-                                        'Ahmedabad Hub',
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: const BoxDecoration(
+                                          color: SahyanColors.primaryMint,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      const Icon(
+                                        Icons.location_on_rounded,
+                                        size: 12,
+                                        color: SahyanColors.primaryDark,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        AppRegion.fallbackCity,
                                         style: TextStyle(
                                           fontFamily: 'Plus Jakarta Sans',
                                           fontSize: 11,
@@ -453,14 +496,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
-                                    ),
-                                    const SizedBox(width: 3),
-                                    const Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      size: 13,
-                                      color: SahyanColors.primaryDark,
-                                    ),
-                                  ],
+                                      const SizedBox(width: 3),
+                                      const Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        size: 13,
+                                        color: SahyanColors.primaryDark,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -686,16 +729,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Live Highway Corridors',
-                      style: TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.4,
-                        color: SahyanColors.textMain,
+                    const Expanded(
+                      child: Text(
+                        'Live Highway Corridors',
+                        style: TextStyle(
+                          fontFamily: 'Plus Jakarta Sans',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.4,
+                          color: SahyanColors.textMain,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     _PulsatingTelematics(animation: _pulseAnimation),
                   ],
                 ),
@@ -709,17 +757,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // Corridor Card 1: Ahmedabad -> Rajkot Express
+                  // Featured all-India corridor
                   _CorridorBentoCard(
                     routeName:
-                        '${quickCorridors.isNotEmpty ? quickCorridors[0]['from'] : 'Ahmedabad'} → ${quickCorridors.isNotEmpty ? quickCorridors[0]['to'] : 'Rajkot'} Express',
+                        '${quickCorridors.isNotEmpty ? quickCorridors[0]['from'] : 'Ahmedabad'} → ${quickCorridors.isNotEmpty ? quickCorridors[0]['to'] : 'Vadodara'} Express',
                     speedLabel:
                         '${quickCorridors.isNotEmpty ? quickCorridors[0]['avgSpeedKmh'] ?? 94 : 94} km/h avg',
                     driverInfo:
                         '${quickCorridors.isNotEmpty ? quickCorridors[0]['activeDriversCount'] ?? 14 : 14} verified drivers ready · Next in 8 mins',
                     matchScoreText: '95% Corridor Match',
                     badges: [
-                      'via ${quickCorridors.isNotEmpty ? quickCorridors[0]['viaHighway'] ?? 'NH47' : 'NH47'}',
+                      'via ${quickCorridors.isNotEmpty ? quickCorridors[0]['viaHighway'] ?? 'NE1' : 'NE1'}',
                       'EV Fastlane',
                     ],
                     badgeVariants: const [
@@ -728,24 +776,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ],
                     badgeIcons: const [null, Icons.bolt_rounded],
                     price:
-                        '₹${quickCorridors.isNotEmpty ? quickCorridors[0]['price'] : 320} / seat',
+                        '₹${quickCorridors.isNotEmpty ? quickCorridors[0]['price'] : 150} / seat',
                     onTap: () {
                       _originController.text = quickCorridors.isNotEmpty
                           ? quickCorridors[0]['from']
                           : 'Ahmedabad';
                       _destinationController.text = quickCorridors.isNotEmpty
                           ? quickCorridors[0]['to']
-                          : 'Rajkot';
+                          : 'Vadodara';
                       _handleSearch();
                     },
                   ),
 
                   const SizedBox(height: 12),
 
-                  // Corridor Card 2: Surat -> Vadodara Expressway
+                  // Mumbai -> Pune corridor
                   _CorridorBentoCard(
                     routeName:
-                        '${quickCorridors.length > 1 ? quickCorridors[1]['from'] : 'Surat'} → ${quickCorridors.length > 1 ? quickCorridors[1]['to'] : 'Vadodara'} Expressway',
+                        '${quickCorridors.length > 1 ? quickCorridors[1]['from'] : 'Mumbai'} → ${quickCorridors.length > 1 ? quickCorridors[1]['to'] : 'Pune'} Expressway',
                     speedLabel:
                         '${quickCorridors.length > 1 ? quickCorridors[1]['avgSpeedKmh'] ?? 88 : 88} km/h avg',
                     driverInfo:
@@ -764,14 +812,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       Icons.check_circle_outline_rounded,
                     ],
                     price:
-                        '₹${quickCorridors.length > 1 ? quickCorridors[1]['price'] : 210} / seat',
+                        '₹${quickCorridors.length > 1 ? quickCorridors[1]['price'] : 320} / seat',
                     onTap: () {
                       _originController.text = quickCorridors.length > 1
                           ? quickCorridors[1]['from']
-                          : 'Surat';
+                          : 'Mumbai';
                       _destinationController.text = quickCorridors.length > 1
                           ? quickCorridors[1]['to']
-                          : 'Vadodara';
+                          : 'Pune';
                       _handleSearch();
                     },
                   ),
@@ -1247,23 +1295,24 @@ class _CorridorBentoCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Top Row: Route name + Speed pill
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
-              Expanded(
-                child: Text(
-                  routeName,
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: SahyanColors.textMain,
-                    letterSpacing: -0.3,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                routeName,
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: SahyanColors.textMain,
+                  letterSpacing: -0.3,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
@@ -1304,21 +1353,22 @@ class _CorridorBentoCard extends StatelessWidget {
           const SizedBox(height: 6),
 
           // Mid Row: Driver info & Match Score
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
             children: [
-              Expanded(
-                child: Text(
-                  driverInfo,
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 12,
-                    color: SahyanColors.textMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              Text(
+                driverInfo,
+                style: const TextStyle(
+                  fontFamily: 'Plus Jakarta Sans',
+                  fontSize: 12,
+                  color: SahyanColors.textMuted,
+                  fontWeight: FontWeight.w500,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1342,23 +1392,24 @@ class _CorridorBentoCard extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Bottom Row: Badges + Price
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              Expanded(
-                child: Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: List.generate(badges.length, (i) {
-                    return PillTag(
-                      label: badges[i],
-                      variant: badgeVariants[i],
-                      icon: badgeIcons[i],
-                      fontSize: 11,
-                    );
-                  }),
-                ),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: List.generate(badges.length, (i) {
+                  return PillTag(
+                    label: badges[i],
+                    variant: badgeVariants[i],
+                    icon: badgeIcons[i],
+                    fontSize: 11,
+                  );
+                }),
               ),
-              const SizedBox(width: 8),
               Text(
                 price,
                 style: const TextStyle(

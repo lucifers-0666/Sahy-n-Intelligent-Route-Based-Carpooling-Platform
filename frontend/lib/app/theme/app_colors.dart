@@ -25,6 +25,7 @@ abstract class AppColors {
   static const Color canvasLight = Color(
     0xFFF6F8F7,
   ); // Page background (#F6F8F7)
+  static const Color heroSky = Color(0xFFB7DFE0);
   static const Color cardLight = Color(0xFFFFFFFF); // Card surfaces (#FFFFFF)
   static const Color mutedLight = Color(0xFF5B6B66); // Secondary text (#5B6B66)
   static const Color error = Color(

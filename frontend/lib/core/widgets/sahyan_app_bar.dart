@@ -48,7 +48,7 @@ class SahyanAppBar extends StatelessWidget implements PreferredSizeWidget {
       leading: (showBackButton && canPop)
           ? IconButton(
               icon: const Icon(
-                Icons.arrow_back_rounded,
+                Icons.arrow_back,
                 color: AppColors.textPrimary,
                 size: 22,
               ),

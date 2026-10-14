@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sahyan/app/config/app_region.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/rides/data/ride_repository.dart';
 
@@ -18,7 +19,7 @@ final rideApiRepositoryProvider = Provider<RideRepository>((ref) {
 // Backward compatibility alias
 final ridesRepositoryProvider = rideApiRepositoryProvider;
 
-// Live Gujarat Highway Corridors Provider
+// Live intercity corridors Provider
 final corridorsProvider = FutureProvider<List<Map<String, dynamic>>>((
   ref,
 ) async {
@@ -31,55 +32,57 @@ final corridorsProvider = FutureProvider<List<Map<String, dynamic>>>((
           .toList();
       if (list.isNotEmpty) return list;
     }
-  } catch (_) {}
+  } catch (error) {
+    debugPrint('Unable to load ride corridors; using curated routes: $error');
+  }
   return const [
     {
       'from': 'Ahmedabad',
-      'to': 'Rajkot',
-      'price': 320,
+      'to': 'Vadodara',
+      'price': 150,
       'fromLat': 23.0225,
       'fromLng': 72.5714,
-      'toLat': 22.3039,
-      'toLng': 70.8022,
-      'activeDriversCount': 12,
-      'avgSpeedKmh': 94,
-      'viaHighway': 'NH47',
-    },
-    {
-      'from': 'Surat',
-      'to': 'Vadodara',
-      'price': 210,
-      'fromLat': 21.1702,
-      'fromLng': 72.8311,
       'toLat': 22.3072,
       'toLng': 73.1812,
+      'activeDriversCount': 12,
+      'avgSpeedKmh': 94,
+      'viaHighway': 'NE1',
+    },
+    {
+      'from': 'Mumbai',
+      'to': 'Pune',
+      'price': 320,
+      'fromLat': 19.0760,
+      'fromLng': 72.8777,
+      'toLat': 18.5204,
+      'toLng': 73.8567,
       'activeDriversCount': 8,
       'avgSpeedKmh': 88,
       'viaHighway': 'NH48',
     },
     {
-      'from': 'Bhuj',
-      'to': 'Ahmedabad',
-      'price': 388,
-      'fromLat': 23.2420,
-      'fromLng': 69.6669,
-      'toLat': 23.0225,
-      'toLng': 72.5714,
+      'from': 'Delhi',
+      'to': 'Jaipur',
+      'price': 450,
+      'fromLat': 28.6139,
+      'fromLng': 77.2090,
+      'toLat': 26.9124,
+      'toLng': 75.7873,
       'activeDriversCount': 6,
       'avgSpeedKmh': 82,
-      'viaHighway': 'NH947',
+      'viaHighway': 'NH48',
     },
     {
-      'from': 'Morbi',
-      'to': 'Rajkot',
-      'price': 120,
-      'fromLat': 22.8120,
-      'fromLng': 70.8370,
-      'toLat': 22.3039,
-      'toLng': 70.8022,
+      'from': 'Bengaluru',
+      'to': 'Mysuru',
+      'price': 280,
+      'fromLat': 12.9716,
+      'fromLng': 77.5946,
+      'toLat': 12.2958,
+      'toLng': 76.6394,
       'activeDriversCount': 7,
       'avgSpeedKmh': 75,
-      'viaHighway': 'SH24',
+      'viaHighway': 'NH275',
     },
   ];
 });
@@ -151,8 +154,8 @@ class RideSearchQuery {
 
 final rideSearchQueryProvider = StateProvider<RideSearchQuery>((ref) {
   return RideSearchQuery(
-    origin: 'Ahmedabad',
-    destination: 'Rajkot',
+    origin: AppRegion.fallbackCity,
+    destination: '',
     date: DateTime.now(),
     seats: 1,
   );

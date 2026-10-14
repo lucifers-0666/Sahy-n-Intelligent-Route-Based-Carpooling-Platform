@@ -7,7 +7,7 @@ import '../../app/theme/app_typography.dart';
 
 enum SahyanButtonVariant { primary, secondary, outline, ghost, destructive }
 
-enum SahyanButtonSize { regular, compact, small }
+enum SahyanButtonSize { large, regular, compact, small }
 
 /// Standardized Sahyān Brand Button component.
 /// Provides consistent touch target height, typography, loading states,
@@ -19,6 +19,7 @@ class SahyanButton extends StatefulWidget {
   final SahyanButtonSize size;
   final bool isLoading;
   final bool isDisabled;
+  final bool isInvalid;
   final IconData? icon;
   final bool iconLeading;
   final bool isFullWidth;
@@ -31,6 +32,7 @@ class SahyanButton extends StatefulWidget {
     this.size = SahyanButtonSize.regular,
     this.isLoading = false,
     this.isDisabled = false,
+    this.isInvalid = false,
     this.icon,
     this.iconLeading = true,
     this.isFullWidth = true,
@@ -40,11 +42,40 @@ class SahyanButton extends StatefulWidget {
   State<SahyanButton> createState() => _SahyanButtonState();
 }
 
-class _SahyanButtonState extends State<SahyanButton> {
+class _SahyanButtonState extends State<SahyanButton>
+    with SingleTickerProviderStateMixin {
   bool _isPressed = false;
+  late final AnimationController _shakeController;
+  late final Animation<double> _shakeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _shakeAnimation =
+        TweenSequence<double>([
+          TweenSequenceItem(tween: Tween(begin: 0, end: -8), weight: 20),
+          TweenSequenceItem(tween: Tween(begin: -8, end: 8), weight: 40),
+          TweenSequenceItem(tween: Tween(begin: 8, end: -5), weight: 25),
+          TweenSequenceItem(tween: Tween(begin: -5, end: 0), weight: 15),
+        ]).animate(
+          CurvedAnimation(parent: _shakeController, curve: Curves.easeInOut),
+        );
+  }
+
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    super.dispose();
+  }
 
   double get _height {
     switch (widget.size) {
+      case SahyanButtonSize.large:
+        return 56.0;
       case SahyanButtonSize.regular:
         return 52.0;
       case SahyanButtonSize.compact:
@@ -56,6 +87,7 @@ class _SahyanButtonState extends State<SahyanButton> {
 
   EdgeInsets get _padding {
     switch (widget.size) {
+      case SahyanButtonSize.large:
       case SahyanButtonSize.regular:
         return AppSpacing.paddingButton;
       case SahyanButtonSize.compact:
@@ -67,6 +99,11 @@ class _SahyanButtonState extends State<SahyanButton> {
 
   TextStyle get _textStyle {
     switch (widget.size) {
+      case SahyanButtonSize.large:
+        return AppTypography.button.copyWith(
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        );
       case SahyanButtonSize.regular:
         return AppTypography.button;
       case SahyanButtonSize.compact:
@@ -78,13 +115,18 @@ class _SahyanButtonState extends State<SahyanButton> {
 
   Color _backgroundColor(bool isDark) {
     if (widget.isDisabled) {
+      if (widget.variant == SahyanButtonVariant.primary) {
+        return (isDark ? AppColors.brandBright : AppColors.brand).withValues(
+          alpha: 0.40,
+        );
+      }
       return isDark ? AppColors.darkSurfaceHigh : AppColors.border;
     }
     switch (widget.variant) {
       case SahyanButtonVariant.primary:
         return isDark ? AppColors.brandBright : AppColors.brand;
       case SahyanButtonVariant.secondary:
-        return isDark ? AppColors.darkSurfaceHigh : AppColors.softForest;
+        return Colors.transparent;
       case SahyanButtonVariant.outline:
       case SahyanButtonVariant.ghost:
         return Colors.transparent;
@@ -95,6 +137,9 @@ class _SahyanButtonState extends State<SahyanButton> {
 
   Color _foregroundColor(bool isDark) {
     if (widget.isDisabled) {
+      if (widget.variant == SahyanButtonVariant.primary) {
+        return Colors.white.withValues(alpha: 0.90);
+      }
       return isDark ? AppColors.darkMuted : AppColors.textTertiary;
     }
     switch (widget.variant) {
@@ -112,7 +157,8 @@ class _SahyanButtonState extends State<SahyanButton> {
   }
 
   BorderSide? _borderSide(bool isDark) {
-    if (widget.variant == SahyanButtonVariant.outline) {
+    if (widget.variant == SahyanButtonVariant.outline ||
+        widget.variant == SahyanButtonVariant.secondary) {
       return BorderSide(
         color: widget.isDisabled
             ? (isDark ? AppColors.darkSurfaceHigh : AppColors.border)
@@ -173,48 +219,75 @@ class _SahyanButtonState extends State<SahyanButton> {
             ],
           );
 
-    return AnimatedScale(
-      scale: _isPressed ? 0.97 : 1.0,
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOutCubic,
-      child: SizedBox(
-        height: _height,
-        width: widget.isFullWidth ? double.infinity : null,
-        child: Material(
-          color: bgColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppRadii.md),
-            side: border ?? BorderSide.none,
+    return AnimatedBuilder(
+      animation: _shakeAnimation,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.97 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Container(
+          height: _height,
+          width: widget.isFullWidth ? double.infinity : null,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadii.input),
+            boxShadow:
+                widget.variant == SahyanButtonVariant.primary &&
+                    !widget.isDisabled
+                ? [
+                    BoxShadow(
+                      color: (isDark ? AppColors.mint : AppColors.brand)
+                          .withValues(alpha: 0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: isInteractive
-                ? () {
-                    HapticFeedback.lightImpact();
-                    widget.onPressed?.call();
-                  }
-                : null,
-            onTapDown: isInteractive
-                ? (_) {
-                    setState(() => _isPressed = true);
-                  }
-                : null,
-            onTapUp: isInteractive
-                ? (_) {
-                    setState(() => _isPressed = false);
-                  }
-                : null,
-            onTapCancel: isInteractive
-                ? () {
-                    setState(() => _isPressed = false);
-                  }
-                : null,
-            child: Padding(
-              padding: _padding,
-              child: Center(child: content),
+          child: Material(
+            color: bgColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadii.input),
+              side: border ?? BorderSide.none,
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: isInteractive
+                  ? () {
+                      HapticFeedback.lightImpact();
+                      if (widget.isInvalid &&
+                          !(MediaQuery.maybeOf(context)?.disableAnimations ??
+                              false)) {
+                        _shakeController.forward(from: 0);
+                      }
+                      widget.onPressed?.call();
+                    }
+                  : null,
+              onTapDown: isInteractive
+                  ? (_) {
+                      setState(() => _isPressed = true);
+                    }
+                  : null,
+              onTapUp: isInteractive
+                  ? (_) {
+                      setState(() => _isPressed = false);
+                    }
+                  : null,
+              onTapCancel: isInteractive
+                  ? () {
+                      setState(() => _isPressed = false);
+                    }
+                  : null,
+              child: Padding(
+                padding: _padding,
+                child: Center(child: content),
+              ),
             ),
           ),
         ),
+      ),
+      builder: (context, child) => Transform.translate(
+        offset: Offset(_shakeAnimation.value, 0),
+        child: child,
       ),
     );
   }

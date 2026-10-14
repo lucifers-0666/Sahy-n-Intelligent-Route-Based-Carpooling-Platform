@@ -1,0 +1,17 @@
+{
+  "@@locale": "gu",
+  "welcomeHeadline": "મુસાફરી વહેંચો,\nમાત્ર રાઇડ નહીં.",
+  "welcomeSubline": "ભારતભરના રૂટ પર પ્રમાણિત સહમુસાફરો અને ડ્રાઇવરો શોધો.",
+  "registerIntro": "ભારતના પ્રમાણિત કારપૂલિંગ સમુદાયમાં જોડાઓ.",
+  "otpIncompleteError": "ચકાસવા માટે બધા ૬ અંક દાખલ કરો.",
+  "fullNameLabel": "પૂરું નામ",
+  "fullNameHelper": "તમારા ઓળખપત્ર મુજબ",
+  "termsConsentPrefix": "આગળ વધીને તમે સંમત થાઓ છો ",
+  "@termsConsentPrefix": {
+    "description": "Legal consent copy; must be reviewed by legal counsel."
+  },
+  "termsAndPrivacy": "નિયમો અને ગોપનીયતા નીતિ",
+  "@termsAndPrivacy": {
+    "description": "Legal link label; must be reviewed by legal counsel."
+  }
+}

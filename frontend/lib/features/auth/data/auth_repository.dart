@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sahyan/core/network/api_client.dart';
@@ -35,6 +36,8 @@ abstract class AuthRepository {
 }
 
 abstract class FirebaseAuthRepository extends AuthRepository {
+  bool get isFirebaseAvailable;
+
   Future<void> sendFirebasePhoneOtp({
     required String phoneNumber,
     required void Function(String verificationId, int? resendToken) onCodeSent,
@@ -110,9 +113,11 @@ class AuthRepositoryImpl implements FirebaseAuthRepository {
 
   GoogleSignIn get activeGoogleSignIn => googleSignIn ?? GoogleSignIn();
 
+  @override
   bool get isFirebaseAvailable {
     try {
-      return firebaseAuth != null || FirebaseAuth.instance.app.name.isNotEmpty;
+      if (firebaseAuth != null) return true;
+      return Firebase.apps.isNotEmpty;
     } catch (_) {
       return false;
     }

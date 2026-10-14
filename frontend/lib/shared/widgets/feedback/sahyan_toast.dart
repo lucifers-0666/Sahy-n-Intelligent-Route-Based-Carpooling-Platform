@@ -32,7 +32,7 @@ class SahyanToast extends StatefulWidget {
     this.onDismiss,
     this.onAction,
     this.actionLabel,
-    this.duration = const Duration(milliseconds: 3200),
+    this.duration = const Duration(milliseconds: 3000),
   });
 
   @override
@@ -69,13 +69,13 @@ class _SahyanToastState extends State<SahyanToast>
   IconData get _icon {
     switch (widget.type) {
       case SahyanToastType.success:
-        return Icons.check_circle_rounded;
+        return Icons.check_circle;
       case SahyanToastType.error:
-        return Icons.error_outline_rounded;
+        return Icons.error_outline;
       case SahyanToastType.warning:
-        return Icons.warning_amber_rounded;
+        return Icons.warning_amber;
       case SahyanToastType.info:
-        return Icons.info_outline_rounded;
+        return Icons.info_outline;
     }
   }
 

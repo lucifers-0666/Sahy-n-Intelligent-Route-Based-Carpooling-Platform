@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/biometric_service.dart';
 import '../../../../core/widgets/design_system.dart';
+import '../../../../shared/widgets/feedback/sahyan_legal_sheet.dart';
+import '../../../../shared/widgets/feedback/sahyan_logout_bottom_sheet.dart';
 import '../../../auth/presentation/auth_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -16,6 +19,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _rideAlerts = true;
   bool _marketingEmails = false;
   bool _locationSharing = true;
+  bool _appLockEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppLock();
+  }
+
+  Future<void> _loadAppLock() async {
+    final biometric = ref.read(biometricServiceProvider);
+    final enabled = await biometric.hasBiometricOptIn();
+    if (mounted) setState(() => _appLockEnabled = enabled);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +213,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       },
                     ),
                     const Divider(height: 1, color: AppColors.border),
+                    SwitchListTile(
+                      activeThumbColor: AppColors.primaryForest,
+                      title: Text(
+                        'App Lock / Fingerprint Unlock',
+                        style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                      ),
+                      subtitle: Text(
+                        'Require fingerprint on open or after 1 minute',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      value: _appLockEnabled,
+                      onChanged: (val) async {
+                        setState(() => _appLockEnabled = val);
+                        final biometric = ref.read(biometricServiceProvider);
+                        await biometric.setBiometricOptIn(val);
+                        await biometric.setAppLockMode(val ? 'on_open' : 'off');
+                      },
+                    ),
+                    const Divider(height: 1, color: AppColors.border),
                     ListTile(
                       leading: const Icon(
                         Icons.lock_outline_rounded,
@@ -233,16 +270,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         Icons.chevron_right_rounded,
                         color: AppColors.textSecondary,
                       ),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Sahyān Community Carpool Terms of Service',
-                            ),
-                            backgroundColor: AppColors.deepForest,
-                          ),
-                        );
-                      },
+                      onTap: () => SahyanLegalSheet.show(context),
                     ),
                     const Divider(height: 1, color: AppColors.border),
                     ListTile(
@@ -254,14 +282,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         Icons.chevron_right_rounded,
                         color: AppColors.textSecondary,
                       ),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Sahyān Data Protection & Privacy'),
-                            backgroundColor: AppColors.deepForest,
-                          ),
-                        );
-                      },
+                      onTap: () => SahyanLegalSheet.show(context),
                     ),
                     const Divider(height: 1, color: AppColors.border),
                     ListTile(
@@ -393,46 +414,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _confirmSignOut(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadii.lg),
-        ),
-        title: Text('Sign Out', style: AppTypography.cardTitle),
-        content: Text(
-          'Are you sure you want to sign out of your Sahyān account?',
-          style: AppTypography.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancel',
-              style: AppTypography.button.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.mutedRust,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadii.sm),
-              ),
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ref.read(authProvider.notifier).logout();
-              context.go('/auth-entry');
-            },
-            child: Text(
-              'Sign Out',
-              style: AppTypography.button.copyWith(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
+    SahyanLogoutBottomSheet.show(context);
   }
 }

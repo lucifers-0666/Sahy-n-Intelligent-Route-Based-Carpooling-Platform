@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,29 +8,36 @@ export 'auth_screen.dart';
 import '../../../../app/providers/user_mode_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
-import '../../../../core/services/biometric_service.dart';
-import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/localization/sahyan_language_selector.dart';
+import '../../../../core/localization/sahyan_localizations.dart';
 import '../../../../core/widgets/sahyan_button.dart';
-import '../../../../shared/models/user_model.dart';
+import '../../../../firebase_options.dart';
 import '../../../../shared/widgets/feedback/feedback_service.dart';
-import '../../../../shared/widgets/feedback/sahyan_dialog.dart';
-import '../../../../shared/widgets/feedback/sahyan_loader.dart';
-import '../../../../shared/widgets/sahyan_route_convergence_logo.dart';
+import '../../../../shared/widgets/feedback/sahyan_legal_sheet.dart';
+import '../../../../shared/widgets/sahyan_logo.dart';
+import '../../../../shared/widgets/sahyan_route_background.dart';
 import '../auth_provider.dart';
 
-enum _LoginTab { phoneOtp, password }
+enum _LoginMode { phoneOtp, password }
 
 /// Redesigned 2026 Production Sign-In Screen for Sahyān.
 ///
 /// Features:
-/// - Phone OTP as the primary passwordless experience
-/// - Indian mobile number input with +91 country prefix chip
-/// - Clean secondary password/email flow
-/// - Enrolled-session biometric gating (hides biometric when no valid session exists)
-/// - Integrated with real AuthNotifier and AuthRepository
-/// - Full light/dark mode support with 2026 design tokens
+/// - Strict Indian mobile validation: ^[6-9]\d{9}$
+/// - Green checkmark and active button appear ONLY on valid number
+/// - Inline validation error on blur
+/// - Single container for phone field (+91 | 98765 43210 with thin divider, no nested boxes)
+/// - Sticky primary button above keyboard
+/// - Terms as one clean caption line
+/// - Clear secondary text actions
+/// - Brand at 40% opacity with white text for disabled button state
+/// - Subtle route-line background pattern
+/// - Language selector in AppBar (English / ગુજરાતી / हिन्दी)
+/// - Safe-area and keyboard-aware layout
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final String? initialMethod;
+
+  const LoginScreen({super.key, this.initialMethod});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -40,45 +47,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _phoneFormKey = GlobalKey<FormState>();
   final _passwordFormKey = GlobalKey<FormState>();
 
-  final _phoneController =
-      TextEditingController(); // Empty initial state; no sample prefill
+  final _phoneController = TextEditingController();
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  _LoginTab _activeTab = _LoginTab.phoneOtp;
+  final _phoneFocusNode = FocusNode();
+  final _identifierFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+
+  _LoginMode _mode = _LoginMode.phoneOtp;
   bool _isRequestingOtp = false;
   bool _isSigningIn = false;
   bool _isSigningInWithGoogle = false;
-
-  UserModel? _savedUser;
-  bool _hasSavedEnrolledBiometrics = false;
+  bool _isPasswordVisible = false;
+  bool _hasPhoneBlurred = false;
 
   @override
   void initState() {
     super.initState();
-    _checkSavedSessionForBiometrics();
+    if (widget.initialMethod == 'password' || widget.initialMethod == 'email') {
+      _mode = _LoginMode.password;
+    } else {
+      _mode = _LoginMode.phoneOtp;
+    }
+
+    _phoneController.addListener(() => setState(() {}));
+    _phoneFocusNode.addListener(() {
+      if (!_phoneFocusNode.hasFocus) {
+        setState(() => _hasPhoneBlurred = true);
+      }
+    });
   }
 
-  Future<void> _checkSavedSessionForBiometrics() async {
-    try {
-      final storage = ref.read(secureStorageServiceProvider);
-      final biometric = ref.read(biometricServiceProvider);
-
-      final user = await storage.getUser();
-      final token = await storage.getToken();
-      final canBio = await biometric.canAuthenticate();
-
-      if (mounted &&
-          user != null &&
-          token != null &&
-          token.isNotEmpty &&
-          canBio) {
-        setState(() {
-          _savedUser = user;
-          _hasSavedEnrolledBiometrics = true;
-        });
-      }
-    } catch (_) {}
+  @override
+  void didUpdateWidget(covariant LoginScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialMethod != oldWidget.initialMethod) {
+      setState(() {
+        if (widget.initialMethod == 'password' ||
+            widget.initialMethod == 'email') {
+          _mode = _LoginMode.password;
+        } else {
+          _mode = _LoginMode.phoneOtp;
+        }
+      });
+    }
   }
 
   @override
@@ -86,26 +99,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _phoneController.dispose();
     _identifierController.dispose();
     _passwordController.dispose();
+    _phoneFocusNode.dispose();
+    _identifierFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
+  String get _cleanPhoneDigits =>
+      _phoneController.text.replaceAll(RegExp(r'\D'), '');
+
+  /// Strict Indian mobile check: starts with 6-9 and exactly 10 digits
+  bool get _isPhoneValid => RegExp(r'^[6-9]\d{9}$').hasMatch(_cleanPhoneDigits);
+
+  bool get _showPhoneInlineError => _hasPhoneBlurred && !_isPhoneValid;
+
   Future<void> _handleGetOtp() async {
-    if (!(_phoneFormKey.currentState?.validate() ?? false)) return;
-
-    final rawPhone = _phoneController.text.trim();
-    final digits = rawPhone.replaceAll(RegExp(r'\D'), '');
-    final cleanPhone = digits.length == 12 && digits.startsWith('91')
-        ? digits.substring(2)
-        : digits;
-
-    if (cleanPhone.length != 10) {
-      FeedbackService.error(
-        context,
-        'Please enter a valid 10-digit Indian mobile number',
-      );
+    if (_isRequestingOtp) return;
+    if (!_isPhoneValid) {
+      setState(() => _hasPhoneBlurred = true);
       return;
     }
 
+    final cleanPhone = _cleanPhoneDigits;
     setState(() => _isRequestingOtp = true);
 
     try {
@@ -117,17 +132,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _isRequestingOtp = false);
 
       if (success) {
-        FeedbackService.success(
-          context,
-          'Verification code sent to +91 $cleanPhone',
-        );
+        HapticFeedback.mediumImpact();
         context.push('/otp');
       } else {
         final errorMsg = ref.read(authProvider).errorMessage;
         FeedbackService.error(
           context,
-          errorMsg ??
-              'Failed to send verification code. Please check your network.',
+          errorMsg ?? 'Failed to send verification code. Please try again.',
         );
       }
     } catch (e) {
@@ -138,39 +149,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _handleGoogleSignIn() async {
-    if (_isSigningInWithGoogle) return;
-    setState(() => _isSigningInWithGoogle = true);
-
-    try {
-      final success = await ref.read(authProvider.notifier).signInWithGoogle();
-
-      if (!mounted) return;
-      setState(() => _isSigningInWithGoogle = false);
-
-      if (success) {
-        HapticFeedback.mediumImpact();
-        FeedbackService.success(context, 'Signed in with Google successfully');
-        ref.read(userModeProvider.notifier).clearGuestMode();
-        final destination =
-            ref.read(userModeProvider).pendingProtectedIntent ?? '/home';
-        ref.read(userModeProvider.notifier).clearPendingIntent();
-        context.go(destination);
-      } else {
-        final errorMsg = ref.read(authProvider).errorMessage;
-        if (errorMsg != null && errorMsg.isNotEmpty) {
-          FeedbackService.error(context, errorMsg);
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isSigningInWithGoogle = false);
-        FeedbackService.error(context, e.toString());
-      }
-    }
-  }
-
   Future<void> _handlePasswordLogin() async {
+    if (_isSigningIn) return;
     if (!(_passwordFormKey.currentState?.validate() ?? false)) return;
 
     final rawIdentifier = _identifierController.text.trim();
@@ -198,6 +178,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _isSigningIn = false);
 
       if (success) {
+        HapticFeedback.mediumImpact();
         FeedbackService.success(context, 'Signed in successfully');
         final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
         ref.read(userModeProvider.notifier).setAuthenticatedMode();
@@ -223,7 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
         FeedbackService.error(
           context,
-          authState.errorMessage ?? 'Invalid phone/email or password',
+          authState.errorMessage ?? 'Incorrect credentials',
         );
       }
     } catch (e) {
@@ -234,372 +215,286 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _handleExpressBiometrics() async {
-    final biometric = ref.read(biometricServiceProvider);
-    final didAuth = await biometric.authenticate(
-      localizedReason: 'Scan fingerprint or face to authenticate instantly',
-    );
+  Future<void> _handleGoogleSignIn() async {
+    if (_isSigningInWithGoogle) return;
+    setState(() => _isSigningInWithGoogle = true);
 
-    if (!mounted || !didAuth) return;
+    try {
+      final success = await ref.read(authProvider.notifier).signInWithGoogle();
 
-    final success = await ref.read(authProvider.notifier).loginWithBiometrics();
-    if (!mounted) return;
+      if (!mounted) return;
+      setState(() => _isSigningInWithGoogle = false);
 
-    if (success) {
-      FeedbackService.success(
-        context,
-        'Welcome back, ${_savedUser?.name ?? 'User'}!',
-      );
-      final pendingIntent = ref.read(userModeProvider).pendingProtectedIntent;
-      ref.read(userModeProvider.notifier).setAuthenticatedMode();
-      ref.read(userModeProvider.notifier).clearPendingIntent();
-      context.go(
-        pendingIntent != null && pendingIntent.isNotEmpty
-            ? pendingIntent
-            : '/home',
-      );
-    } else {
-      FeedbackService.error(
-        context,
-        'Biometric authentication could not resolve session. Please sign in with OTP or password.',
-      );
+      if (success) {
+        HapticFeedback.mediumImpact();
+        FeedbackService.success(context, 'Signed in with Google');
+        ref.read(userModeProvider.notifier).clearGuestMode();
+        final destination =
+            ref.read(userModeProvider).pendingProtectedIntent ?? '/home';
+        ref.read(userModeProvider.notifier).clearPendingIntent();
+        context.go(destination);
+      } else {
+        final errorMsg = ref.read(authProvider).errorMessage;
+        if (errorMsg != null && errorMsg.isNotEmpty) {
+          FeedbackService.error(context, errorMsg);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSigningInWithGoogle = false);
+        FeedbackService.error(context, e.toString());
+      }
     }
-  }
-
-  void _showTermsDialog() {
-    SahyanDialog.show(
-      context: context,
-      title: 'Terms & Privacy',
-      message:
-          'Sahyān is Gujarat\'s community-driven verified intercity carpooling network. By signing in, you agree to our fair cost-sharing policies, community safety standards, and verified identity requirements.',
-      primaryActionText: 'Understood',
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardBg = isDark
-        ? AppColors.darkSurface.withValues(alpha: 0.94)
-        : Colors.white.withValues(alpha: 0.96);
-    final borderColor = isDark ? AppColors.darkSurfaceHigh : AppColors.border;
     final textColor = isDark ? AppColors.darkText : AppColors.ink;
-    final mutedColor = isDark ? AppColors.darkMuted : AppColors.mutedLight;
+    const mutedColor = Color(0xFF5B6B66);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final l10n = SahyanLocalizations.of(context);
+
+    // Only show Google button if configured on platform
+    final isGoogleConfigured = DefaultFirebaseOptions.isConfigured;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.canvasLight,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: IconButton(
           icon: Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 20,
-            color: isDark ? AppColors.darkText : AppColors.ink,
+            Icons.arrow_back,
+            size: 22,
+            color: textColor,
           ),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/welcome');
+            }
+          },
         ),
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 16),
+            child: SahyanLanguageSelector(),
+          ),
+        ],
       ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 8.0,
-              ),
+      body: SahyanRouteBackground(
+        isDark: isDark,
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Brand Header Lockup
-                  Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SahyanRouteConvergenceMark(size: 28, isDark: isDark),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Sahyān',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: isDark
-                                ? AppColors.darkText
-                                : AppColors.brand,
-                            letterSpacing: -0.4,
+                  // 1. Scrollable Upper Body (Inputs & Links)
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(24.0, 8.0, 24.0, 16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Brand Mark Header (Master Logo)
+                          const SahyanLogo.mark(size: 34),
+                          const SizedBox(height: 20),
+
+                          // Headline & Subline
+                          Text(
+                            _mode == _LoginMode.phoneOtp
+                                ? l10n.whatsYourNumber
+                                : "Welcome back",
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 27,
+                              fontWeight: FontWeight.w800,
+                              color: textColor,
+                              letterSpacing: -0.6,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Title: "Sign In"
-                  Text(
-                    'Sign In',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: textColor,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _activeTab == _LoginTab.phoneOtp
-                        ? 'Enter your mobile number to receive a secure one-time passcode.'
-                        : 'Access your account with your phone or email credentials.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w400,
-                      color: mutedColor,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 22),
-
-                  // Enrolled Biometric Express Pass (ONLY rendered if session is verified)
-                  if (_hasSavedEnrolledBiometrics && _savedUser != null) ...[
-                    _buildEnrolledBiometricBar(isDark),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // Method Segmented Tab Switcher (Phone OTP vs Password)
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.darkSurfaceHigh.withValues(alpha: 0.6)
-                          : AppColors.chipBackground,
-                      borderRadius: BorderRadius.circular(AppRadii.lg),
-                      border: Border.all(color: borderColor, width: 1.0),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _buildTabButton(
-                            title: 'Phone OTP',
-                            icon: Icons.phone_android_rounded,
-                            isSelected: _activeTab == _LoginTab.phoneOtp,
-                            isDark: isDark,
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() => _activeTab = _LoginTab.phoneOtp);
-                            },
+                          const SizedBox(height: 8),
+                          Text(
+                            _mode == _LoginMode.phoneOtp
+                                ? l10n.enterNumberPrompt
+                                : "Enter your email or phone and password to sign in.",
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: mutedColor,
+                              height: 1.45,
+                            ),
                           ),
-                        ),
-                        Expanded(
-                          child: _buildTabButton(
-                            title: 'Password',
-                            icon: Icons.lock_outline_rounded,
-                            isSelected: _activeTab == _LoginTab.password,
-                            isDark: isDark,
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              setState(() => _activeTab = _LoginTab.password);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                          const SizedBox(height: 28),
 
-                  // Main Card Form Container
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadii.xl),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                      child: Container(
-                        padding: const EdgeInsets.all(22.0),
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(AppRadii.xl),
-                          border: Border.all(color: borderColor, width: 1.2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(
-                                alpha: isDark ? 0.35 : 0.05,
-                              ),
-                              blurRadius: 24,
-                              offset: const Offset(0, 8),
+                          // ── Form Input Section ──
+                          if (_mode == _LoginMode.phoneOtp) ...[
+                            _buildSingleContainerPhoneInput(
+                              isDark,
+                              textColor,
+                              mutedColor,
+                              l10n,
+                            ),
+                          ] else ...[
+                            _buildPasswordInputSection(
+                              isDark,
+                              textColor,
+                              mutedColor,
                             ),
                           ],
-                        ),
-                        child: _activeTab == _LoginTab.phoneOtp
-                            ? _buildPhoneOtpForm(isDark)
-                            : _buildPasswordForm(isDark),
+
+                          const SizedBox(height: 16),
+
+                          // Secondary Link: Mode Switcher
+                          Center(
+                            child: TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _mode = _mode == _LoginMode.phoneOtp
+                                      ? _LoginMode.password
+                                      : _LoginMode.phoneOtp;
+                                });
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.brandBright,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 6,
+                                ),
+                              ),
+                              child: Text(
+                                _mode == _LoginMode.phoneOtp
+                                    ? l10n.signInWithPasswordInstead
+                                    : 'Sign in with phone OTP instead',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Secondary Link: Register Text Button
+                          Center(
+                            child: TextButton(
+                              onPressed: () => context.push('/register'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: mutedColor,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 6,
+                                ),
+                              ),
+                              child: Text(
+                                l10n.registerPrompt,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Optional Google Sign-In
+                          if (isGoogleConfigured) ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                const Expanded(
+                                  child: Divider(color: AppColors.border),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                  ),
+                                  child: Text(
+                                    'OR',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: mutedColor,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                ),
+                                const Expanded(
+                                  child: Divider(color: AppColors.border),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            _buildGoogleButton(isDark, textColor),
+                          ],
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
 
-                  // Alternative Auth Divider
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Divider(color: borderColor, thickness: 1),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        child: Text(
-                          'OR CONTINUE WITH',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                            color: mutedColor,
-                          ),
+                  // 2. Sticky Bottom Section Above Keyboard
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      24.0,
+                      8.0,
+                      24.0,
+                      math.max(bottomPadding, 12.0),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Primary Action Button (Sticky)
+                        SahyanButton(
+                          text: _mode == _LoginMode.phoneOtp
+                              ? l10n.getOtp
+                              : 'Sign In',
+                          variant: SahyanButtonVariant.primary,
+                          size: SahyanButtonSize.large,
+                          isLoading: _mode == _LoginMode.phoneOtp
+                              ? _isRequestingOtp
+                              : _isSigningIn,
+                          isInvalid:
+                              _mode == _LoginMode.phoneOtp && !_isPhoneValid,
+                          onPressed: _mode == _LoginMode.phoneOtp
+                              ? _handleGetOtp
+                              : _handlePasswordLogin,
                         ),
-                      ),
-                      Expanded(
-                        child: Divider(color: borderColor, thickness: 1),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
-                  // Bespoke Google Sign-In Button
-                  Container(
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColors.darkSurface : Colors.white,
-                      borderRadius: BorderRadius.circular(AppRadii.lg),
-                      border: Border.all(color: borderColor, width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(
-                            alpha: isDark ? 0.25 : 0.04,
+                        // Single-line Terms Caption
+                        Center(
+                          child: GestureDetector(
+                            onTap: () => SahyanLegalSheet.show(context),
+                            child: Text.rich(
+                              TextSpan(
+                                text: l10n.termsConsentPrefix,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: mutedColor,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: l10n.termsAndPrivacy,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.brandBright,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _isSigningInWithGoogle
-                            ? null
-                            : () {
-                                HapticFeedback.lightImpact();
-                                _handleGoogleSignIn();
-                              },
-                        borderRadius: BorderRadius.circular(AppRadii.lg),
-                        child: Center(
-                          child: _isSigningInWithGoogle
-                              ? const SahyanLoader(size: 20)
-                              : Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Colors.white,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            'G',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w900,
-                                              color: const Color(0xFF4285F4),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Flexible(
-                                        child: Text(
-                                          'Continue with Google',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark
-                                                ? AppColors.darkText
-                                                : AppColors.ink,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
                   ),
-                  const SizedBox(height: 22),
-
-                  // Don't have an account? Sign up
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        'Don\'t have an account?',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w500,
-                          color: mutedColor,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          HapticFeedback.selectionClick();
-                          context.push('/register');
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: isDark
-                              ? AppColors.mint
-                              : AppColors.brand,
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          minimumSize: const Size(48, 48),
-                        ),
-                        child: Text(
-                          'Register',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Terms & Privacy Note
-                  Center(
-                    child: GestureDetector(
-                      onTap: _showTermsDialog,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          'Terms of Service & Privacy Policy',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: mutedColor,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -609,258 +504,270 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildTabButton({
-    required String title,
-    required IconData icon,
-    required bool isSelected,
-    required bool isDark,
-    required VoidCallback onTap,
-  }) {
-    final activeBg = isDark ? AppColors.brandBright : Colors.white;
-    final activeText = isDark ? Colors.white : AppColors.ink;
-    final inactiveText = isDark ? AppColors.darkMuted : AppColors.mutedLight;
+  /// ONE Unified Container for Phone Input (+91 | 98765 43210 with thin divider)
+  Widget _buildSingleContainerPhoneInput(
+    bool isDark,
+    Color textColor,
+    Color mutedColor,
+    SahyanLocalizations l10n,
+  ) {
+    final borderColor = _showPhoneInlineError
+        ? AppColors.error
+        : (_isPhoneValid
+              ? AppColors.brand
+              : (_phoneFocusNode.hasFocus
+                    ? AppColors.brand
+                    : (isDark ? AppColors.darkSurfaceHigh : AppColors.border)));
 
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? activeBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppRadii.md),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected
-                  ? (isDark ? Colors.white : AppColors.brand)
-                  : inactiveText,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13.5,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? activeText : inactiveText,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEnrolledBiometricBar(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.darkSurfaceHigh
-            : AppColors.primaryLight.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-        border: Border.all(
-          color: isDark
-              ? AppColors.mint.withValues(alpha: 0.3)
-              : AppColors.brand.withValues(alpha: 0.2),
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-        onTap: _handleExpressBiometrics,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkBg : AppColors.brand,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.fingerprint_rounded,
-                  color: AppColors.mint,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome back, ${_savedUser?.name ?? 'Traveller'}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? AppColors.darkText : AppColors.ink,
-                      ),
-                    ),
-                    Text(
-                      'Tap for one-touch biometric unlock',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w500,
-                        color: isDark
-                            ? AppColors.darkMuted
-                            : AppColors.mutedLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 14,
-                color: isDark ? AppColors.darkMuted : AppColors.mutedLight,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPhoneOtpForm(bool isDark) {
     return Form(
       key: _phoneFormKey,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Mobile Number Input with +91 Prefix
-          AppTextField(
-            label: 'Mobile Number',
-            hint: '98765 43210',
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(10),
-            ],
-            prefixIcon: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              margin: const EdgeInsets.only(right: 8),
-              decoration: BoxDecoration(
-                border: Border(
-                  right: BorderSide(
-                    color: isDark
-                        ? AppColors.darkSurfaceHigh
-                        : AppColors.border,
-                    width: 1.0,
+          // Single outer container
+          Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkSurface : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadii.md),
+              border: Border.all(
+                color: borderColor,
+                width: _phoneFocusNode.hasFocus ? 2 : 1.5,
+              ),
+              boxShadow: _phoneFocusNode.hasFocus
+                  ? [
+                      BoxShadow(
+                        color: AppColors.brandBright.withValues(alpha: 0.14),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Row(
+              children: [
+                // +91 prefix and divider form one phone field.
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '+91',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
+
+                // Thin Vertical Divider (1px)
+                Container(
+                  width: 1.0,
+                  height: 24,
+                  color: isDark ? AppColors.darkSurfaceHigh : AppColors.border,
+                ),
+
+                // Phone Input with auto-space formatting
+                Expanded(
+                  child: TextField(
+                    controller: _phoneController,
+                    focusNode: _phoneFocusNode,
+                    keyboardType: TextInputType.phone,
+                    autofillHints: const [AutofillHints.telephoneNumber],
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                      letterSpacing: 1.2,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                      _IndianPhoneAutoSpaceFormatter(),
+                    ],
+                    decoration: InputDecoration(
+                      hintText: '98765 43210',
+                      hintStyle: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: mutedColor.withValues(alpha: 0.55),
+                        letterSpacing: 1.2,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_isPhoneValid)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 14),
+                    child: Icon(
+                      Icons.check_circle,
+                      color: AppColors.success,
+                      size: 20,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Inline Error Message on blur
+          if (_showPhoneInlineError) ...[
+            const SizedBox(height: 6),
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(
-                    Icons.phone_rounded,
-                    size: 16,
-                    color: AppColors.mint,
+                    Icons.error_outline,
+                    size: 14,
+                    color: AppColors.error,
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '+91',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.darkText : AppColors.ink,
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      l10n.invalidPhoneError,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.error,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter your mobile number';
-              }
-              final digits = value.replaceAll(RegExp(r'\D'), '');
-              if (digits.length != 10) {
-                return 'Enter a valid 10-digit Indian mobile number';
-              }
-              if (!RegExp(r'^[6-9]').hasMatch(digits)) {
-                return 'Indian mobile numbers start with 6, 7, 8, or 9';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 24),
-
-          // Primary Action: Get Verification Code
-          SahyanButton(
-            text: 'Get Verification Code',
-            icon: Icons.send_rounded,
-            variant: SahyanButtonVariant.primary,
-            size: SahyanButtonSize.regular,
-            isLoading: _isRequestingOtp,
-            onPressed: _handleGetOtp,
-          ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildPasswordForm(bool isDark) {
+  /// Password Login Form Section
+  Widget _buildPasswordInputSection(
+    bool isDark,
+    Color textColor,
+    Color mutedColor,
+  ) {
+    final borderColor = isDark ? AppColors.darkSurfaceHigh : AppColors.border;
+
     return Form(
       key: _passwordFormKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Identifier: Email or Phone
-          AppTextField(
-            label: 'Email or Mobile Number',
-            hint: 'name@example.com or 9876543210',
+          // Identifier Field
+          TextFormField(
             controller: _identifierController,
+            focusNode: _identifierFocusNode,
             keyboardType: TextInputType.emailAddress,
-            prefixIcon: const Icon(
-              Icons.person_outline_rounded,
-              size: 18,
-              color: AppColors.mint,
+            autofillHints: const [AutofillHints.email, AutofillHints.username],
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: textColor,
             ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter your email or phone number';
+            validator: (val) {
+              if (val == null || val.trim().isEmpty) {
+                return 'Please enter your email or mobile number';
               }
               return null;
             },
+            decoration: InputDecoration(
+              labelText: 'Email or Mobile Number',
+              labelStyle: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: mutedColor,
+              ),
+              hintText: 'name@example.com or 9876543210',
+              hintStyle: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: mutedColor.withValues(alpha: 0.5),
+              ),
+              filled: true,
+              fillColor: isDark ? AppColors.darkSurface : Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                borderSide: BorderSide(color: borderColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                borderSide: const BorderSide(
+                  color: AppColors.brand,
+                  width: 1.6,
+                ),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
           ),
           const SizedBox(height: 16),
 
           // Password Field
-          AppTextField(
-            label: 'Password',
-            hint: 'Enter your password',
+          TextFormField(
             controller: _passwordController,
-            isPassword: true,
-            prefixIcon: const Icon(
-              Icons.lock_outline_rounded,
-              size: 18,
-              color: AppColors.mint,
+            focusNode: _passwordFocusNode,
+            obscureText: !_isPasswordVisible,
+            autofillHints: const [AutofillHints.password],
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: textColor,
             ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
+            validator: (val) {
+              if (val == null || val.isEmpty) {
                 return 'Please enter your password';
               }
               return null;
             },
+            decoration: InputDecoration(
+              labelText: 'Password',
+              labelStyle: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: mutedColor,
+              ),
+              filled: true,
+              fillColor: isDark ? AppColors.darkSurface : Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                borderSide: BorderSide(color: borderColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                borderSide: const BorderSide(
+                  color: AppColors.brand,
+                  width: 1.6,
+                ),
+              ),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _isPasswordVisible
+                      ? Icons.visibility
+                      : Icons.visibility_off,
+                  size: 20,
+                  color: mutedColor,
+                ),
+                onPressed: () =>
+                    setState(() => _isPasswordVisible = !_isPasswordVisible),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
           ),
           const SizedBox(height: 8),
 
@@ -869,35 +776,92 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {
-                HapticFeedback.selectionClick();
-                context.push('/forgot-password');
+                FeedbackService.info(
+                  context,
+                  'Please sign in with Phone OTP to reset your password.',
+                );
+                setState(() => _mode = _LoginMode.phoneOtp);
               },
-              style: TextButton.styleFrom(
-                foregroundColor: isDark ? AppColors.mint : AppColors.brand,
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              ),
               child: Text(
-                'Forgot Password?',
+                'Forgot password?',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.5,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
+                  color: AppColors.brandBright,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
-
-          // Primary Action: Sign In
-          SahyanButton(
-            text: 'Sign In',
-            icon: Icons.login_rounded,
-            variant: SahyanButtonVariant.primary,
-            size: SahyanButtonSize.regular,
-            isLoading: _isSigningIn,
-            onPressed: _handlePasswordLogin,
-          ),
         ],
       ),
+    );
+  }
+
+  /// Google Sign-In Outlined Button
+  Widget _buildGoogleButton(bool isDark, Color textColor) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton(
+        onPressed: _isSigningInWithGoogle ? null : _handleGoogleSignIn,
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(
+            color: isDark ? AppColors.darkSurfaceHigh : AppColors.border,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.md),
+          ),
+        ),
+        child: _isSigningInWithGoogle
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'G',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF4285F4),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Continue with Google',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: textColor,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// Auto-formats 10 digits as '98765 43210'
+class _IndianPhoneAutoSpaceFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(' ', '');
+    if (digits.length <= 5) {
+      return TextEditingValue(
+        text: digits,
+        selection: TextSelection.collapsed(offset: digits.length),
+      );
+    }
+    final formatted = '${digits.substring(0, 5)} ${digits.substring(5)}';
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

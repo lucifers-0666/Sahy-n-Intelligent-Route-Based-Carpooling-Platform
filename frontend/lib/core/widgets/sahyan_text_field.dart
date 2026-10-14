@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_radii.dart';
-import '../../app/theme/app_spacing.dart';
 import '../../app/theme/app_typography.dart';
 
 /// Standardized Sahyān Form Input Field component.
 /// Provides consistent height, typography, prefix/suffix styling, and clear focus/error states.
+/// Features a predictable structure: visible label above, clean input container, and helper/error below.
 class SahyanTextField extends StatefulWidget {
   final String? label;
   final String hint;
@@ -25,7 +26,9 @@ class SahyanTextField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final FocusNode? focusNode;
   final ValueChanged<String>? onFieldSubmitted;
+  final Iterable<String>? autofillHints;
   final String? errorText;
+  final bool isValid;
   final List<TextInputFormatter>? inputFormatters;
   final TextCapitalization textCapitalization;
   final int maxLines;
@@ -50,7 +53,9 @@ class SahyanTextField extends StatefulWidget {
     this.textInputAction,
     this.focusNode,
     this.onFieldSubmitted,
+    this.autofillHints,
     this.errorText,
+    this.isValid = false,
     this.inputFormatters,
     this.textCapitalization = TextCapitalization.none,
     this.maxLines = 1,
@@ -63,6 +68,7 @@ class SahyanTextField extends StatefulWidget {
 
 class _SahyanTextFieldState extends State<SahyanTextField> {
   late bool _obscured;
+  bool _hasFocus = false;
 
   @override
   void initState() {
@@ -85,7 +91,8 @@ class _SahyanTextFieldState extends State<SahyanTextField> {
     if (widget.isPassword) {
       effectiveSuffixIcon = IconButton(
         icon: Icon(
-          _obscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          // Universal BMP icons (no surrogate pairs) to avoid tofu on Android 8.1
+          _obscured ? Icons.visibility : Icons.visibility_off,
           color: AppColors.textSecondary,
           size: 20,
         ),
@@ -108,87 +115,125 @@ class _SahyanTextFieldState extends State<SahyanTextField> {
     final borderColor = isDark ? AppColors.darkSurfaceHigh : AppColors.border;
     final focusColor = isDark ? AppColors.mint : AppColors.brand;
 
+    final hasError = widget.errorText != null;
+    if (hasError) {
+      effectiveSuffixIcon = const Padding(
+        padding: EdgeInsets.all(12),
+        child: Icon(Icons.error_outline, color: AppColors.error, size: 20),
+      );
+    } else if (widget.isValid && effectiveSuffixIcon == null) {
+      effectiveSuffixIcon = const Padding(
+        padding: EdgeInsets.all(12),
+        child: Icon(Icons.check_circle, color: AppColors.success, size: 20),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        // 1. Visible External Label (Predictable structure, never crammed inside)
         if (widget.label != null) ...[
           Text(
             widget.label!,
-            style: AppTypography.fieldLabel.copyWith(
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
               color: isDark ? AppColors.darkText : AppColors.ink,
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 6),
         ],
-        TextFormField(
-          controller: widget.controller,
-          keyboardType: widget.keyboardType,
-          inputFormatters: widget.inputFormatters,
-          textCapitalization: widget.textCapitalization,
-          obscureText: _obscured,
-          readOnly: widget.readOnly,
-          enabled: widget.enabled,
-          onTap: widget.onTap,
-          validator: widget.validator,
-          onChanged: widget.onChanged,
-          textInputAction: widget.textInputAction,
-          focusNode: widget.focusNode,
-          onFieldSubmitted: widget.onFieldSubmitted,
-          maxLines: widget.isPassword ? 1 : widget.maxLines,
-          minLines: widget.minLines,
-          style: AppTypography.bodyLarge.copyWith(color: textColor),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: AppTypography.secondary.copyWith(color: hintColor),
-            helperText: widget.helperText,
-            helperStyle: AppTypography.caption.copyWith(color: hintColor),
-            errorText: widget.errorText,
-            errorStyle: AppTypography.validationMessage.copyWith(
-              color: AppColors.error,
-            ),
-            prefixIcon: widget.prefixIcon,
-            suffixIcon: effectiveSuffixIcon,
-            filled: true,
-            fillColor: fillColor,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-            border: OutlineInputBorder(
+
+        // 2. Consistent Input Container (Height 54dp, rounded border, focus glow)
+        Focus(
+          onFocusChange: (hasFocus) {
+            if (_hasFocus != hasFocus) setState(() => _hasFocus = hasFocus);
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: fillColor,
               borderRadius: BorderRadius.circular(AppRadii.input),
-              borderSide: BorderSide(color: borderColor),
+              border: Border.all(
+                color: hasError
+                    ? AppColors.error
+                    : (_hasFocus ? focusColor : borderColor),
+                width: _hasFocus ? 2 : 1.5,
+              ),
+              boxShadow: _hasFocus && !hasError
+                  ? [
+                      BoxShadow(
+                        color: focusColor.withValues(alpha: 0.14),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
             ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.input),
-              borderSide: BorderSide(color: borderColor),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.input),
-              borderSide: BorderSide(color: focusColor, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.input),
-              borderSide: const BorderSide(color: AppColors.error),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.input),
-              borderSide: const BorderSide(color: AppColors.error, width: 1.5),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadii.input),
-              borderSide: BorderSide(color: borderColor.withValues(alpha: 0.5)),
-            ),
-            prefixIconConstraints: const BoxConstraints(
-              minWidth: 44,
-              minHeight: 44,
-            ),
-            suffixIconConstraints: const BoxConstraints(
-              minWidth: 44,
-              minHeight: 44,
+            child: TextFormField(
+              controller: widget.controller,
+              keyboardType: widget.keyboardType,
+              inputFormatters: widget.inputFormatters,
+              textCapitalization: widget.textCapitalization,
+              obscureText: _obscured,
+              readOnly: widget.readOnly,
+              enabled: widget.enabled,
+              onTap: widget.onTap,
+              validator: widget.validator,
+              onChanged: widget.onChanged,
+              textInputAction: widget.textInputAction,
+              focusNode: widget.focusNode,
+              onFieldSubmitted: widget.onFieldSubmitted,
+              autofillHints: widget.autofillHints,
+              maxLines: widget.isPassword ? 1 : widget.maxLines,
+              minLines: widget.minLines,
+              style: AppTypography.bodyLarge.copyWith(color: textColor),
+              decoration: InputDecoration(
+                hintText: widget.hint,
+                hintStyle: AppTypography.secondary.copyWith(color: hintColor),
+                prefixIcon: widget.prefixIcon,
+                suffixIcon: effectiveSuffixIcon,
+                filled: true,
+                fillColor: Colors.transparent,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                constraints: const BoxConstraints(minHeight: 54),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 44,
+                  minHeight: 44,
+                ),
+                suffixIconConstraints: const BoxConstraints(
+                  minWidth: 44,
+                  minHeight: 44,
+                ),
+              ),
             ),
           ),
         ),
+
+        // 3. Helper or Error Message Area (Clearly positioned below the field)
+        if (hasError || widget.helperText != null) ...[
+          const SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Text(
+              widget.errorText ?? widget.helperText!,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: hasError ? AppColors.error : hintColor,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

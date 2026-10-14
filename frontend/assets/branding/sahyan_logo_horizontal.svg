@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 60" fill="none">
+  <!-- Sahyān Master Horizontal Lockup -->
+  <g transform="translate(4, 0)">
+    <!-- Symbol (60x60 base scaled) -->
+    <path d="M 12 18 C 26 18 31 30 40 30 L 48 30" 
+          stroke="#0B5D4B" 
+          stroke-width="6" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    <path d="M 12 42 C 26 42 31 30 40 30 L 48 30" 
+          stroke="#0B5D4B" 
+          stroke-width="6" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    <circle cx="50" cy="30" r="4.5" fill="#3DDC97"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="68" y="38" 
+        font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" 
+        font-size="28" 
+        font-weight="800" 
+        letter-spacing="-0.5" 
+        fill="#0B5D4B">Sahyān</text>
+</svg>

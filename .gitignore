@@ -69,3 +69,8 @@ firebase-debug.log
 
 # Web
 **/web/manifest.json
+
+# Scratch and media reference files
+scratch/
+videos/
+vlc-help.txt

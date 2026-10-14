@@ -1,0 +1,17 @@
+{
+  "@@locale": "en",
+  "welcomeHeadline": "Share the journey,\nnot just the ride.",
+  "welcomeSubline": "Find verified riders and drivers for routes across India.",
+  "registerIntro": "Join India's verified carpooling community.",
+  "otpIncompleteError": "Enter all 6 digits to verify.",
+  "fullNameLabel": "Full name",
+  "fullNameHelper": "As on your ID",
+  "termsConsentPrefix": "By continuing, you agree to our ",
+  "@termsConsentPrefix": {
+    "description": "Legal consent copy; must be reviewed by legal counsel."
+  },
+  "termsAndPrivacy": "Terms & Privacy",
+  "@termsAndPrivacy": {
+    "description": "Legal link label; must be reviewed by legal counsel."
+  }
+}

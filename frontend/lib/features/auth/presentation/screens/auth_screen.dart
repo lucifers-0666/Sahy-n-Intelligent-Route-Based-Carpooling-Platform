@@ -92,7 +92,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         backgroundColor: SahyanColors.primaryDark,
         content: const Row(
           children: [
-            Icon(Icons.fingerprint_rounded, color: SahyanColors.primaryMint),
+            Icon(Icons.fingerprint, color: SahyanColors.primaryMint),
             SizedBox(width: 10),
             Text(
               'Biometric identity verified successfully',
@@ -209,7 +209,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Gujarat\'s premier verified EV & intercity carpooling network',
+            'India\'s verified intercity carpooling network',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w500,
@@ -230,14 +230,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             child: const Row(
               children: [
                 Icon(
-                  Icons.electric_car_rounded,
+                  Icons.electric_car,
                   size: 20,
                   color: SahyanColors.primaryDark,
                 ),
                 SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Ahmedabad -> Rajkot · SG Highway Corridor Active',
+                    'Popular routes · Direct intercity rides',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -246,7 +246,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   ),
                 ),
                 Icon(
-                  Icons.wifi_tethering_rounded,
+                  Icons.wifi_tethering,
                   size: 16,
                   color: SahyanColors.primaryMint,
                 ),
@@ -451,7 +451,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: const Row(
                 children: [
                   Icon(
-                    Icons.fingerprint_rounded,
+                    Icons.fingerprint,
                     color: SahyanColors.primaryDark,
                     size: 22,
                   ),
@@ -480,7 +480,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                   ),
                   Icon(
-                    Icons.arrow_forward_ios_rounded,
+                    Icons.arrow_forward_ios,
                     size: 12,
                     color: SahyanColors.primaryDark,
                   ),
@@ -554,7 +554,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         ),
                       ),
                       SizedBox(width: 8),
-                      Icon(Icons.arrow_forward_rounded, size: 18),
+                      Icon(Icons.arrow_forward, size: 18),
                     ],
                   ),
           ),
@@ -565,7 +565,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             child: TextButton(
               onPressed: () => context.go('/home'),
               child: const Text(
-                'Explore Gujarat Corridors as Guest ->',
+                'Explore rides as a guest ->',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -586,16 +586,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildTrustBadge(
-            icon: Icons.verified_user_outlined,
-            text: '100% ID Verified',
+            icon: Icons.verified_user,
+            text: 'Verified Members',
           ),
           Container(width: 1, height: 18, color: SahyanColors.border),
           _buildTrustBadge(
-            icon: Icons.lock_outline_rounded,
+            icon: Icons.lock_outline,
             text: 'RBI Escrow Split',
           ),
           Container(width: 1, height: 18, color: SahyanColors.border),
-          _buildTrustBadge(icon: Icons.speed_rounded, text: 'Zero Surge Tolls'),
+          _buildTrustBadge(icon: Icons.speed, text: 'Zero Surge Tolls'),
         ],
       ),
     );

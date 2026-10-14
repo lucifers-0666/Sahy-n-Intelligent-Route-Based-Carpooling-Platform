@@ -42,22 +42,22 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
       badge: 'Intelligent Route Matching',
       title: 'Shared Journeys Along Your Highway Route',
       description:
-          'Connect with verified co-travelers travelling in the same direction across Gujarat highways without inconvenient detours.',
-      icon: Icons.alt_route_rounded,
+          'Connect with verified co-travelers travelling in the same direction across India without inconvenient detours.',
+      icon: Icons.alt_route,
     ),
     OnboardingData(
       badge: 'Fair & Transparent',
       title: 'Equitable Vehicle Seat Cost Sharing',
       description:
           'Contribute fairly towards fuel and highway toll expenses with transparent, automated cost-sharing on every seat.',
-      icon: Icons.account_balance_wallet_rounded,
+      icon: Icons.account_balance_wallet,
     ),
     OnboardingData(
       badge: 'Trust & Accountability',
       title: 'Verified Community & Secure Travel',
       description:
           'Travel with peace of mind through government identity verification, verified vehicle registration, and community safety accountability.',
-      icon: Icons.verified_user_rounded,
+      icon: Icons.verified_user,
     ),
   ];
 
@@ -326,7 +326,7 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              const Icon(Icons.arrow_forward_rounded, size: 18),
+                              const Icon(Icons.arrow_forward, size: 18),
                             ],
                           ),
                         ),

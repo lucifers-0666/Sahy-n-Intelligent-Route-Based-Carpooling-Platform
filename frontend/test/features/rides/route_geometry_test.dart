@@ -196,56 +196,55 @@ void main() {
       // Verify header and action elements
       expect(find.text('Select Pickup Hub'), findsWidgets);
       expect(find.text('Use Current GPS Location'), findsOneWidget);
-      expect(find.text('POPULAR GUJARAT CORRIDORS'), findsOneWidget);
-      expect(find.text('Iscon Cross Roads'), findsOneWidget);
-      expect(find.text('Kalawad Road'), findsOneWidget);
-      expect(find.text('Majura Gate'), findsOneWidget);
+      expect(find.text('POPULAR INDIA HUBS'), findsOneWidget);
+      expect(find.text('Chhatrapati Shivaji Maharaj Terminus'), findsOneWidget);
+      expect(find.text('Pune Junction'), findsOneWidget);
+      expect(find.text('Jaipur Junction'), findsOneWidget);
 
-      // Tap on Kalawad Road hub
-      await tester.tap(find.text('Kalawad Road'));
+      // Tap on Pune Junction
+      await tester.tap(find.text('Pune Junction'));
       await tester.pumpAndSettle();
 
       // Verify selected location model returned
       expect(selectedLocation, isNotNull);
-      expect(selectedLocation!.name, 'Kalawad Road');
-      expect(selectedLocation!.city, 'Rajkot');
+      expect(selectedLocation!.name, 'Pune Junction');
+      expect(selectedLocation!.city, 'Pune');
     });
 
-    testWidgets(
-      'filters Gujarat corridor hubs when user types in search query',
-      (tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: ThemeData(fontFamily: 'Inter'),
-            home: Scaffold(
-              body: Builder(
-                builder: (context) {
-                  return ElevatedButton(
-                    onPressed: () => LocationSearchBottomSheet.show(
-                      context: context,
-                      title: 'Search Destination',
-                    ),
-                    child: const Text('Search'),
-                  );
-                },
-              ),
+    testWidgets('filters India-wide hubs when user types in search query', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(fontFamily: 'Inter'),
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () => LocationSearchBottomSheet.show(
+                    context: context,
+                    title: 'Search Destination',
+                  ),
+                  child: const Text('Search'),
+                );
+              },
             ),
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Search'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Search'));
+      await tester.pumpAndSettle();
 
-        // Type "Surat" in search field
-        await tester.enterText(find.byType(TextField), 'Surat');
-        await tester.pumpAndSettle();
+      // Type "Mumbai" in search field
+      await tester.enterText(find.byType(TextField), 'Mumbai');
+      await tester.pumpAndSettle();
 
-        // Majura Gate in Surat should match
-        expect(find.text('Majura Gate'), findsOneWidget);
-        // Bhuj should be filtered out
-        expect(find.text('Jubilee Ground'), findsNothing);
-      },
-    );
+      // Mumbai's CSTM hub should match
+      expect(find.text('Chhatrapati Shivaji Maharaj Terminus'), findsOneWidget);
+      // Jaipur should be filtered out
+      expect(find.text('Jaipur Junction'), findsNothing);
+    });
   });
 
   group('Phase 3: SayanRouteMap Widget Tests', () {

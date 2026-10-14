@@ -1,0 +1,17 @@
+{
+  "@@locale": "hi",
+  "welcomeHeadline": "सफ़र साझा करें,\nसिर्फ़ सवारी नहीं.",
+  "welcomeSubline": "भारत भर के रास्तों पर भरोसेमंद सहयात्री और ड्राइवर खोजें.",
+  "registerIntro": "भारत के सत्यापित कारपूल समुदाय से जुड़ें.",
+  "otpIncompleteError": "सत्यापित करने के लिए सभी ६ अंक दर्ज करें।",
+  "fullNameLabel": "पूरा नाम",
+  "fullNameHelper": "आपकी आईडी के अनुसार",
+  "termsConsentPrefix": "आगे बढ़ने पर आप सहमत होते हैं ",
+  "@termsConsentPrefix": {
+    "description": "Legal consent copy; must be reviewed by legal counsel."
+  },
+  "termsAndPrivacy": "नियम और गोपनीयता",
+  "@termsAndPrivacy": {
+    "description": "Legal link label; must be reviewed by legal counsel."
+  }
+}

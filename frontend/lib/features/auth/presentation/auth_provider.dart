@@ -177,10 +177,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // Firebase Authentication Actions
   // -------------------------------------------------------------
 
-  /// Dispatches Phone OTP using Firebase Authentication SDK
+  /// Dispatches Phone OTP using Firebase Authentication SDK with seamless backend fallback
   Future<bool> sendFirebasePhoneOtp(String phoneNumber) async {
     final fbRepo = _firebaseRepo;
-    if (fbRepo == null) {
+    if (fbRepo == null || !fbRepo.isFirebaseAvailable) {
       return await sendOtp(phoneNumber);
     }
 
@@ -201,11 +201,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
           if (!completer.isCompleted) completer.complete(true);
         },
         onVerificationFailed: (errorMessage) {
-          state = state.copyWith(
-            status: AuthStatus.error,
-            errorMessage: errorMessage,
-          );
-          if (!completer.isCompleted) completer.complete(false);
+          final isPhoneFormatError =
+              errorMessage.toLowerCase().contains('invalid') &&
+              (errorMessage.toLowerCase().contains('phone') ||
+                  errorMessage.toLowerCase().contains('format') ||
+                  errorMessage.toLowerCase().contains('number'));
+
+          if (isPhoneFormatError) {
+            state = state.copyWith(
+              status: AuthStatus.error,
+              errorMessage: errorMessage,
+            );
+            if (!completer.isCompleted) completer.complete(false);
+            return;
+          }
+
+          // If Firebase rejects verification due to missing Google Play Services, unconfigured SHA-1,
+          // quota limit, or device credential issue, automatically dispatch via backend OTP
+          sendOtp(phoneNumber).then((res) {
+            if (!completer.isCompleted) completer.complete(res);
+          }).catchError((_) {
+            if (!completer.isCompleted) {
+              state = state.copyWith(
+                status: AuthStatus.error,
+                errorMessage: errorMessage,
+              );
+              completer.complete(false);
+            }
+          });
         },
         onVerificationCompleted: (credential) async {
           if (credential.smsCode != null &&
@@ -218,11 +241,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
         },
       );
     } catch (e) {
-      state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: e.toString(),
-      );
-      if (!completer.isCompleted) completer.complete(false);
+      // In case of any initialization or runtime exception, immediately fall back to backend OTP
+      try {
+        final fallbackSuccess = await sendOtp(phoneNumber);
+        if (!completer.isCompleted) completer.complete(fallbackSuccess);
+      } catch (backendErr) {
+        state = state.copyWith(
+          status: AuthStatus.error,
+          errorMessage: backendErr.toString(),
+        );
+        if (!completer.isCompleted) completer.complete(false);
+      }
     }
 
     return completer.future;
@@ -231,17 +260,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Verifies Phone OTP and provisions/syncs MongoDB profile
   Future<bool> verifyFirebasePhoneOtp(String smsCode, {String? name}) async {
     final fbRepo = _firebaseRepo;
-    if (fbRepo == null) {
-      return await verifyOtp(smsCode);
-    }
-
     final verificationId = state.firebaseVerificationId;
-    if (verificationId == null) {
-      state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: 'Missing verification ID. Please request a new code.',
-      );
-      return false;
+    if (fbRepo == null ||
+        !fbRepo.isFirebaseAvailable ||
+        verificationId == null) {
+      return await verifyOtp(smsCode);
     }
 
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
@@ -264,6 +287,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } catch (e) {
+      // If Firebase verification throws, try backend verification before erroring
+      try {
+        final backendSuccess = await verifyOtp(smsCode);
+        if (backendSuccess) return true;
+      } catch (_) {}
+
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: e.toString(),
@@ -275,10 +304,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Sign In with Google and bootstrap/sync MongoDB profile
   Future<bool> signInWithGoogle() async {
     final fbRepo = _firebaseRepo;
-    if (fbRepo == null) {
+    if (fbRepo == null || !fbRepo.isFirebaseAvailable) {
       state = state.copyWith(
         status: AuthStatus.error,
-        errorMessage: 'Google Sign-In is not supported in this environment.',
+        errorMessage:
+            'Google Sign-In is not configured on this device. Please sign in with Phone OTP or Password.',
       );
       return false;
     }
@@ -304,15 +334,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } catch (e) {
+      final errStr = e.toString();
+      final cleanMessage = errStr.contains('network_error') ||
+              errStr.contains('ApiException: 7') ||
+              errStr.contains('ApiException: 10') ||
+              errStr.contains('ApiException: 12500') ||
+              errStr.contains('ApiException')
+          ? 'Google Sign-In is not configured on this device. Please sign in with Phone OTP or Password.'
+          : (errStr.contains('not initialized')
+              ? 'Google Sign-In is not configured on this device. Please sign in with Phone OTP or Password.'
+              : errStr);
       state = state.copyWith(
         status: AuthStatus.error,
-        errorMessage: e.toString(),
+        errorMessage: cleanMessage,
       );
       return false;
     }
   }
 
-  /// Register with Email and Password via Firebase
+  /// Register with Email and Password via Firebase with backend fallback
   Future<bool> registerWithEmail({
     required String name,
     required String email,
@@ -320,7 +360,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String? phone,
   }) async {
     final fbRepo = _firebaseRepo;
-    if (fbRepo == null) {
+    if (fbRepo == null || !fbRepo.isFirebaseAvailable) {
       return await register(
         name: name,
         email: email,
@@ -350,6 +390,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } catch (e) {
+      try {
+        return await register(
+          name: name,
+          email: email,
+          phone: phone ?? '',
+          password: password,
+        );
+      } catch (_) {}
+
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: e.toString(),
@@ -358,13 +407,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Sign In with Email and Password via Firebase
+  /// Sign In with Email and Password via Firebase with backend fallback
   Future<bool> signInWithEmail({
     required String email,
     required String password,
   }) async {
     final fbRepo = _firebaseRepo;
-    if (fbRepo == null) {
+    if (fbRepo == null || !fbRepo.isFirebaseAvailable) {
       return await login(identifier: email, password: password);
     }
 
@@ -386,6 +435,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       return true;
     } catch (e) {
+      try {
+        return await login(identifier: email, password: password);
+      } catch (_) {}
+
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: e.toString(),
@@ -397,7 +450,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Send email verification link
   Future<bool> sendEmailVerification() async {
     final fbRepo = _firebaseRepo;
-    if (fbRepo == null) return false;
+    if (fbRepo == null || !fbRepo.isFirebaseAvailable) return false;
     try {
       await fbRepo.sendEmailVerification();
       return true;
@@ -407,10 +460,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Send password reset link via Firebase
+  /// Send password reset link via Firebase with backend fallback
   Future<bool> sendPasswordReset(String email) async {
     final fbRepo = _firebaseRepo;
-    if (fbRepo == null) {
+    if (fbRepo == null || !fbRepo.isFirebaseAvailable) {
       return await forgotPassword(email);
     }
 
@@ -420,6 +473,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(status: AuthStatus.unauthenticated);
       return true;
     } catch (e) {
+      try {
+        return await forgotPassword(email);
+      } catch (_) {}
+
       state = state.copyWith(
         status: AuthStatus.error,
         errorMessage: e.toString(),
@@ -700,12 +757,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch (_) {}
     if (repository is FirebaseAuthRepository) {
-      await (repository as FirebaseAuthRepository).signOut();
-    } else {
-      await storageService.clearSession();
-      apiClient.setAuthToken(null);
+      try {
+        await (repository as FirebaseAuthRepository).signOut();
+      } catch (_) {}
     }
+    await storageService.clearSession();
+    apiClient.setAuthToken(null);
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 }

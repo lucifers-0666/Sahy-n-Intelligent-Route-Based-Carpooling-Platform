@@ -1,0 +1,33 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Sahyān Master Route Convergence Symbol (Two origins, one convergence, shared destination) -->
+    <!-- Origin Node 1 -->
+    <path
+        android:pathData="M 16,20.5 A 7.5,7.5 0 1,1 15.99,20.5 Z"
+        android:fillColor="#3DDC97"/>
+    <!-- Origin Node 2 -->
+    <path
+        android:pathData="M 16,64.5 A 7.5,7.5 0 1,1 15.99,64.5 Z"
+        android:fillColor="#3DDC97"/>
+    <!-- Top-left Route Inlet -->
+    <path
+        android:pathData="M 16,28 C 42,28 50,50 66,50 L 82,50"
+        android:strokeColor="#3DDC97"
+        android:strokeWidth="10"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <!-- Bottom-left Route Inlet -->
+    <path
+        android:pathData="M 16,72 C 42,72 50,50 66,50 L 82,50"
+        android:strokeColor="#3DDC97"
+        android:strokeWidth="10"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <!-- Destination Node -->
+    <path
+        android:pathData="M 84,42.5 A 7.5,7.5 0 1,1 83.99,42.5 Z"
+        android:fillColor="#3DDC97"/>
+</vector>

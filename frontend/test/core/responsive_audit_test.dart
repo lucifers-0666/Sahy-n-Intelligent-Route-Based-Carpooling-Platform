@@ -236,10 +236,10 @@ void main() {
           ),
         );
 
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(find.text('Where are you heading?'), findsOneWidget);
-        expect(find.text('Ahmedabad Hub'), findsOneWidget);
+        expect(find.text('Nagpur'), findsWidgets);
         expect(tester.takeException(), isNull);
       },
     );

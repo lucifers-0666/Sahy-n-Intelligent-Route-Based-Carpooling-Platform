@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/utils/error_mapper.dart';
 import 'sahyan_toast.dart';
 export 'sahyan_toast.dart';
 
@@ -8,7 +9,7 @@ export 'sahyan_toast.dart';
 class FeedbackService {
   static OverlayEntry? _currentEntry;
 
-  /// Display a customized glass toast notification at the top of the viewport.
+  /// Display a customized glass toast notification respecting safe area and 12dp margins.
   static void showToast(
     BuildContext context, {
     required SahyanToastType type,
@@ -16,19 +17,31 @@ class FeedbackService {
     String? title,
     VoidCallback? onAction,
     String? actionLabel,
-    Duration duration = const Duration(milliseconds: 3200),
+    Duration duration = const Duration(milliseconds: 3000),
   }) {
-    // Provide appropriate haptic feedback
-    if (type == SahyanToastType.error) {
-      HapticFeedback.heavyImpact();
-    } else {
-      HapticFeedback.lightImpact();
+    // Provide appropriate haptic feedback tinted by severity
+    switch (type) {
+      case SahyanToastType.error:
+        HapticFeedback.heavyImpact();
+        break;
+      case SahyanToastType.warning:
+        HapticFeedback.mediumImpact();
+        break;
+      case SahyanToastType.success:
+      case SahyanToastType.info:
+        HapticFeedback.lightImpact();
+        break;
     }
 
     _removeCurrentToast();
 
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
     if (overlay == null) return;
+
+    // Map error through ErrorMapper to prevent raw technical strings in UI
+    final displayMessage = type == SahyanToastType.error
+        ? ErrorMapper.map(message)
+        : message;
 
     late final OverlayEntry entry;
 
@@ -44,7 +57,7 @@ class FeedbackService {
           child: SahyanToast(
             type: type,
             title: title,
-            message: message,
+            message: displayMessage,
             duration: duration,
             onAction: onAction,
             actionLabel: actionLabel,
@@ -187,11 +200,11 @@ class _ToastSlideContainerState extends State<_ToastSlideContainer>
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 260),
+      duration: const Duration(milliseconds: 240),
     );
 
     _slideAnimation =
-        Tween<Offset>(begin: const Offset(0.0, -1.0), end: Offset.zero).animate(
+        Tween<Offset>(begin: const Offset(0.0, -0.6), end: Offset.zero).animate(
           CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
         );
 
@@ -213,9 +226,9 @@ class _ToastSlideContainerState extends State<_ToastSlideContainer>
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
     return Positioned(
-      top: topPadding + 8,
-      left: 0,
-      right: 0,
+      top: topPadding + 12,
+      left: 12,
+      right: 12,
       child: Material(
         type: MaterialType.transparency,
         child: SlideTransition(

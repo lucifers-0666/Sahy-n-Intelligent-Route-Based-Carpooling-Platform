@@ -72,6 +72,52 @@ void navigateToSuspendedScreen(String reason, [String? suspendedAt]) {
   );
 }
 
+CustomTransitionPage<void> _buildFadeThroughPage({
+  required BuildContext context,
+  required GoRouterState state,
+  required Widget child,
+}) {
+  final disableAnimations =
+      MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+  if (disableAnimations) {
+    return CustomTransitionPage<void>(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: Duration.zero,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+          child,
+    );
+  }
+
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 260),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final fadeIn = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
+      final fadeOut = CurvedAnimation(
+        parent: secondaryAnimation,
+        curve: Curves.easeInCubic,
+      );
+
+      return FadeTransition(
+        opacity: fadeIn,
+        child: FadeTransition(
+          opacity: Tween<double>(begin: 1.0, end: 0.0).animate(fadeOut),
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.96, end: 1.0).animate(fadeIn),
+            child: child,
+          ),
+        ),
+      );
+    },
+  );
+}
+
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: '/',
@@ -98,30 +144,69 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/welcome',
-      builder: (context, state) => const WelcomeScreen(),
+      pageBuilder: (context, state) => _buildFadeThroughPage(
+        context: context,
+        state: state,
+        child: const WelcomeScreen(),
+      ),
     ),
     GoRoute(
       path: '/welcome-back',
-      builder: (context, state) => const WelcomeBackScreen(),
+      pageBuilder: (context, state) => _buildFadeThroughPage(
+        context: context,
+        state: state,
+        child: const WelcomeBackScreen(),
+      ),
     ),
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/login',
+      pageBuilder: (context, state) {
+        final method = state.uri.queryParameters['method'];
+        return _buildFadeThroughPage(
+          context: context,
+          state: state,
+          child: LoginScreen(initialMethod: method),
+        );
+      },
+    ),
     GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
     GoRoute(
       path: '/register',
-      builder: (context, state) => const RegisterScreen(),
+      pageBuilder: (context, state) => _buildFadeThroughPage(
+        context: context,
+        state: state,
+        child: const RegisterScreen(),
+      ),
     ),
     GoRoute(
       path: '/forgot-password',
-      builder: (context, state) => const ForgotPasswordScreen(),
+      pageBuilder: (context, state) => _buildFadeThroughPage(
+        context: context,
+        state: state,
+        child: const ForgotPasswordScreen(),
+      ),
     ),
     GoRoute(
       path: '/reset-password',
-      builder: (context, state) {
+      pageBuilder: (context, state) {
         final token = state.extra as String?;
-        return ResetPasswordScreen(initialToken: token);
+        return _buildFadeThroughPage(
+          context: context,
+          state: state,
+          child: ResetPasswordScreen(initialToken: token),
+        );
       },
     ),
-    GoRoute(path: '/otp', builder: (context, state) => const OtpScreen()),
+    GoRoute(
+      path: '/otp',
+      pageBuilder: (context, state) => _buildFadeThroughPage(
+        context: context,
+        state: state,
+        child: OtpScreen(
+          isRegistration: state.uri.queryParameters['flow'] == 'registration',
+        ),
+      ),
+    ),
     GoRoute(
       path: '/edit-profile',
       builder: (context, state) => const EditProfileScreen(),

@@ -94,22 +94,16 @@ void main() {
         await tester.pumpWidget(
           const ProviderScope(child: MaterialApp(home: AuthDecisionScreen())),
         );
-        await tester.pumpAndSettle();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
 
-        expect(find.text('Sahyān'), findsOneWidget);
-        expect(find.text('Where Journeys Find Company'), findsOneWidget);
         expect(
-          find.text(
-            "India's premier verified intercity highway carpooling network.",
-          ),
+          find.text('Share the journey,\nnot just the ride.'),
           findsOneWidget,
         );
-        expect(find.text('Verified Profiles'), findsOneWidget);
-        expect(find.text('Fair Cost Sharing'), findsOneWidget);
-        expect(find.text('Direct Routes'), findsOneWidget);
-        expect(find.text('Create an Account'), findsOneWidget);
-        expect(find.text('Log In'), findsOneWidget);
-        expect(find.text('Explore as Guest'), findsOneWidget);
+        expect(find.text('Continue with phone'), findsOneWidget);
+        expect(find.text('Use email or password instead'), findsOneWidget);
+        expect(find.text('Explore as guest · Browse rides'), findsOneWidget);
       },
     );
 
@@ -173,7 +167,7 @@ void main() {
         expect(destCtrl.text, 'SG Highway, Ahmedabad');
 
         // Tap popular corridor chip
-        final chipFinder = find.text('Bhuj → Ahmd · ₹388');
+        final chipFinder = find.text('Bhuj → Ahmd');
         expect(chipFinder, findsOneWidget);
         await tester.tap(chipFinder);
         await tester.pumpAndSettle();
@@ -231,36 +225,25 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 400));
 
-        // Verify unclipped Sign In header and Password mode form
-        expect(find.text('Sign In'), findsWidgets);
-        expect(find.text('Password'), findsWidgets);
-        expect(find.text('Phone OTP'), findsOneWidget);
-        expect(find.text('Mobile Number or Email'), findsOneWidget);
-
-        // Tap 'Phone OTP' tab to trigger sliding pill switcher
-        await tester.tap(find.text('Phone OTP'));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 350));
-
-        // State A: Mobile number field and "Get Verification Code" button
+        // Verify Round 2 Phone OTP layout
+        expect(find.text("What's your number?"), findsOneWidget);
         expect(find.text('+91'), findsOneWidget);
-        expect(find.text('Get Verification Code'), findsOneWidget);
+        expect(find.text('Sign in with password instead'), findsOneWidget);
 
-        // Tap "Get Verification Code" to advance to State B
-        await tester.tap(find.text('Get Verification Code'));
+        // Switch to password mode
+        await tester.tap(find.text('Sign in with password instead'));
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 350));
+        await tester.pump(const Duration(milliseconds: 300));
 
-        // State B: Phone preview with "Edit", 4 discrete digit boxes, countdown timer, and Verify & Sign In button
-        expect(find.text('Edit'), findsOneWidget);
-        expect(find.textContaining('Resend code in'), findsOneWidget);
-        expect(find.text('Verify & Sign In'), findsOneWidget);
+        expect(find.text('Welcome back'), findsOneWidget);
+        expect(find.text('Forgot password?'), findsOneWidget);
 
-        // Tap "Edit" to return to State A
-        await tester.tap(find.text('Edit'));
+        // Switch back to phone mode
+        await tester.tap(find.text('Sign in with phone OTP instead'));
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 350));
-        expect(find.text('Get Verification Code'), findsOneWidget);
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(find.text("What's your number?"), findsOneWidget);
       },
     );
 
@@ -287,7 +270,8 @@ void main() {
               child: const MaterialApp(home: AuthDecisionScreen()),
             ),
           );
-          await tester.pumpAndSettle();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 200));
           expect(
             tester.takeException(),
             isNull,

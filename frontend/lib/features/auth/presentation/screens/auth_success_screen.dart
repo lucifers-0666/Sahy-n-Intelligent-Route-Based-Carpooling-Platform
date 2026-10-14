@@ -66,7 +66,7 @@ class AuthSuccessScreen extends ConsumerWidget {
                             ),
                           ),
                           child: Icon(
-                            Icons.verified_user_rounded,
+                            Icons.verified_user,
                             color: tokens.brand,
                             size: 38,
                           ),
@@ -110,35 +110,38 @@ class AuthSuccessScreen extends ConsumerWidget {
                               width: 0.8,
                             ),
                           ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: tokens.mint,
-                                  shape: BoxShape.circle,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: tokens.mint,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Step 2 of 3 · Verified',
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: tokens.brand,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 11,
-                                  letterSpacing: 0.4,
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Identity Verification',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    color: tokens.brand,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                    letterSpacing: 0.4,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
 
                         const SizedBox(height: 16),
 
                         Text(
-                          'You are all set',
+                          "You're all set",
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
@@ -165,25 +168,25 @@ class AuthSuccessScreen extends ConsumerWidget {
                         // Verification Pillars
                         _buildTrustPillar(
                           tokens,
-                          Icons.phone_android_rounded,
+                          Icons.phone_android,
                           'Phone Authenticated ($phone)',
                         ),
                         const SizedBox(height: 8),
                         _buildTrustPillar(
                           tokens,
-                          Icons.chat_bubble_outline_rounded,
+                          Icons.chat_bubble_outline,
                           'Zero-Spam Direct Messaging Active',
                         ),
                         const SizedBox(height: 8),
                         _buildTrustPillar(
                           tokens,
-                          Icons.shield_outlined,
+                          Icons.security,
                           'SafePass Trust Protocol Enabled',
                         ),
 
                         const SizedBox(height: 16),
 
-                        // Gujarat Highway Corridor Banner
+                        // India-wide route network banner
                         Container(
                           width: double.infinity,
                           decoration: BoxDecoration(
@@ -206,7 +209,7 @@ class AuthSuccessScreen extends ConsumerWidget {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(
-                                  Icons.alt_route_rounded,
+                                  Icons.alt_route,
                                   color: Colors.white,
                                   size: 20,
                                 ),
@@ -217,7 +220,7 @@ class AuthSuccessScreen extends ConsumerWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Gujarat Highway Transit Network',
+                                      'India-wide carpooling network',
                                       style: GoogleFonts.plusJakartaSans(
                                         color: Colors.white,
                                         fontSize: 13,
@@ -245,7 +248,7 @@ class AuthSuccessScreen extends ConsumerWidget {
                         // Actions
                         SahyanButton(
                           text: 'Complete Your Profile',
-                          icon: Icons.arrow_forward_rounded,
+                          icon: Icons.arrow_forward,
                           isFullWidth: true,
                           onPressed: () => context.push('/personal-details'),
                         ),
@@ -263,15 +266,17 @@ class AuthSuccessScreen extends ConsumerWidget {
                   const SizedBox(height: 18),
 
                   // Security Footnote
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    runSpacing: 4,
                     children: [
                       Icon(
-                        Icons.security_rounded,
+                        Icons.security,
                         size: 14,
                         color: tokens.muted,
                       ),
-                      const SizedBox(width: 6),
                       Text(
                         '256-bit Encrypted Member Identity',
                         style: GoogleFonts.plusJakartaSans(

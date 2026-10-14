@@ -19,7 +19,7 @@ class SahyanErrorState extends StatelessWidget {
     required this.message,
     this.retryLabel = 'Try Again',
     this.onRetry,
-    this.icon = Icons.error_outline_rounded,
+    this.icon = Icons.error_outline,
   });
 
   @override

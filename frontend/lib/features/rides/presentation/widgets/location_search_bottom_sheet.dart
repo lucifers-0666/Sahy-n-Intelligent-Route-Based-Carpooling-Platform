@@ -2,78 +2,80 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:sahyan/app/config/app_region.dart';
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/core/location/data/providers/geolocator_provider.dart';
 import 'package:sahyan/core/location/domain/gps_provider.dart';
 import 'package:sahyan/core/network/api_config.dart';
+import 'package:sahyan/core/widgets/sahyan_button.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 
-/// Pre-curated, verified Gujarat highway transport hubs and intercity nodes
-class GujaratCorridorHubs {
+/// Pre-curated intercity hubs across India, used when search has no query.
+class IndiaPopularHubs {
   static const List<LocationModel> popularHubs = [
     LocationModel(
-      name: 'Iscon Cross Roads',
-      address: 'Iscon Cross Roads, SG Highway, Ahmedabad',
-      city: 'Ahmedabad',
-      latitude: 23.0270,
-      longitude: 72.5080,
-      placeId: 'hub_amd_iscon',
+      name: 'Chhatrapati Shivaji Maharaj Terminus',
+      address: 'Chhatrapati Shivaji Maharaj Terminus, Mumbai',
+      city: 'Mumbai',
+      latitude: 18.9402,
+      longitude: 72.8356,
+      placeId: 'hub_mumbai_cstm',
     ),
     LocationModel(
-      name: 'Kalawad Road',
-      address: 'Kalawad Road, KKV Hall Jn, Rajkot',
-      city: 'Rajkot',
-      latitude: 22.2850,
-      longitude: 70.7720,
-      placeId: 'hub_raj_kalawad',
+      name: 'Pune Junction',
+      address: 'Pune Junction Railway Station, Pune',
+      city: 'Pune',
+      latitude: 18.5289,
+      longitude: 73.8744,
+      placeId: 'hub_pune_junction',
     ),
     LocationModel(
-      name: 'Majura Gate',
-      address: 'Majura Gate, Ring Road, Surat',
-      city: 'Surat',
-      latitude: 21.1764,
-      longitude: 72.8223,
-      placeId: 'hub_sur_majura',
+      name: 'New Delhi Railway Station',
+      address: 'New Delhi Railway Station, New Delhi',
+      city: 'New Delhi',
+      latitude: 28.6428,
+      longitude: 77.2197,
+      placeId: 'hub_new_delhi_station',
     ),
     LocationModel(
-      name: 'Alkapuri',
-      address: 'Alkapuri, RC Dutt Road, Vadodara',
-      city: 'Vadodara',
-      latitude: 22.3072,
-      longitude: 73.1812,
-      placeId: 'hub_bdq_alkapuri',
+      name: 'Jaipur Junction',
+      address: 'Jaipur Junction Railway Station, Jaipur',
+      city: 'Jaipur',
+      latitude: 26.9196,
+      longitude: 75.7878,
+      placeId: 'hub_jaipur_junction',
     ),
     LocationModel(
-      name: 'Jubilee Ground',
-      address: 'Jubilee Ground, Station Road, Bhuj',
-      city: 'Bhuj',
-      latitude: 23.2420,
-      longitude: 69.6669,
-      placeId: 'hub_bhuj_jubilee',
+      name: 'Kempegowda Bus Station',
+      address: 'Kempegowda Bus Station, Bengaluru',
+      city: 'Bengaluru',
+      latitude: 12.9772,
+      longitude: 77.5728,
+      placeId: 'hub_bengaluru_kbs',
     ),
     LocationModel(
-      name: 'GIFT City',
-      address: 'GIFT City Tower 1, Gandhinagar',
-      city: 'Gandhinagar',
-      latitude: 23.1610,
-      longitude: 72.6840,
-      placeId: 'hub_gnr_gift',
+      name: 'Mysuru Central Bus Stand',
+      address: 'Mysuru Central Bus Stand, Mysuru',
+      city: 'Mysuru',
+      latitude: 12.3128,
+      longitude: 76.6452,
+      placeId: 'hub_mysuru_bus_stand',
     ),
     LocationModel(
-      name: 'Limbdi Toll Plaza',
-      address: 'NH47 Limbdi Bypass, Limbdi',
-      city: 'Limbdi',
-      latitude: 22.5645,
-      longitude: 71.8080,
-      placeId: 'hub_lmb_toll',
+      name: 'Zero Mile Stone',
+      address: 'Zero Mile Stone, Nagpur',
+      city: 'Nagpur',
+      latitude: 21.1458,
+      longitude: 79.0882,
+      placeId: 'hub_nagpur_zero_mile',
     ),
     LocationModel(
-      name: 'Chotila Highway Circle',
-      address: 'NH47 Chotila Junction, Chotila',
-      city: 'Chotila',
-      latitude: 22.4225,
-      longitude: 71.1925,
-      placeId: 'hub_cht_circle',
+      name: 'Mahatma Gandhi Bus Station',
+      address: 'Mahatma Gandhi Bus Station, Hyderabad',
+      city: 'Hyderabad',
+      latitude: 17.3771,
+      longitude: 78.4804,
+      placeId: 'hub_hyderabad_mgbs',
     ),
   ];
 }
@@ -175,14 +177,28 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
         if (data['success'] == true && data['predictions'] is List) {
           final list = (data['predictions'] as List).map((item) {
             final map = item as Map<String, dynamic>;
-            final rawName = map['name'] as String?;
-            final desc = map['description'] as String? ?? input;
-            final name = (rawName != null && rawName.isNotEmpty)
-                ? rawName
-                : desc;
-            final city = map['city'] as String? ?? 'Gujarat';
-            final lat = (map['latitude'] as num?)?.toDouble() ?? 23.0225;
-            final lng = (map['longitude'] as num?)?.toDouble() ?? 72.5714;
+            final rawName =
+                (map['name'] as String?) ?? (map['mainText'] as String?);
+            final desc =
+                (map['description'] as String?) ??
+                (map['secondaryText'] as String?) ??
+                input;
+            final name = rawName?.trim().isNotEmpty == true
+                ? rawName!.trim()
+                : desc.split(',').first.trim();
+            final cityValue =
+                (map['city'] as String?) ??
+                (map['cityOrDistrict'] as String?) ??
+                (map['secondaryText'] as String?)?.split(',').first.trim();
+            final city = cityValue?.isNotEmpty == true
+                ? cityValue!
+                : AppRegion.fallbackCity;
+            final lat =
+                (map['latitude'] as num?)?.toDouble() ??
+                AppRegion.fallbackLatitude;
+            final lng =
+                (map['longitude'] as num?)?.toDouble() ??
+                AppRegion.fallbackLongitude;
             final placeId = map['placeId'] as String?;
 
             return LocationModel(
@@ -202,10 +218,19 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
             });
             return;
           }
+        } else {
+          debugPrint('Place autocomplete returned an invalid response shape.');
         }
+      } else {
+        debugPrint(
+          'Place autocomplete failed with HTTP ${res.statusCode}; '
+          'showing curated local hubs.',
+        );
       }
-    } catch (_) {
-      // Graceful fallback to local corridor hub matching on error
+    } catch (error) {
+      debugPrint(
+        'Place autocomplete failed; showing curated local hubs: $error',
+      );
     }
 
     if (mounted) {
@@ -216,10 +241,10 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
   List<LocationModel> get _displayedResults {
     final query = _query.trim().toLowerCase();
     if (query.isEmpty) {
-      return GujaratCorridorHubs.popularHubs;
+      return IndiaPopularHubs.popularHubs;
     }
 
-    final localMatches = GujaratCorridorHubs.popularHubs.where((hub) {
+    final localMatches = IndiaPopularHubs.popularHubs.where((hub) {
       return hub.name.toLowerCase().contains(query) ||
           hub.address.toLowerCase().contains(query) ||
           hub.city.toLowerCase().contains(query);
@@ -237,6 +262,59 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
     }
 
     return combined;
+  }
+
+  Future<bool> _showLocationPermissionPrimer() async {
+    final result = await showModalBottomSheet<bool>(
+      context: context,
+      useSafeArea: true,
+      backgroundColor: SahyanColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          24,
+          28,
+          24,
+          MediaQuery.of(sheetContext).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Icon(
+              Icons.location_on_rounded,
+              size: 36,
+              color: SahyanColors.primaryDark,
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Use your location',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'We use your location to set a nearby pickup point. Your location is only used while you choose a ride.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, height: 1.45),
+            ),
+            const SizedBox(height: 20),
+            SahyanButton(
+              text: 'Continue',
+              size: SahyanButtonSize.large,
+              onPressed: () => Navigator.of(sheetContext).pop(true),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(sheetContext).pop(false),
+              child: const Text('Not now'),
+            ),
+          ],
+        ),
+      ),
+    );
+    return result ?? false;
   }
 
   Future<void> _handleUseCurrentLocation() async {
@@ -257,6 +335,8 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
       var perm = await _gpsProvider.checkPermission();
       if (perm == LocationPermissionStatus.denied ||
           perm == LocationPermissionStatus.unknown) {
+        final continueToSystemPrompt = await _showLocationPermissionPrimer();
+        if (!continueToSystemPrompt || !mounted) return;
         perm = await _gpsProvider.requestPermission();
       }
 
@@ -520,15 +600,13 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
 
           const SizedBox(height: 12),
 
-          // Section Header: Popular Gujarat Corridors / Search Results
+          // Section Header: Popular India-wide routes / Search Results
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             child: Row(
               children: [
                 Text(
-                  _query.isEmpty
-                      ? 'POPULAR GUJARAT CORRIDORS'
-                      : 'SEARCH RESULTS',
+                  _query.isEmpty ? 'POPULAR INDIA HUBS' : 'SEARCH RESULTS',
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,

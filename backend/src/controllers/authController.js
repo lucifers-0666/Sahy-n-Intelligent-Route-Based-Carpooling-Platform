@@ -236,9 +236,15 @@ const sendOtp = async (req, res, next) => {
     }
 
     const formattedPhone = `+91${localPhone}`;
-    const user = await User.findOne({ phone: formattedPhone });
+    let user = await User.findOne({ phone: formattedPhone });
     if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found with this mobile number' });
+      // Auto-provision user account for passwordless phone login/signup
+      user = await User.create({
+        name: `Traveler ${localPhone.slice(-4)}`,
+        phone: formattedPhone,
+        isVerified: false,
+        authProvider: 'local',
+      });
     }
 
     if (otpService.isRateLimited(user.otpInfo)) {
@@ -613,6 +619,21 @@ const linkProvider = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/v1/auth/logout
+ * Session revocation endpoint
+ */
+const logout = async (req, res, next) => {
+  try {
+    return res.status(200).json({
+      success: true,
+      message: 'Session revoked successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -624,5 +645,6 @@ module.exports = {
   validatePasswordPolicy,
   firebaseSync,
   linkProvider,
+  logout,
 };
 

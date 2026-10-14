@@ -8,6 +8,7 @@ import 'package:sahyan/core/widgets/verification_badge.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
+import 'package:sahyan/shared/widgets/feedback/sahyan_logout_bottom_sheet.dart';
 import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -666,44 +667,6 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Log Out', style: AppTypography.cardTitle),
-        content: Text(
-          'Are you sure you want to log out of your Sahyān account?',
-          style: AppTypography.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'Cancel',
-              style: AppTypography.button.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.mutedRust,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ref.read(authProvider.notifier).logout();
-              context.go('/login');
-            },
-            child: Text(
-              'Log Out',
-              style: AppTypography.button.copyWith(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
+    SahyanLogoutBottomSheet.show(context);
   }
 }

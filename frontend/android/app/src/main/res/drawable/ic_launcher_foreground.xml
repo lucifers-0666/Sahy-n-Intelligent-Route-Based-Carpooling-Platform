@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Sahyān Master Route Convergence Symbol (Adaptive Foreground) -->
+    <path
+        android:pathData="M 20,32 C 46,32 54,54 70,54 L 86,54"
+        android:strokeColor="#3DDC97"
+        android:strokeWidth="10"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <path
+        android:pathData="M 20,76 C 46,76 54,54 70,54 L 86,54"
+        android:strokeColor="#3DDC97"
+        android:strokeWidth="10"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"/>
+    <path
+        android:pathData="M 88,46.5 A 7.5,7.5 0 1,1 87.99,46.5 Z"
+        android:fillColor="#FFFFFF"/>
+</vector>

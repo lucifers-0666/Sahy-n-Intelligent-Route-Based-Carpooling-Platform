@@ -45,6 +45,9 @@ class MockSecureStorageService implements SecureStorageService {
 }
 
 class MockFirebaseCapableAuthRepo implements FirebaseAuthRepository {
+  @override
+  bool get isFirebaseAvailable => true;
+
   bool sendPhoneOtpCalled = false;
   bool verifyPhoneOtpCalled = false;
   bool googleSignInCalled = false;

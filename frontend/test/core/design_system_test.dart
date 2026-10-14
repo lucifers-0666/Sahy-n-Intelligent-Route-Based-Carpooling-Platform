@@ -24,16 +24,13 @@ void main() {
 
   group('Sahyān Design Tokens & Typography', () {
     test('AppColors contains all Stitch/Figma organic palette tokens', () {
-      expect(AppColors.primaryForest, const Color(0xFF285A4A));
-      expect(AppColors.deepForest, const Color(0xFF193D33));
-      expect(AppColors.softForest, const Color(0xFFDDE9E3));
-      expect(AppColors.warmBackground, const Color(0xFFF6F7F4));
-      expect(AppColors.mutedBrass, const Color(0xFFB99558));
-      expect(AppColors.softBrass, const Color(0xFFEFE4CD));
-      expect(AppColors.mutedRust, const Color(0xFFA65B4B));
-      expect(AppColors.softRust, const Color(0xFFFCEAE8));
-      expect(AppColors.textPrimary, const Color(0xFF18211D));
-      expect(AppColors.textSecondary, const Color(0xFF68736C));
+      expect(AppColors.brand, const Color(0xFF0B5D4B));
+      expect(AppColors.brandBright, const Color(0xFF0F7A5F));
+      expect(AppColors.ink, const Color(0xFF0A1F1A));
+      expect(AppColors.mint, const Color(0xFF3DDC97));
+      expect(AppColors.marigold, const Color(0xFFF5A524));
+      expect(AppColors.canvasLight, const Color(0xFFF6F8F7));
+      expect(AppColors.mutedLight, const Color(0xFF5B6B66));
     });
 
     test('AppSpacing adheres to mathematical 4dp/8dp grid scale', () {
@@ -147,7 +144,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Submitting'), findsNothing);
       await tester.tap(find.byType(SahyanButton));
       expect(tapped, isFalse);
     });
@@ -207,11 +204,44 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.visibility_outlined));
+      expect(find.byIcon(Icons.visibility), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.visibility));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.visibility_off), findsOneWidget);
+    });
+
+    testWidgets('Shows valid and error states with a 54dp minimum field', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrapWithTheme(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              SahyanTextField(
+                label: 'Full name',
+                hint: 'Enter your name',
+                isValid: true,
+              ),
+              SahyanTextField(
+                label: 'Phone',
+                hint: 'Enter your phone',
+                errorText: 'Enter a valid phone number',
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(find.text('Enter a valid phone number'), findsOneWidget);
+      expect(
+        tester.getSize(find.byType(TextFormField).first).height,
+        greaterThanOrEqualTo(54),
+      );
     });
   });
 
