@@ -7,6 +7,7 @@ import 'package:sahyan/features/auth/presentation/screens/login_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/register_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/otp_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
+import 'package:sahyan/features/auth/presentation/screens/onboarding_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/forgot_password_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:sahyan/features/auth/presentation/widgets/sahyan_highway_hero.dart';
@@ -328,9 +329,109 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       // Verifies Step 2 is shown
-      expect(find.text('Preferences & Role'), findsOneWidget);
+      expect(find.text('Preferences & Role'), findsWidgets);
       expect(find.text('Complete Registration'), findsOneWidget);
     });
+
+    testWidgets(
+      'RegisterScreen driver role selection reveals admin manual verification, driver details, and photo toggle',
+      (tester) async {
+        await tester.pumpWidget(createTestApp(const RegisterScreen()));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Advance to Step 2
+        await tester.enterText(find.byType(TextFormField).first, 'Zaid Patel');
+        await tester.pump();
+        await tester.enterText(find.widgetWithText(TextField, '98765 43210'), '9876543210');
+        await tester.pump();
+        await tester.tap(find.byType(Checkbox));
+        await tester.pump();
+        await tester.ensureVisible(find.text('Continue'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Continue'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+
+        // Select Driver Role
+        await tester.ensureVisible(find.text('Driver'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Driver'));
+        await tester.pumpAndSettle();
+
+        // Verifies Admin Verification Banner
+        expect(find.text('Manual Admin Verification Required'), findsOneWidget);
+        expect(
+          find.text(
+            'Driver profiles and vehicle details undergo manual review by the Sahyān safety admin panel before publishing rides is enabled.',
+          ),
+          findsOneWidget,
+        );
+
+        // Verifies Driver Identity & Vehicle Inputs
+        expect(find.text('Driving License (DL) Number *'), findsOneWidget);
+        expect(find.text('Car Registration / Number Plate *'), findsOneWidget);
+        expect(find.text('Vehicle Make & Model *'), findsOneWidget);
+        expect(find.text('IND'), findsOneWidget); // Live HSRP Plate preview
+
+        // Verifies Default User Avatar Icon & Optional Photo Upload
+        expect(find.text('Upload driver photo (Optional)'), findsOneWidget);
+        expect(find.byIcon(Icons.person_rounded), findsWidgets);
+
+        // Toggle Photo Upload
+        await tester.ensureVisible(find.text('Upload driver photo (Optional)'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Upload driver photo (Optional)'));
+        await tester.pumpAndSettle();
+        expect(find.text('Remove photo (Use default icon)'), findsOneWidget);
+
+        // Toggle back to Default Avatar Icon
+        await tester.ensureVisible(find.text('Remove photo (Use default icon)'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Remove photo (Use default icon)'));
+        await tester.pumpAndSettle();
+        expect(find.text('Upload driver photo (Optional)'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'RegisterScreen driver verification suite renders without overflow on 320dp screen',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 844);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+
+        await tester.pumpWidget(createTestApp(const RegisterScreen(), width: 320));
+        await tester.pumpAndSettle();
+
+        // Advance to Step 2
+        await tester.enterText(find.byType(TextFormField).first, 'Zaid Patel');
+        await tester.pump();
+        await tester.enterText(find.widgetWithText(TextField, '98765 43210'), '9876543210');
+        await tester.pump();
+        await tester.tap(find.byType(Checkbox));
+        await tester.pump();
+        await tester.ensureVisible(find.text('Continue'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Continue'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+
+        // Select Driver Role
+        await tester.ensureVisible(find.text('Driver'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Driver'));
+        await tester.pumpAndSettle();
+
+        // Ensure everything fits and renders without overflow
+        await tester.ensureVisible(find.text('Manual Admin Verification Required'));
+        expect(find.text('Manual Admin Verification Required'), findsOneWidget);
+        expect(find.text('Complete Registration'), findsOneWidget);
+      },
+    );
   });
 
   group('Responsive OtpScreen UI Tests', () {
@@ -526,9 +627,112 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Where journeys find company'), findsOneWidget);
+    expect(
+      find.text('Intelligent journeys, shared naturally.'),
+      findsOneWidget,
+    );
     for (final letter in ['S', 'a', 'h', 'y', 'ā', 'n']) {
       expect(find.text(letter), findsOneWidget);
     }
+  });
+
+  group('Onboarding UI Tests', () {
+    testWidgets(
+      'Continue advances through the three original onboarding pages',
+      (tester) async {
+        var finished = false;
+        await tester.pumpWidget(
+          createTestApp(
+            LuxuryOnboardingScreen(onFinish: () => finished = true),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Better journeys start together.'), findsOneWidget);
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+        expect(find.text('Find rides that fit your route.'), findsOneWidget);
+
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+        expect(find.text('A more connected way to travel.'), findsOneWidget);
+
+        await tester.tap(find.text('Get started'));
+        await tester.pump();
+        expect(finished, isTrue);
+      },
+    );
+
+    testWidgets('Skip completes onboarding without changing the page', (
+      tester,
+    ) async {
+      var finished = false;
+      await tester.pumpWidget(
+        createTestApp(LuxuryOnboardingScreen(onFinish: () => finished = true)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Skip'));
+      expect(finished, isTrue);
+      expect(find.text('Better journeys start together.'), findsOneWidget);
+    });
+
+    testWidgets('Finger swiping horizontally transitions through pages', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        createTestApp(LuxuryOnboardingScreen(onFinish: () {})),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Better journeys start together.'), findsOneWidget);
+
+      // Swipe left from anywhere on the screen
+      await tester.drag(find.byType(PageView), const Offset(-450, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('Find rides that fit your route.'), findsOneWidget);
+
+      // Swipe left again
+      await tester.drag(find.byType(PageView), const Offset(-450, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('A more connected way to travel.'), findsOneWidget);
+    });
+
+    testWidgets('Onboarding renders without overflow on 320dp and 360dp screens', (
+      tester,
+    ) async {
+      for (final width in [320.0, 360.0, 390.0, 412.0]) {
+        tester.view.physicalSize = Size(width, 640.0);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        await tester.pumpWidget(
+          createTestApp(
+            LuxuryOnboardingScreen(
+              key: ValueKey<double>(width),
+              onFinish: () {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Check page 1
+        expect(tester.takeException(), isNull);
+        expect(find.text('Better journeys start together.'), findsOneWidget);
+
+        // Check page 2
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('Find rides that fit your route.'), findsOneWidget);
+
+        // Check page 3
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('A more connected way to travel.'), findsOneWidget);
+        expect(find.text('Get started'), findsOneWidget);
+      }
+    });
   });
 }

@@ -44,21 +44,19 @@ class FullScreenRouteMapSheet extends StatefulWidget {
     String? corridorHighway,
     double? distanceKm,
   }) {
-    return showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      enableDrag: false,
-      useSafeArea: false,
-      builder: (ctx) => FullScreenRouteMapSheet(
-        origin: origin,
-        destination: destination,
-        polylinePoints: polylinePoints,
-        stopovers: stopovers,
-        bounds: bounds,
-        routeTitle: routeTitle,
-        corridorHighway: corridorHighway,
-        distanceKm: distanceKm,
+    return Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (ctx) => FullScreenRouteMapSheet(
+          origin: origin,
+          destination: destination,
+          polylinePoints: polylinePoints,
+          stopovers: stopovers,
+          bounds: bounds,
+          routeTitle: routeTitle,
+          corridorHighway: corridorHighway,
+          distanceKm: distanceKm,
+        ),
       ),
     );
   }
@@ -93,32 +91,49 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
     super.dispose();
   }
 
+  bool _isValidCoord(ll.LatLng coord) {
+    return coord.latitude >= -90.0 &&
+        coord.latitude <= 90.0 &&
+        coord.longitude >= -180.0 &&
+        coord.longitude <= 180.0 &&
+        !coord.latitude.isNaN &&
+        !coord.longitude.isNaN;
+  }
+
   void _fitRouteBounds() {
     if (!_isMapReady) return;
     try {
       if (widget.bounds != null) {
         final sw = toLatLong(widget.bounds.southwest);
         final ne = toLatLong(widget.bounds.northeast);
-        _mapController.fitCamera(
-          fmap.CameraFit.bounds(
-            bounds: fmap.LatLngBounds(sw, ne),
-            padding: const EdgeInsets.all(50.0),
-          ),
-        );
-      } else if (widget.polylinePoints.isNotEmpty) {
-        final points = widget.polylinePoints.map(toLatLong).toList();
-        _mapController.fitCamera(
-          fmap.CameraFit.coordinates(
-            coordinates: points,
-            padding: const EdgeInsets.all(50.0),
-          ),
-        );
-      } else {
-        final p1 = ll.LatLng(widget.origin.latitude, widget.origin.longitude);
-        final p2 = ll.LatLng(
-          widget.destination.latitude,
-          widget.destination.longitude,
-        );
+        if (_isValidCoord(sw) && _isValidCoord(ne)) {
+          _mapController.fitCamera(
+            fmap.CameraFit.bounds(
+              bounds: fmap.LatLngBounds(sw, ne),
+              padding: const EdgeInsets.all(50.0),
+            ),
+          );
+          return;
+        }
+      }
+      if (widget.polylinePoints.isNotEmpty) {
+        final points = widget.polylinePoints.map(toLatLong).where(_isValidCoord).toList();
+        if (points.length >= 2) {
+          _mapController.fitCamera(
+            fmap.CameraFit.coordinates(
+              coordinates: points,
+              padding: const EdgeInsets.all(50.0),
+            ),
+          );
+          return;
+        }
+      }
+      final p1 = ll.LatLng(widget.origin.latitude, widget.origin.longitude);
+      final p2 = ll.LatLng(
+        widget.destination.latitude,
+        widget.destination.longitude,
+      );
+      if (_isValidCoord(p1) && _isValidCoord(p2)) {
         _mapController.fitCamera(
           fmap.CameraFit.coordinates(
             coordinates: [p1, p2],
@@ -271,7 +286,7 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.canvasLight,
       body: Stack(
         children: [
           // ─── 1. Full-Canvas FlutterMap ──────────────────────────────────────
@@ -316,76 +331,81 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
           ),
 
           // ─── 2. Top Navigation Bar ──────────────────────────────────────────
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Corridor Active Capsule
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: SahyanColors.surface,
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: SahyanColors.border,
-                        width: 0.8,
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Corridor Active Capsule
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x1414241C),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
+                      decoration: BoxDecoration(
+                        color: SahyanColors.surface,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: SahyanColors.border,
+                          width: 0.8,
                         ),
-                      ],
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x1414241C),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.radar_rounded,
+                            size: 16,
+                            color: SahyanColors.primaryMint,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            widget.corridorHighway ?? 'Highway Corridor Active',
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: SahyanColors.primaryDark,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.radar_rounded,
-                          size: 16,
-                          color: SahyanColors.primaryMint,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          widget.corridorHighway ?? 'Highway Corridor Active',
-                          style: const TextStyle(
-                            fontFamily: 'Plus Jakarta Sans',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: SahyanColors.primaryDark,
+
+                    // Close button
+                    Material(
+                      color: SahyanColors.surface,
+                      shape: const CircleBorder(),
+                      elevation: 3,
+                      shadowColor: const Color(0x2214241C),
+                      child: InkWell(
+                        onTap: () => Navigator.of(context).pop(),
+                        customBorder: const CircleBorder(),
+                        child: const SizedBox(
+                          width: 42,
+                          height: 42,
+                          child: Icon(
+                            Icons.close_rounded,
+                            size: 22,
+                            color: SahyanColors.textMain,
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-
-                  // Close button
-                  Material(
-                    color: SahyanColors.surface,
-                    shape: const CircleBorder(),
-                    elevation: 3,
-                    shadowColor: const Color(0x2214241C),
-                    child: InkWell(
-                      onTap: () => Navigator.of(context).pop(),
-                      customBorder: const CircleBorder(),
-                      child: const SizedBox(
-                        width: 42,
-                        height: 42,
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 22,
-                          color: SahyanColors.textMain,
-                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

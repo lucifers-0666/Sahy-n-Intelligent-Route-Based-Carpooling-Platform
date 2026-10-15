@@ -11,7 +11,7 @@ import 'sahyan_logo.dart';
 /// 3. Two route paths draw toward the convergence point and continue as one route (750 ms)
 /// 4. Junction node gives one subtle mint pulse (220 ms)
 /// 5. Sahyān wordmark reveals and moves into place (300 ms)
-/// 6. Tagline "Where journeys find company" fades in (250 ms)
+/// 6. The official tagline fades in (250 ms)
 /// Target total sequence: ~1.6 seconds.
 class SahyanAnimatedRouteLogo extends StatefulWidget {
   final double size;
@@ -63,28 +63,28 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
       curve: Curves.easeInOutCubic,
     );
 
-    // 2. Pulse ring controller (250 ms)
+    // 2. Pulse ring controller (220 ms)
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 250),
+      duration: const Duration(milliseconds: 220),
     );
     _pulseAnimation = CurvedAnimation(
       parent: _pulseController,
       curve: Curves.easeOutQuad,
     );
 
-    // 3. Typography controller (600 ms)
+    // 3. Typography controller (550 ms: wordmark 300ms, tagline 250ms)
     _textController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 550),
     );
     _wordmarkAnimation = CurvedAnimation(
       parent: _textController,
-      curve: const Interval(0.0, 0.60, curve: Curves.easeOutCubic),
+      curve: const Interval(0.0, 0.55, curve: Curves.easeOutCubic),
     );
     _taglineAnimation = CurvedAnimation(
       parent: _textController,
-      curve: const Interval(0.40, 1.0, curve: Curves.easeIn),
+      curve: const Interval(0.45, 1.0, curve: Curves.easeIn),
     );
 
     _drawController.addStatusListener((status) {
@@ -197,7 +197,7 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
                 child: Transform.translate(
                   offset: Offset(0, 4 * (1.0 - val)),
                   child: Text(
-                    'Where journeys find company',
+                    'Intelligent journeys, shared naturally.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13.0,
                       fontWeight: FontWeight.w600,

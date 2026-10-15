@@ -50,6 +50,7 @@ class AppStartupNotifier extends StateNotifier<AppStartupState> {
         await authNotifier.checkAuthStatus();
         if (_isOverridden) return;
         if (authNotifier.state.isAuthenticated) {
+          await storageService.setCompletedOnboarding(true);
           state = const AppStartupState(status: AppStartupStatus.ready);
           return;
         }
@@ -94,8 +95,14 @@ final appStartupProvider =
     StateNotifierProvider<AppStartupNotifier, AppStartupState>((ref) {
       final storageService = ref.watch(secureStorageServiceProvider);
       final authNotifier = ref.watch(authProvider.notifier);
-      return AppStartupNotifier(
+      final notifier = AppStartupNotifier(
         storageService: storageService,
         authNotifier: authNotifier,
       );
+      ref.listen<AuthState>(authProvider, (previous, next) {
+        if (next.isAuthenticated) {
+          notifier.markReady();
+        }
+      });
+      return notifier;
     });

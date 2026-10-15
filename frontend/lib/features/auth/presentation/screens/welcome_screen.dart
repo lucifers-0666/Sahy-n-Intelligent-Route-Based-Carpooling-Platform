@@ -4,26 +4,32 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../../../../app/providers/user_mode_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../core/localization/sahyan_language_selector.dart';
 import '../../../../core/localization/sahyan_localizations.dart';
 import '../../../../core/widgets/sahyan_button.dart';
+import '../auth_provider.dart';
 import '../widgets/sahyan_highway_hero.dart';
 
-/// Redesigned 2026 Welcome Screen for Sahyān.
+/// Redesigned Welcome Screen for Sahyān.
 ///
 /// Features:
 /// - Preferred Gujarat highway sunrise illustration locally bundled and rendered
 /// - Hero shared-element flight of the master brand mark to the top-left squircle tile
 /// - Floating top-right English / Gujarati / Hindi language switcher pill
-/// - Route corridor badge ("Ahmedabad → Vadodara") overlapping the lower hero boundary
-/// - Content sheet directly beneath the illustration with zero unexplained gaps
-/// - Staggered entrance animation: headline -> subline -> trust chips -> action buttons
-/// - Standard BMP icons (no surrogate pairs) preventing broken glyphs on all Android versions
-/// - ONE primary filled action ("Continue with phone")
-/// - Text links for "Use email or password" and "Explore as guest · Browse rides"
+/// - Route corridor badge ("Ahmedabad → Vadodara") overlapping the lower hero boundary with ZERO gaps
+/// - White content panel seamlessly meeting the hero illustration directly underneath
+/// - Headline: "Share the journey, not just the ride."
+/// - Supporting subline: "Find verified riders and drivers for routes across India."
+/// - Trust chips: [ Verified ] [ Fair cost ] [ Direct routes ]
+/// - ONE primary filled action: "Continue with phone"
+/// - Secondary text link: "Use email or password instead"
+/// - Tertiary guest link: "Explore as guest · Browse rides"
+/// - Strict zero-emoji constraint across UI, comments, and strings
+/// - Safe-area & keyboard responsive layout
 class WelcomeScreen extends ConsumerStatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -34,9 +40,9 @@ class WelcomeScreen extends ConsumerStatefulWidget {
 class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animController;
-  late final Animation<double> _headlineAnim;
-  late final Animation<double> _sublineAnim;
-  late final Animation<double> _chipsAnim;
+  late final Animation<double> _heroAnim;
+  late final Animation<double> _chipAnim;
+  late final Animation<double> _contentAnim;
   late final Animation<double> _actionsAnim;
 
   @override
@@ -47,17 +53,17 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
       duration: const Duration(milliseconds: 700),
     );
 
-    _headlineAnim = CurvedAnimation(
+    _heroAnim = CurvedAnimation(
       parent: _animController,
-      curve: const Interval(0.05, 0.45, curve: Curves.easeOutCubic),
+      curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic),
     );
-    _sublineAnim = CurvedAnimation(
+    _chipAnim = CurvedAnimation(
       parent: _animController,
-      curve: const Interval(0.20, 0.60, curve: Curves.easeOutCubic),
+      curve: const Interval(0.20, 0.60, curve: Curves.easeOutBack),
     );
-    _chipsAnim = CurvedAnimation(
+    _contentAnim = CurvedAnimation(
       parent: _animController,
-      curve: const Interval(0.35, 0.75, curve: Curves.easeOutCubic),
+      curve: const Interval(0.30, 0.75, curve: Curves.easeOutCubic),
     );
     _actionsAnim = CurvedAnimation(
       parent: _animController,
@@ -83,28 +89,45 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final mediaQuery = MediaQuery.of(context);
     final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
     final bottomPadding = mediaQuery.padding.bottom;
     final l10n = SahyanLocalizations.of(context);
 
-    // Responsive hero height (45-50% of available height)
-    final heroHeight = (screenHeight * 0.46).clamp(270.0, 380.0);
+    // Responsive hero height (44-48% of screen)
+    final heroHeight = (screenHeight * 0.44).clamp(270.0, 380.0);
 
-    final cardBg = isDark
-        ? AppColors.darkSurface.withValues(alpha: 0.98)
-        : Colors.white;
+    final cardBg = isDark ? AppColors.darkSurface : Colors.white;
     final borderColor = isDark
         ? AppColors.darkSurfaceHigh
         : AppColors.border.withValues(alpha: 0.85);
     final textColor = isDark ? AppColors.darkText : AppColors.ink;
-    const mutedColor = AppColors.mutedLight;
+    const mutedColor = Color(0xFF5B6B66);
     final scriptScale = l10n.languageCode == 'en' ? 0.0 : 1.5;
 
+    final authState = ref.watch(authProvider);
+    if (authState.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          context.go('/home');
+        }
+      });
+      return Scaffold(
+        backgroundColor: cardBg,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.brand,
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBg : AppColors.canvasLight,
+      backgroundColor: cardBg,
       body: Stack(
         children: [
           // 1. Top Hero Illustration with Top-Left Brand Mark
@@ -113,9 +136,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
             left: 0,
             right: 0,
             height: heroHeight,
-            child: SahyanHighwaySunriseHero(
-              height: heroHeight,
-              isDark: isDark,
+            child: FadeTransition(
+              opacity: _heroAnim,
+              child: SahyanHighwaySunriseHero(
+                height: heroHeight,
+                isDark: isDark,
+              ),
             ),
           ),
 
@@ -126,9 +152,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
             child: SahyanLanguageSelector(isDark: isDark),
           ),
 
-          // 3. Main Content Sheet Starting Immediately Beneath the Hero
+          // 3. Main Content Sheet Starting Directly Under the Hero (zero accidental gap)
           Positioned(
-            top: heroHeight - 16,
+            top: heroHeight - 24,
             left: 0,
             right: 0,
             bottom: 0,
@@ -147,7 +173,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                     color: Colors.black.withValues(
                       alpha: isDark ? 0.40 : 0.08,
                     ),
-                    blurRadius: 24,
+                    blurRadius: 20,
                     offset: const Offset(0, -6),
                   ),
                 ],
@@ -170,14 +196,17 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Small clearance so the overlapping route chip never touches the headline
+                          const SizedBox(height: 10),
+
                           // Headline
                           FadeTransition(
-                            opacity: _headlineAnim,
+                            opacity: _contentAnim,
                             child: SlideTransition(
                               position: Tween<Offset>(
                                 begin: const Offset(0, 0.08),
                                 end: Offset.zero,
-                              ).animate(_headlineAnim),
+                              ).animate(_contentAnim),
                               child: Text(
                                 l10n.welcomeHeadline,
                                 textAlign: TextAlign.start,
@@ -198,12 +227,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
                           // Subtitle
                           FadeTransition(
-                            opacity: _sublineAnim,
+                            opacity: _contentAnim,
                             child: SlideTransition(
                               position: Tween<Offset>(
                                 begin: const Offset(0, 0.08),
                                 end: Offset.zero,
-                              ).animate(_sublineAnim),
+                              ).animate(_contentAnim),
                               child: Text(
                                 l10n.welcomeSubline,
                                 textAlign: TextAlign.start,
@@ -220,26 +249,26 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
 
                           // Trust Chips Row ("Verified", "Fair cost", "Direct routes")
                           FadeTransition(
-                            opacity: _chipsAnim,
+                            opacity: _contentAnim,
                             child: SlideTransition(
                               position: Tween<Offset>(
                                 begin: const Offset(0, 0.08),
                                 end: Offset.zero,
-                              ).animate(_chipsAnim),
+                              ).animate(_contentAnim),
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 alignment: Alignment.centerLeft,
                                 child: Row(
                                   children: [
                                     _WelcomeTrustChip(
-                                      icon: Icons.check_circle,
+                                      icon: Icons.check_circle_outline,
                                       label: l10n.chipVerified,
                                       isDark: isDark,
                                       fontSize: 12 + scriptScale,
                                     ),
                                     const SizedBox(width: 8),
                                     _WelcomeTrustChip(
-                                      icon: Icons.account_balance_wallet,
+                                      icon: Icons.account_balance_wallet_outlined,
                                       label: l10n.chipFairCost,
                                       isDark: isDark,
                                       fontSize: 12 + scriptScale,
@@ -268,6 +297,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                               ).animate(_actionsAnim),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   // 1. Primary Action: Continue with phone
                                   SahyanButton(
@@ -283,9 +313,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                                       context.push('/login?method=phone');
                                     },
                                   ),
-                                  const SizedBox(height: 14),
+                                  const SizedBox(height: 12),
 
-                                  // 2. Text Link: Use email or password
+                                  // 2. Text Link: Use email or password instead
                                   Center(
                                     child: TextButton(
                                       onPressed: () {
@@ -318,8 +348,8 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
                                   Center(
                                     child: TextButton.icon(
                                       icon: const Icon(
-                                        Icons.explore,
-                                        size: 15,
+                                        Icons.explore_outlined,
+                                        size: 16,
                                       ),
                                       label: Text(l10n.exploreAsGuest),
                                       onPressed: () {
@@ -357,13 +387,22 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
             ),
           ),
 
-          // 4. Route Corridor Badge Overlapping the Lower Edge of the Illustration
+          // 4. Route Corridor Badge Overlapping the Lower Seam
           Positioned(
             left: 20,
-            top: heroHeight - 32,
-            child: _RouteCorridorBadge(
-              route: 'Ahmedabad → Vadodara',
-              isDark: isDark,
+            top: heroHeight - 40,
+            child: FadeTransition(
+              opacity: _chipAnim,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.3),
+                  end: Offset.zero,
+                ).animate(_chipAnim),
+                child: _RouteCorridorBadge(
+                  route: 'Ahmedabad → Vadodara',
+                  isDark: isDark,
+                ),
+              ),
             ),
           ),
         ],

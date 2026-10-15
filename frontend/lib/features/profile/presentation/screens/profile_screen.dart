@@ -118,15 +118,18 @@ class ProfileScreen extends ConsumerWidget {
                                 CircleAvatar(
                                   radius: 36,
                                   backgroundColor: AppColors.softForest,
-                                  child: Text(
-                                    user.name.isNotEmpty
-                                        ? user.name[0].toUpperCase()
-                                        : 'U',
-                                    style: AppTypography.screenTitle.copyWith(
-                                      fontSize: 32,
-                                      color: AppColors.primaryForest,
-                                    ),
-                                  ),
+                                  backgroundImage: (user.profilePhoto != null &&
+                                          user.profilePhoto!.isNotEmpty)
+                                      ? NetworkImage(user.profilePhoto!)
+                                      : null,
+                                  child: (user.profilePhoto != null &&
+                                          user.profilePhoto!.isNotEmpty)
+                                      ? null
+                                      : const Icon(
+                                          Icons.person_rounded,
+                                          size: 38,
+                                          color: AppColors.primaryForest,
+                                        ),
                                 ),
                                 if (user.isVerified)
                                   Container(

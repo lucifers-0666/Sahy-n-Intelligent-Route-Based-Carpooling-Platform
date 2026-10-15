@@ -15,6 +15,87 @@ import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/models/user_model.dart';
 
+import 'package:sahyan/core/network/api_client.dart';
+import 'package:sahyan/features/auth/data/auth_repository.dart';
+
+class MockAuthRepository implements AuthRepository {
+  @override
+  Future<Map<String, dynamic>> login({
+    required String identifier,
+    required String password,
+  }) async => {};
+
+  @override
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+  }) async => {};
+
+  @override
+  Future<Map<String, dynamic>> sendOtp(String phone) async => {};
+
+  @override
+  Future<Map<String, dynamic>> verifyOtp({
+    required String phone,
+    required String otp,
+  }) async => {};
+
+  @override
+  Future<Map<String, dynamic>> forgotPassword(String email) async => {};
+
+  @override
+  Future<Map<String, dynamic>> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async => {};
+
+  @override
+  Future<UserModel> getProfile() async => const UserModel(
+        id: 'driver_1',
+        name: 'Test Driver',
+        phone: '+919876543210',
+        email: 'testdriver@sahyan.com',
+        city: 'Ahmedabad',
+        verificationStatus: UserVerificationStatus.verified,
+        rating: 4.9,
+        totalRides: 14,
+        canDrive: true,
+        driverOnboardingStatus: 'approved',
+      );
+}
+
+class TestAuthNotifier extends AuthNotifier {
+  TestAuthNotifier([AuthState? initialState])
+      : super(
+          repository: MockAuthRepository(),
+          storageService: MockSecureStorageService(),
+          apiClient: ApiClient(),
+        ) {
+    state = initialState ??
+        const AuthState(
+          status: AuthStatus.authenticated,
+          user: UserModel(
+            id: 'driver_1',
+            name: 'Test Driver',
+            phone: '+919876543210',
+            email: 'testdriver@sahyan.com',
+            city: 'Ahmedabad',
+            verificationStatus: UserVerificationStatus.verified,
+            rating: 4.9,
+            totalRides: 14,
+            canDrive: true,
+            driverOnboardingStatus: 'approved',
+          ),
+          token: 'fake_jwt',
+        );
+  }
+
+  @override
+  Future<void> checkAuthStatus() async {}
+}
+
 class MockVehicleRepository implements VehicleRepository {
   final List<VehicleModel> vehicles;
 
@@ -203,11 +284,15 @@ void main() {
   Widget createWidgetUnderTest({
     List<VehicleModel> vehicles = const [testVehicle],
     double textScaleFactor = 1.0,
+    AuthState? authState,
   }) {
     return ProviderScope(
       overrides: [
         secureStorageServiceProvider.overrideWithValue(
           MockSecureStorageService(),
+        ),
+        authProvider.overrideWith(
+          (ref) => TestAuthNotifier(authState),
         ),
         vehicleRepositoryProvider.overrideWithValue(
           MockVehicleRepository(vehicles),
@@ -216,16 +301,42 @@ void main() {
       ],
       child: MaterialApp(
         theme: AppTheme.lightTheme,
-        home: MediaQuery(
-          data: MediaQueryData(textScaler: TextScaler.linear(textScaleFactor)),
-          child: const OfferRideScreen(),
+        home: Builder(
+          builder: (context) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(textScaleFactor),
+            ),
+            child: const OfferRideScreen(),
+          ),
         ),
       ),
     );
   }
 
   group('OfferRideScreen Multi-Step Rendering & Interaction', () {
+    testWidgets('Unauthenticated guest renders Sign In Required card', (tester) async {
+      await tester.pumpWidget(
+        createWidgetUnderTest(
+          authState: const AuthState(status: AuthStatus.unauthenticated),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sign In Required'), findsOneWidget);
+      expect(
+        find.text(
+          'Sign in or register to select your registered vehicle and publish rides.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Sign In to Continue'), findsOneWidget);
+    });
+
     testWidgets('Renders screen title and step indicators', (tester) async {
+      tester.view.physicalSize = const Size(600.0, 900.0);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pumpAndSettle();
 
@@ -233,6 +344,18 @@ void main() {
       expect(find.text('Vehicle & Route'), findsOneWidget);
       expect(find.text('Schedule & Seats'), findsOneWidget);
       expect(find.text('Review & Publish'), findsOneWidget);
+    });
+
+    testWidgets('Narrow viewport displays compact step indicator', (tester) async {
+      tester.view.physicalSize = const Size(360.0, 640.0);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Step 1 of 3'), findsOneWidget);
+      expect(find.text('Vehicle & Route'), findsOneWidget);
     });
 
     testWidgets('Empty vehicle state shows Add Vehicle prompt', (tester) async {

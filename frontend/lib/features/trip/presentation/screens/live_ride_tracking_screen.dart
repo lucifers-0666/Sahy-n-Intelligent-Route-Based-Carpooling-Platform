@@ -196,18 +196,25 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
           .onDriverLocation(rideId)
           .listen(
             _onDriverLocationPayload,
-            onError: (_) => _startSimulationIfNoData(),
+            onError: (_) {
+              if (widget.rideId?.startsWith('demo') == true) {
+                _startSimulationIfNoData();
+              }
+            },
           );
 
-      // Start simulation after 4 seconds if no socket data arrives
+      // Do not fabricate live activity or moving telemetry for real rides
+      // Only start simulation preview if explicitly in a demo/preview ride
       Future.delayed(const Duration(seconds: 4), () {
-        if (mounted && _driverPosition == null) {
+        if (mounted && _driverPosition == null && widget.rideId?.startsWith('demo') == true) {
           _startSimulationIfNoData();
         }
       });
     } catch (e) {
       debugPrint('[LiveRideTracking] Socket init failed: $e');
-      _startSimulation();
+      if (widget.rideId?.startsWith('demo') == true) {
+        _startSimulation();
+      }
     }
   }
 
@@ -576,7 +583,9 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
 
                 Expanded(
                   child: Text(
-                    '${_remainingKm.toStringAsFixed(1)} km away \u2022 $_remainingMins mins',
+                    _driverPosition != null
+                        ? '${_remainingKm.toStringAsFixed(1)} km away \u2022 $_remainingMins mins'
+                        : 'Awaiting driver location update...',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 13,
@@ -634,7 +643,7 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
       label = 'Stale GPS (${_locationAgeSeconds}s ago)';
     } else {
       color = SahyanColors.textMuted;
-      label = 'Connecting...';
+      label = 'Awaiting GPS Fix';
     }
 
     return Row(

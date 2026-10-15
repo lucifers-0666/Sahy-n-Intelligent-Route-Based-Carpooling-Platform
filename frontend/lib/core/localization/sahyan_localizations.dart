@@ -119,6 +119,8 @@ class SahyanLocalizations {
     }
   }
 
+  String get continueWithEmailOrPassword => useEmailOrPassword;
+
   String get exploreAsGuest {
     switch (languageCode) {
       case 'gu':

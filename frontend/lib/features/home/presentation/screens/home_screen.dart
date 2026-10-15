@@ -420,17 +420,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           ),
                           const SizedBox(height: 4),
                           // Dynamic Greeting
-                          Text(
-                            '${_getTimeGreeting()}, $displayName',
-                            style: const TextStyle(
-                              fontFamily: 'Plus Jakarta Sans',
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                              color: SahyanColors.textMain,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              '${_getTimeGreeting()}, $displayName',
+                              style: const TextStyle(
+                                fontFamily: 'Plus Jakarta Sans',
+                                fontSize: 22,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                                color: SahyanColors.textMain,
+                              ),
+                              maxLines: 1,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 6),
                           // Active Regional Transit Hub Pill
@@ -440,18 +443,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Current corridor anchor: ${AppRegion.fallbackCity}',
-                                      ),
-                                      duration: Duration(seconds: 2),
-                                      backgroundColor: SahyanColors.primaryDark,
-                                    ),
-                                  );
-                                },
+                                onTap: _selectPickupLocation,
                                 borderRadius: BorderRadius.circular(999),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -731,7 +723,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   children: [
                     const Expanded(
                       child: Text(
-                        'Live Highway Corridors',
+                        'Popular Highway Corridors',
                         style: TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
                           fontSize: 18,
@@ -761,11 +753,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   _CorridorBentoCard(
                     routeName:
                         '${quickCorridors.isNotEmpty ? quickCorridors[0]['from'] : 'Ahmedabad'} → ${quickCorridors.isNotEmpty ? quickCorridors[0]['to'] : 'Vadodara'} Express',
-                    speedLabel:
-                        '${quickCorridors.isNotEmpty ? quickCorridors[0]['avgSpeedKmh'] ?? 94 : 94} km/h avg',
-                    driverInfo:
-                        '${quickCorridors.isNotEmpty ? quickCorridors[0]['activeDriversCount'] ?? 14 : 14} verified drivers ready · Next in 8 mins',
-                    matchScoreText: '95% Corridor Match',
+                    speedLabel: 'Expressway Route',
+                    driverInfo: 'Daily commuter carpool corridor',
+                    matchScoreText: 'High Corridor Compatibility',
                     badges: [
                       'via ${quickCorridors.isNotEmpty ? quickCorridors[0]['viaHighway'] ?? 'NE1' : 'NE1'}',
                       'EV Fastlane',
@@ -794,11 +784,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   _CorridorBentoCard(
                     routeName:
                         '${quickCorridors.length > 1 ? quickCorridors[1]['from'] : 'Mumbai'} → ${quickCorridors.length > 1 ? quickCorridors[1]['to'] : 'Pune'} Expressway',
-                    speedLabel:
-                        '${quickCorridors.length > 1 ? quickCorridors[1]['avgSpeedKmh'] ?? 88 : 88} km/h avg',
-                    driverInfo:
-                        '${quickCorridors.length > 1 ? quickCorridors[1]['activeDriversCount'] ?? 9 : 9} verified drivers ready · Next in 14 mins',
-                    matchScoreText: '92% Corridor Match',
+                    speedLabel: 'Direct Highway',
+                    driverInfo: 'Daily commuter carpool corridor',
+                    matchScoreText: 'High Corridor Compatibility',
                     badges: [
                       'via ${quickCorridors.length > 1 ? quickCorridors[1]['viaHighway'] ?? 'NH48' : 'NH48'}',
                       'Zero Toll',
@@ -917,7 +905,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              'Smart Surge Drop Active',
+                              'Shared Cost Savings',
                               style: TextStyle(
                                 fontFamily: 'Plus Jakarta Sans',
                                 fontSize: 11,
@@ -951,7 +939,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                   const SizedBox(height: 12),
 
-                  // Highway Telematics Status Card
+                  // Highway Status Card
                   BentoContainer(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -975,7 +963,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Zero Congestion Detected',
+                                'Standard Corridor Flow',
                                 style: TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 14,
@@ -985,7 +973,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               ),
                               SizedBox(height: 2),
                               Text(
-                                'NH47 Limbdi Toll cleared · Smooth transit flow',
+                                'Direct intercity highway routing · Co-travel verified',
                                 style: TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 12,
@@ -1467,7 +1455,7 @@ class _PulsatingTelematics extends StatelessWidget {
           ),
           const SizedBox(width: 5),
           const Text(
-            'Live Telematics',
+            'Active Corridors',
             style: TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 11,

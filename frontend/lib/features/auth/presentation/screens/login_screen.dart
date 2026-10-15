@@ -14,6 +14,7 @@ import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../firebase_options.dart';
 import '../../../../shared/widgets/feedback/feedback_service.dart';
 import '../../../../shared/widgets/feedback/sahyan_legal_sheet.dart';
+import '../../../../shared/widgets/sahyan_glass_card.dart';
 import '../../../../shared/widgets/sahyan_logo.dart';
 import '../../../../shared/widgets/sahyan_route_background.dart';
 import '../auth_provider.dart';
@@ -258,6 +259,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // Only show Google button if configured on platform
     final isGoogleConfigured = DefaultFirebaseOptions.isConfigured;
 
+    final authState = ref.watch(authProvider);
+    if (authState.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          context.go('/home');
+        }
+      });
+      return Scaffold(
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.canvasLight,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.brand,
+            strokeWidth: 2.5,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.canvasLight,
       appBar: AppBar(
@@ -301,8 +320,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Brand Mark Header (Master Logo)
-                          const SahyanLogo.mark(size: 34),
+                          // Brand Mark Header (Master Logo) + Ambient Trust Badge
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const SahyanLogo.mark(size: 34),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: (isDark ? AppColors.mint : AppColors.brand)
+                                      .withValues(alpha: isDark ? 0.18 : 0.10),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: (isDark ? AppColors.mint : AppColors.brand)
+                                        .withValues(alpha: 0.25),
+                                    width: 1.0,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: isDark ? AppColors.mint : AppColors.brand,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "Verified Commuters",
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark ? AppColors.mint : AppColors.brand,
+                                        letterSpacing: 0.2,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 20),
 
                           // Headline & Subline
@@ -329,27 +393,139 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 1.45,
                             ),
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 24),
 
-                          // ── Form Input Section ──
-                          if (_mode == _LoginMode.phoneOtp) ...[
-                            _buildSingleContainerPhoneInput(
-                              isDark,
-                              textColor,
-                              mutedColor,
-                              l10n,
+                          // ── Frosted Glass Form Container ──
+                          SahyanGlassCard(
+                            padding: const EdgeInsets.all(18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Sleek Segmented Switcher (Phone OTP / Password)
+                                Container(
+                                  height: 42,
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? AppColors.darkSurfaceHigh.withValues(alpha: 0.45)
+                                        : const Color(0xFFF1F5F3),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? AppColors.darkSurfaceHigh
+                                          : AppColors.border,
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            HapticFeedback.selectionClick();
+                                            setState(() => _mode = _LoginMode.phoneOtp);
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 200),
+                                            curve: Curves.easeInOut,
+                                            decoration: BoxDecoration(
+                                              color: _mode == _LoginMode.phoneOtp
+                                                  ? (isDark ? AppColors.brand : Colors.white)
+                                                  : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(9),
+                                              boxShadow: _mode == _LoginMode.phoneOtp
+                                                  ? [
+                                                      BoxShadow(
+                                                        color: Colors.black.withValues(alpha: 0.08),
+                                                        blurRadius: 4,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ]
+                                                  : null,
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              'Phone OTP',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 13,
+                                                fontWeight: _mode == _LoginMode.phoneOtp
+                                                    ? FontWeight.w700
+                                                    : FontWeight.w500,
+                                                color: _mode == _LoginMode.phoneOtp
+                                                    ? (isDark ? Colors.white : AppColors.ink)
+                                                    : mutedColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            HapticFeedback.selectionClick();
+                                            setState(() => _mode = _LoginMode.password);
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(milliseconds: 200),
+                                            curve: Curves.easeInOut,
+                                            decoration: BoxDecoration(
+                                              color: _mode == _LoginMode.password
+                                                  ? (isDark ? AppColors.brand : Colors.white)
+                                                  : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(9),
+                                              boxShadow: _mode == _LoginMode.password
+                                                  ? [
+                                                      BoxShadow(
+                                                        color: Colors.black.withValues(alpha: 0.08),
+                                                        blurRadius: 4,
+                                                        offset: const Offset(0, 2),
+                                                      ),
+                                                    ]
+                                                  : null,
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              'Password',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 13,
+                                                fontWeight: _mode == _LoginMode.password
+                                                    ? FontWeight.w700
+                                                    : FontWeight.w500,
+                                                color: _mode == _LoginMode.password
+                                                    ? (isDark ? Colors.white : AppColors.ink)
+                                                    : mutedColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Dynamic Form Inputs
+                                if (_mode == _LoginMode.phoneOtp) ...[
+                                  _buildSingleContainerPhoneInput(
+                                    isDark,
+                                    textColor,
+                                    mutedColor,
+                                    l10n,
+                                  ),
+                                ] else ...[
+                                  _buildPasswordInputSection(
+                                    isDark,
+                                    textColor,
+                                    mutedColor,
+                                  ),
+                                ],
+                              ],
                             ),
-                          ] else ...[
-                            _buildPasswordInputSection(
-                              isDark,
-                              textColor,
-                              mutedColor,
-                            ),
-                          ],
+                          ),
 
                           const SizedBox(height: 16),
 
-                          // Secondary Link: Mode Switcher
+                          // Secondary Link: Mode Switcher (Maintained for backward compatibility)
                           Center(
                             child: TextButton(
                               onPressed: () {
@@ -776,11 +952,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {
-                FeedbackService.info(
-                  context,
-                  'Please sign in with Phone OTP to reset your password.',
-                );
-                setState(() => _mode = _LoginMode.phoneOtp);
+                context.push('/forgot-password');
               },
               child: Text(
                 'Forgot password?',

@@ -7,6 +7,8 @@ abstract class AppColors {
   static const Color brand = Color(
     0xFF0B5D4B,
   ); // Primary brand, primary buttons, logo (#0B5D4B)
+  static const Color deepEmerald = Color(0xFF0B5D4B);
+  static const Color darkEmerald = Color(0xFF084C3A);
   static const Color brandBright = Color(
     0xFF0F7A5F,
   ); // Links, active states, success (#0F7A5F)

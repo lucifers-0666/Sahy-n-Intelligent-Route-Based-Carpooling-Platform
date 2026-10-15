@@ -60,6 +60,13 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final viewInsetsBottom = MediaQuery.of(context).viewInsets.bottom;
+    final isKeyboardOpen = viewInsetsBottom > 0;
+    // Hide bottom navigation bar in Offer Ride wizard or when keyboard is open
+    // to prevent covering form inputs or the Continue CTA button.
+    final isOfferRide = navigationShell.currentIndex == 2;
+    final showBottomNav = !isKeyboardOpen && !isOfferRide;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         systemNavigationBarColor: AppColors.warmBackground,
@@ -76,10 +83,12 @@ class AppShell extends ConsumerWidget {
             Expanded(child: navigationShell),
           ],
         ),
-        bottomNavigationBar: FloatingBottomNavBar(
-          currentIndex: navigationShell.currentIndex,
-          onTap: (index) => _handleNavigation(context, ref, index),
-        ),
+        bottomNavigationBar: showBottomNav
+            ? FloatingBottomNavBar(
+                currentIndex: navigationShell.currentIndex,
+                onTap: (index) => _handleNavigation(context, ref, index),
+              )
+            : null,
       ),
     );
   }

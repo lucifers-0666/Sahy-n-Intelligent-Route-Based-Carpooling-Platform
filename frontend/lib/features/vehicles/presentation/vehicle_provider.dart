@@ -12,6 +12,10 @@ final vehicleRepositoryProvider = Provider<VehicleRepository>((ref) {
 class VehiclesNotifier extends AsyncNotifier<List<VehicleModel>> {
   @override
   Future<List<VehicleModel>> build() async {
+    final authState = ref.watch(authProvider);
+    if (!authState.isAuthenticated || authState.token == null) {
+      return const [];
+    }
     final repository = ref.read(vehicleRepositoryProvider);
     return await repository.getVehicles();
   }
@@ -129,6 +133,11 @@ class VehiclesNotifier extends AsyncNotifier<List<VehicleModel>> {
   }
 
   Future<void> refresh() async {
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated || authState.token == null) {
+      state = const AsyncData([]);
+      return;
+    }
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(vehicleRepositoryProvider);

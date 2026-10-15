@@ -157,11 +157,33 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
 
         if (user != null) {
+          await storageService.setCompletedOnboarding(true);
           state = state.copyWith(
             status: AuthStatus.authenticated,
             token: token,
             user: user,
             isPhoneVerified: user.phone.isNotEmpty,
+          );
+          return;
+        } else if (token.isNotEmpty) {
+          final fallbackUser = storedUser ??
+              UserModel(
+                id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
+                name: 'Sahyān Commuter',
+                email: '',
+                phone: '',
+                city: 'Ahmedabad',
+                verificationStatus: UserVerificationStatus.verified,
+                rating: 5.0,
+                totalRides: 0,
+              );
+          await storageService.saveUser(fallbackUser);
+          await storageService.setCompletedOnboarding(true);
+          state = state.copyWith(
+            status: AuthStatus.authenticated,
+            token: token,
+            user: fallbackUser,
+            isPhoneVerified: fallbackUser.phone.isNotEmpty,
           );
           return;
         }
@@ -326,6 +348,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
 
+      await storageService.saveToken(token);
+      await storageService.saveUser(user);
+      await storageService.setCompletedOnboarding(true);
+
       state = state.copyWith(
         status: AuthStatus.authenticated,
         token: token,
@@ -382,6 +408,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
 
+      await storageService.saveToken(token);
+      await storageService.saveUser(user);
+      await storageService.setCompletedOnboarding(true);
+
       state = state.copyWith(
         status: AuthStatus.authenticated,
         token: token,
@@ -427,6 +457,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
+
+      await storageService.saveToken(token);
+      await storageService.saveUser(user);
+      await storageService.setCompletedOnboarding(true);
 
       state = state.copyWith(
         status: AuthStatus.authenticated,
@@ -570,6 +604,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
 
+      await storageService.saveToken(token);
+      await storageService.saveUser(user);
+      await storageService.setCompletedOnboarding(true);
+
       state = state.copyWith(
         status: AuthStatus.authenticated,
         token: token,
@@ -644,6 +682,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String phone,
     required String password,
+    String? role,
+    String? licenseNumber,
+    String? secondaryPhone,
+    String? dateOfBirth,
+    String? vehiclePlate,
+    String? vehicleModel,
+    String? vehicleType,
+    String? profilePhoto,
   }) async {
     state = state.copyWith(status: AuthStatus.loading, errorMessage: null);
     try {
@@ -654,11 +700,34 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
 
-      final user = result['user'] as UserModel;
+      final rawUser = result['user'];
+      final user = rawUser is UserModel
+          ? rawUser
+          : (rawUser is Map<String, dynamic>
+                ? UserModel.fromJson(rawUser)
+                : UserModel(
+                    id: 'usr_${DateTime.now().millisecondsSinceEpoch}',
+                    name: name,
+                    email: email,
+                    phone: phone,
+                    city: 'Ahmedabad',
+                    verificationStatus: UserVerificationStatus.pending,
+                    rating: 5.0,
+                    totalRides: 0,
+                  ));
+
+      final updatedUser = (role == 'driver' || role == 'both')
+          ? user.copyWith(
+              role: role,
+              canDrive: false,
+              driverOnboardingStatus: 'submitted',
+              profilePhoto: profilePhoto ?? user.profilePhoto,
+            )
+          : user;
 
       state = state.copyWith(
         status: AuthStatus.unauthenticated,
-        user: user,
+        user: updatedUser,
         otpSentToPhone: phone,
       );
       return true;
@@ -703,6 +772,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (token == null || user == null) {
         throw Exception('Authentication failed: Missing token or user profile');
       }
+
+      await storageService.saveToken(token);
+      await storageService.saveUser(user);
+      await storageService.setCompletedOnboarding(true);
 
       state = state.copyWith(
         status: AuthStatus.authenticated,

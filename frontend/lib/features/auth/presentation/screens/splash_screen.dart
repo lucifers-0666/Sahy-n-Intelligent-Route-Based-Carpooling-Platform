@@ -1,17 +1,21 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/providers/app_startup_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../shared/widgets/sahyan_route_convergence_logo.dart';
+import '../auth_provider.dart';
 
-/// Redesigned 2026 Production Launch & Splash Screen for Sahyān.
+/// Redesigned Minimal & Premium Splash Screen for Sahyān.
 ///
-/// Implements:
-/// - Rich forest-green-to-emerald gradient with restrained depth
-/// - Radial mint glow behind the converging corridor brand mark
-/// - Animated route-convergence logo (under one second) with reduced-motion fallback
-/// - Seamless startup state resolution without false delays or navigation traps
+/// Features:
+/// - Full-screen Deep Emerald background (#0B5D4B)
+/// - Centered animated route-convergence brand mark with wordmark and tagline
+/// - Tagline: "Intelligent journeys, shared naturally."
+/// - Minimalist circular loading indicator only if startup takes longer than the animation
+/// - Safe 3.5s timeout prevents hanging indefinitely on backend/storage delays
+/// - Honors reduced-motion accessibility preferences
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -22,10 +26,24 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _isAnimationFinished = false;
   bool _hasNavigated = false;
+  Timer? _safetyTimeoutTimer;
 
   @override
   void initState() {
     super.initState();
+    // Safety fallback: Never block user indefinitely if storage or backend is slow
+    _safetyTimeoutTimer = Timer(const Duration(milliseconds: 3500), () {
+      if (mounted && !_hasNavigated) {
+        _isAnimationFinished = true;
+        _evaluateAndNavigate(force: true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _safetyTimeoutTimer?.cancel();
+    super.dispose();
   }
 
   void _onAnimationCompleted() {
@@ -36,30 +54,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     _evaluateAndNavigate();
   }
 
-  void _evaluateAndNavigate() {
+  void _evaluateAndNavigate({bool force = false}) {
     if (_hasNavigated || !mounted) return;
-
-    final startupState = ref.read(appStartupProvider);
-    if (startupState.status == AppStartupStatus.ready) {
-      _hasNavigated = true;
-      context.go('/home');
-      return;
-    }
 
     final disableAnimations =
         MediaQuery.maybeOf(context)?.disableAnimations ?? false;
 
-    // Wait until animation completes (unless reduced motion is enabled)
-    if (!_isAnimationFinished && !disableAnimations) {
+    // Ensure the brand convergence animation completes unless reduced-motion is requested or forced
+    if (!_isAnimationFinished && !disableAnimations && !force) {
       return;
     }
 
+    final authState = ref.read(authProvider);
+    if (authState.isAuthenticated) {
+      _hasNavigated = true;
+      _safetyTimeoutTimer?.cancel();
+      context.go('/home');
+      return;
+    }
+
+    final startupState = ref.read(appStartupProvider);
+
     // Still initializing backend session / storage
-    if (startupState.status == AppStartupStatus.initializing) {
+    if (startupState.status == AppStartupStatus.initializing && !force) {
       return;
     }
 
     _hasNavigated = true;
+    _safetyTimeoutTimer?.cancel();
 
     switch (startupState.status) {
       case AppStartupStatus.ready:
@@ -69,9 +91,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         context.go('/onboarding');
         break;
       case AppStartupStatus.authEntryRequired:
-        context.go('/welcome');
-        break;
       case AppStartupStatus.initializing:
+        context.go('/welcome');
         break;
     }
   }
@@ -81,6 +102,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // Listen for startup changes
     ref.listen<AppStartupState>(appStartupProvider, (previous, next) {
       if (next.status != AppStartupStatus.initializing) {
+        _evaluateAndNavigate();
+      }
+    });
+
+    // Listen for auth changes
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated) {
         _evaluateAndNavigate();
       }
     });
@@ -97,28 +125,49 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       });
     }
 
-    const logoSize = 92.0;
-
-    if (startupState.status == AppStartupStatus.ready) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _evaluateAndNavigate();
-      });
-    }
+    // Show elegant bottom spinner only if animation completed but startup is still waiting
+    final showWaitingLoader =
+        _isAnimationFinished &&
+        startupState.status == AppStartupStatus.initializing;
 
     return Scaffold(
-      backgroundColor: AppColors.darkBg,
+      backgroundColor: AppColors.brand,
       body: Stack(
         children: [
+          // Deep Emerald Canvas
           const Positioned.fill(child: ColoredBox(color: AppColors.brand)),
+
+          // Centered Brand Symbol + Wordmark + Tagline
           Center(
             child: SahyanAnimatedRouteLogo(
-              size: logoSize,
+              size: 104,
               isDark: true,
               showWordmark: true,
               showTagline: true,
               wordmarkColor: Colors.white,
-              taglineColor: Colors.white.withValues(alpha: 0.9),
+              taglineColor: Colors.white.withValues(alpha: 0.88),
               onComplete: _onAnimationCompleted,
+            ),
+          ),
+
+          // Minimalist bottom loader (only if startup genuinely takes longer than animation)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: mediaQuery.padding.bottom + 48,
+            child: AnimatedOpacity(
+              opacity: showWaitingLoader ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: const Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

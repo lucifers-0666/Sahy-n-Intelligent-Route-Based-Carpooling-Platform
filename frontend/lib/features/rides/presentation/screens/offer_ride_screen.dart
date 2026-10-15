@@ -295,6 +295,56 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
 
   Widget _buildStepIndicator() {
     const steps = ['Vehicle & Route', 'Schedule & Seats', 'Review & Publish'];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 380;
+
+        if (isCompact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Step ${_currentStep + 1} of ${steps.length}',
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryForest,
+                  ),
+                ),
+                Text(
+                  steps[_currentStep],
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textMain,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: (_currentStep + 1) / steps.length,
+                minHeight: 5,
+                backgroundColor: AppColors.border,
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  AppColors.primaryForest,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -342,17 +392,20 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: Text(
-                    steps[index],
-                    style: AppTypography.caption.copyWith(
-                      fontSize: 11,
-                      fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                      color: isCurrent
-                          ? AppColors.deepForest
-                          : AppColors.textSecondary,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      steps[index],
+                      style: AppTypography.caption.copyWith(
+                        fontSize: 11,
+                        fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                        color: isCurrent
+                            ? AppColors.deepForest
+                            : AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (index < steps.length - 1)
@@ -370,6 +423,8 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
         }),
       ),
     );
+      },
+    );
   }
 
   // --- Step 1: Vehicle & Route ---
@@ -386,25 +441,89 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
           'Select the vehicle for this journey',
         ),
         const SizedBox(height: 8),
-        vehiclesAsync.when(
-          loading: () => const Center(
-            child: Padding(
-              padding: EdgeInsets.all(16),
-              child: CircularProgressIndicator(color: AppColors.primaryForest),
-            ),
-          ),
-          error: (err, _) => Container(
-            padding: const EdgeInsets.all(12),
+        if (!authState.isAuthenticated)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.mutedRust),
+              border: Border.all(color: AppColors.border),
             ),
-            child: Text(
-              'Failed to load vehicles: $err',
-              style: AppTypography.caption,
+            child: Column(
+              children: [
+                const Icon(
+                  Icons.lock_outline_rounded,
+                  size: 36,
+                  color: AppColors.primaryForest,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Sign In Required',
+                  style: AppTypography.cardTitle.copyWith(
+                    color: AppColors.deepForest,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Sign in or register to select your registered vehicle and publish rides.',
+                  style: AppTypography.secondary,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryForest,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () => context.push('/login'),
+                  icon: const Icon(
+                    Icons.login_rounded,
+                    size: 16,
+                    color: AppColors.white,
+                  ),
+                  label: const Text(
+                    'Sign In to Continue',
+                    style: TextStyle(color: AppColors.white),
+                  ),
+                ),
+              ],
             ),
-          ),
+          )
+        else
+          vehiclesAsync.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(color: AppColors.primaryForest),
+              ),
+            ),
+            error: (err, _) => Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.mutedRust),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    'Unable to load vehicles. Please verify your network connection.',
+                    style: AppTypography.caption.copyWith(color: AppColors.errorText),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    onPressed: () => ref.read(vehiclesProvider.notifier).refresh(),
+                    icon: const Icon(Icons.refresh, size: 16, color: AppColors.primaryForest),
+                    label: const Text('Retry', style: TextStyle(color: AppColors.primaryForest)),
+                  ),
+                ],
+              ),
+            ),
           data: (vehicles) {
             if (vehicles.isEmpty) {
               return Container(

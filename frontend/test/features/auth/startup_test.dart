@@ -170,6 +170,44 @@ void main() {
         expect(startup.state.status, AppStartupStatus.ready);
       },
     );
+
+    test(
+      'Authenticated user on app restart marks onboarding complete in storage and stays ready',
+      () async {
+        await storage.saveToken('valid_jwt_token');
+
+        final startup = AppStartupNotifier(
+          storageService: storage,
+          authNotifier: authNotifier,
+        );
+
+        await Future.delayed(const Duration(milliseconds: 50));
+        expect(startup.state.status, AppStartupStatus.ready);
+        expect(await storage.hasCompletedOnboarding(), isTrue);
+      },
+    );
+
+    test(
+      'Manual logout clears session credentials but preserves onboarding completed status so onboarding walkthrough is never re-shown',
+      () async {
+        await storage.saveToken('valid_jwt_token');
+        await storage.setCompletedOnboarding(true);
+
+        await authNotifier.logout();
+
+        expect(await storage.getToken(), isNull);
+        expect(await storage.getUser(), isNull);
+        expect(await storage.hasCompletedOnboarding(), isTrue);
+
+        final startup = AppStartupNotifier(
+          storageService: storage,
+          authNotifier: authNotifier,
+        );
+
+        await Future.delayed(Duration.zero);
+        expect(startup.state.status, AppStartupStatus.authEntryRequired);
+      },
+    );
   });
 
   group('UserModeNotifier Tests', () {

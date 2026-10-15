@@ -55,11 +55,11 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
     final dynamicTabs = [
       SegmentedPillBarItem(
         label: 'Active',
-        badgeCount: activeBookings.isNotEmpty ? activeBookings.length : 1,
+        badgeCount: activeBookings.isNotEmpty ? activeBookings.length : null,
       ),
       SegmentedPillBarItem(
         label: 'Pending',
-        badgeCount: pendingBookings.isNotEmpty ? pendingBookings.length : 1,
+        badgeCount: pendingBookings.isNotEmpty ? pendingBookings.length : null,
       ),
       const SegmentedPillBarItem(label: 'History'),
     ];
@@ -79,6 +79,14 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.directions_car_rounded,
+              color: SahyanColors.primaryDark,
+            ),
+            tooltip: 'Offered Rides (Driver)',
+            onPressed: () => context.push('/driver/rides'),
+          ),
           IconButton(
             icon: const Icon(
               Icons.history_rounded,

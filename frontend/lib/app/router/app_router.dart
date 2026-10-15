@@ -465,6 +465,14 @@ final appRouter = GoRouter(
               builder: (context, state) => const BookingsHubScreen(),
             ),
             GoRoute(
+              path: '/trips',
+              builder: (context, state) => const BookingsHubScreen(),
+            ),
+            GoRoute(
+              path: '/my-trips',
+              builder: (context, state) => const BookingsHubScreen(),
+            ),
+            GoRoute(
               path: '/my-bookings',
               builder: (context, state) => const BookingsHubScreen(),
             ),
@@ -474,11 +482,15 @@ final appRouter = GoRouter(
             ),
           ],
         ),
-        // Tab 5: Profile
+        // Tab 5: Profile & Account
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/profile',
+              builder: (context, state) => const ProfileScreen(),
+            ),
+            GoRoute(
+              path: '/account',
               builder: (context, state) => const ProfileScreen(),
             ),
             GoRoute(

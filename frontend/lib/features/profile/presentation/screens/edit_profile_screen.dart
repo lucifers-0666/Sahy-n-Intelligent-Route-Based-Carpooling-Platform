@@ -119,15 +119,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             CircleAvatar(
                               radius: 46,
                               backgroundColor: AppColors.softForest,
-                              child: Text(
-                                _nameController.text.isNotEmpty
-                                    ? _nameController.text[0].toUpperCase()
-                                    : 'U',
-                                style: AppTypography.screenTitle.copyWith(
-                                  fontSize: 38,
-                                  color: AppColors.primaryForest,
-                                ),
-                              ),
+                              backgroundImage: (user?.profilePhoto != null &&
+                                      user!.profilePhoto!.isNotEmpty)
+                                  ? NetworkImage(user.profilePhoto!)
+                                  : null,
+                              child: (user?.profilePhoto != null &&
+                                      user!.profilePhoto!.isNotEmpty)
+                                  ? null
+                                  : const Icon(
+                                      Icons.person_rounded,
+                                      size: 46,
+                                      color: AppColors.primaryForest,
+                                    ),
                             ),
                             Container(
                               padding: const EdgeInsets.all(6),

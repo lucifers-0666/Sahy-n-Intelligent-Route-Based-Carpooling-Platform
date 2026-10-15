@@ -119,26 +119,6 @@ class _SahyanHighwaySunriseHeroState extends State<SahyanHighwaySunriseHero>
                 child: ColoredBox(color: Colors.black.withValues(alpha: 0.28)),
               ),
 
-            // 4. Subtle Bottom Gradient to seamlessly meet the lower sheet
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 48,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      (widget.isDark ? AppColors.darkBg : AppColors.canvasLight)
-                          .withValues(alpha: 0.35),
-                    ],
-                  ),
-                ),
-              ),
-            ),
 
             // 5. Top-Left Master Logo Squircle Tile (Hero shared-element from splash)
             Positioned(
