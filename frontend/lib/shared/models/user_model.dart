@@ -110,6 +110,8 @@ class UserModel extends Equatable {
   final bool canRide;
   final bool canDrive;
   final String driverOnboardingStatus;
+  final String licenseNumber;
+  final String rejectionReason;
   final UserPreferences preferences;
   final List<EmergencyContact> emergencyContacts;
 
@@ -128,12 +130,17 @@ class UserModel extends Equatable {
     this.canRide = true,
     this.canDrive = false,
     this.driverOnboardingStatus = 'not_started',
+    this.licenseNumber = '',
+    this.rejectionReason = '',
     this.preferences = const UserPreferences(),
     this.emergencyContacts = const [],
   });
 
   bool get isVerified => verificationStatus == UserVerificationStatus.verified;
   bool get isDriverEligible => canDrive && driverOnboardingStatus == 'approved';
+  bool get isDriverSubmitted => driverOnboardingStatus == 'submitted';
+  bool get isDriverRejected => driverOnboardingStatus == 'rejected';
+  bool get isDriverInProgress => driverOnboardingStatus == 'in_progress';
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final capabilities = json['capabilities'] as Map<String, dynamic>?;
@@ -174,6 +181,10 @@ class UserModel extends Equatable {
           driverProfile?['onboardingStatus'] ??
           json['driverOnboardingStatus'] ??
           'not_started',
+      licenseNumber:
+          driverProfile?['licenseNumber'] ?? json['licenseNumber'] ?? '',
+      rejectionReason:
+          driverProfile?['rejectionReason'] ?? json['rejectionReason'] ?? '',
       preferences: json['preferences'] is Map<String, dynamic>
           ? UserPreferences.fromJson(
               json['preferences'] as Map<String, dynamic>,
@@ -199,6 +210,8 @@ class UserModel extends Equatable {
       'canRide': canRide,
       'canDrive': canDrive,
       'driverOnboardingStatus': driverOnboardingStatus,
+      'licenseNumber': licenseNumber,
+      'rejectionReason': rejectionReason,
       'preferences': preferences.toJson(),
       'emergencyContacts': emergencyContacts.map((c) => c.toJson()).toList(),
     };
@@ -219,6 +232,8 @@ class UserModel extends Equatable {
     bool? canRide,
     bool? canDrive,
     String? driverOnboardingStatus,
+    String? licenseNumber,
+    String? rejectionReason,
     UserPreferences? preferences,
     List<EmergencyContact>? emergencyContacts,
   }) {
@@ -238,6 +253,8 @@ class UserModel extends Equatable {
       canDrive: canDrive ?? this.canDrive,
       driverOnboardingStatus:
           driverOnboardingStatus ?? this.driverOnboardingStatus,
+      licenseNumber: licenseNumber ?? this.licenseNumber,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
       preferences: preferences ?? this.preferences,
       emergencyContacts: emergencyContacts ?? this.emergencyContacts,
     );
@@ -259,6 +276,8 @@ class UserModel extends Equatable {
     canRide,
     canDrive,
     driverOnboardingStatus,
+    licenseNumber,
+    rejectionReason,
     preferences,
     emergencyContacts,
   ];

@@ -158,13 +158,14 @@ const createVehicle = async (req, res, next) => {
       status: 'active',
     });
 
-    // Trusted Driver Capability Transition on User
+    // Update onboarding progress or restore canDrive for approved drivers
     const user = await User.findById(req.user._id);
     if (user) {
-      user.capabilities.canDrive = true;
-      user.driverProfile.onboardingStatus = 'approved';
-      if (!user.driverProfile.verifiedAt) {
-        user.driverProfile.verifiedAt = new Date();
+      if (!user.driverProfile || user.driverProfile.onboardingStatus === 'not_started') {
+        if (!user.driverProfile) user.driverProfile = {};
+        user.driverProfile.onboardingStatus = 'in_progress';
+      } else if (user.driverProfile.onboardingStatus === 'approved') {
+        user.capabilities.canDrive = true;
       }
       await user.save();
     }
@@ -395,7 +396,9 @@ const deleteVehicle = async (req, res, next) => {
 
     if (remainingCount === 0 && user) {
       user.capabilities.canDrive = false;
-      user.driverProfile.onboardingStatus = 'not_started';
+      if (user.driverProfile?.onboardingStatus === 'in_progress') {
+        user.driverProfile.onboardingStatus = 'not_started';
+      }
       await user.save();
     }
 

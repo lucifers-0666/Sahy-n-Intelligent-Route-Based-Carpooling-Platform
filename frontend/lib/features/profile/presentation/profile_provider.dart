@@ -242,6 +242,69 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       return false;
     }
   }
+
+  Future<bool> submitDriverApplication({
+    required String licenseNumber,
+    String? licenseDocUrl,
+    String? rcDocUrl,
+    String? idDocUrl,
+  }) async {
+    state = state.copyWith(
+      isSaving: true,
+      errorMessage: null,
+      successMessage: null,
+    );
+    try {
+      await repository.submitDriverApplication(
+        licenseNumber: licenseNumber,
+        licenseDocUrl: licenseDocUrl,
+        rcDocUrl: rcDocUrl,
+        idDocUrl: idDocUrl,
+      );
+      final currentUser = ref.read(authProvider).user;
+      if (currentUser != null) {
+        ref.read(authProvider.notifier).updateUser(
+          currentUser.copyWith(
+            driverOnboardingStatus: 'submitted',
+            licenseNumber: licenseNumber.trim().toUpperCase(),
+            rejectionReason: '',
+          ),
+        );
+      }
+      state = state.copyWith(
+        isSaving: false,
+        successMessage: 'Driver application submitted successfully for review',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSaving: false, errorMessage: e.toString());
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchDriverStatus() async {
+    try {
+      final status = await repository.getDriverStatus();
+      return status;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<bool> anonymizeAccount({
+    String reason = 'User requested account erasure',
+  }) async {
+    state = state.copyWith(isSaving: true, errorMessage: null);
+    try {
+      await repository.anonymizeAccount(reason: reason);
+      await ref.read(authProvider.notifier).logout();
+      state = state.copyWith(isSaving: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isSaving: false, errorMessage: e.toString());
+      return false;
+    }
+  }
 }
 
 final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((

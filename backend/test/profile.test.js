@@ -298,3 +298,71 @@ test('EMERGENCY CONTACTS: CRUD flow and validation', async () => {
   listData = await listRes.json();
   assert.strictEqual(listData.data.length, 0);
 });
+
+test('DRIVER ONBOARDING: GET /users/driver-status returns initial state', async () => {
+  const res = await fetch(`${baseUrl}/users/driver-status`, {
+    headers: { Authorization: `Bearer ${tokenA}` },
+  });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+  assert.strictEqual(data.data.onboardingStatus, 'not_started');
+  assert.strictEqual(data.data.canDrive, false);
+  assert.strictEqual(data.data.canRide, true);
+  assert.strictEqual(data.data.isVerified, true);
+});
+
+test('DRIVER ONBOARDING: POST /users/driver-application enforces phone verification and validation', async () => {
+  // 1. Unverified user rejected
+  const unverifiedRes = await fetch(`${baseUrl}/users/driver-application`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenB}`,
+    },
+    body: JSON.stringify({ licenseNumber: 'GJ0120220005678' }),
+  });
+  assert.strictEqual(unverifiedRes.status, 400);
+  const unverifiedData = await unverifiedRes.json();
+  assert.match(unverifiedData.message, /phone number verification is required/i);
+
+  // 2. Missing license number rejected
+  const missingRes = await fetch(`${baseUrl}/users/driver-application`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenA}`,
+    },
+    body: JSON.stringify({ licenseNumber: '   ' }),
+  });
+  assert.strictEqual(missingRes.status, 400);
+
+  // 3. Valid submission succeeds
+  const validRes = await fetch(`${baseUrl}/users/driver-application`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenA}`,
+    },
+    body: JSON.stringify({
+      licenseNumber: 'gj0120220009999',
+      licenseDocUrl: 'https://cdn.sahyan.internal/docs/dl_arjun.pdf',
+    }),
+  });
+  assert.strictEqual(validRes.status, 200);
+  const validData = await validRes.json();
+  assert.strictEqual(validData.success, true);
+  assert.strictEqual(validData.data.driverProfile.onboardingStatus, 'submitted');
+  assert.strictEqual(validData.data.driverProfile.licenseNumber, 'GJ0120220009999');
+
+  // 4. Verify updated driver status reflects submitted
+  const statusRes = await fetch(`${baseUrl}/users/driver-status`, {
+    headers: { Authorization: `Bearer ${tokenA}` },
+  });
+  assert.strictEqual(statusRes.status, 200);
+  const statusData = await statusRes.json();
+  assert.strictEqual(statusData.data.onboardingStatus, 'submitted');
+  assert.strictEqual(statusData.data.licenseNumber, 'GJ0120220009999');
+  assert.strictEqual(statusData.data.canDrive, false);
+});
+

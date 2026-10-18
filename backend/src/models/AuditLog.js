@@ -11,6 +11,7 @@ const auditLogSchema = new mongoose.Schema(
         'DRIVER_REACTIVATED',
         'DRIVER_VERIFIED',
         'DRIVER_REJECTED',
+        'DRIVER_APPLICATION_SUBMITTED',
         'RIDE_MODERATED',
         'RIDE_CANCELLED',
         'REPORT_RESOLVED',

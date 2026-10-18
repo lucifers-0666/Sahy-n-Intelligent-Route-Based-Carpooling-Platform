@@ -24,5 +24,9 @@ router.post('/safety/sos', authenticate, userController.triggerEmergencySos);
 router.get('/export-data', authenticate, userController.exportUserData);
 router.post('/anonymize-data', authenticate, userController.anonymizeUserData);
 
+// Driver Application & Verification Status Endpoints
+router.post('/driver-application', authenticate, userController.submitDriverApplication);
+router.get('/driver-status', authenticate, userController.getDriverStatus);
+
 module.exports = router;
 

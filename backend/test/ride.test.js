@@ -46,6 +46,12 @@ test.before(async () => {
     password: 'Password123@#',
     city: 'Bhuj',
     isVerified: true,
+    capabilities: { canDrive: true, canRide: true },
+    driverProfile: {
+      onboardingStatus: 'approved',
+      licenseNumber: 'GJ1220220001234',
+      verifiedAt: new Date(),
+    },
   });
   tokenA = jwt.sign({ id: userA._id.toString() }, getJwtSecret(), { expiresIn: '1h' });
 
@@ -108,6 +114,34 @@ test('RIDES: Unauthenticated requests to /api/v1/rides and /rides/my are rejecte
     body: JSON.stringify({ vehicleId: vehicleA._id.toString() }),
   });
   assert.strictEqual(postRes.status, 401);
+});
+
+test('RIDES: Unapproved user cannot create ride and is rejected with 403 Forbidden', async () => {
+  const futureDeparture = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  const res = await fetch(`${baseUrl}/rides`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenB}`,
+    },
+    body: JSON.stringify({
+      vehicleId: vehicleB._id.toString(),
+      origin: { name: 'Ahmedabad', latitude: 23.0225, longitude: 72.5714 },
+      destination: { name: 'Bhuj', latitude: 23.242, longitude: 69.6669 },
+      route: {
+        encodedPolyline: 'polyline_abc_123',
+        distanceMeters: 330000,
+        durationSeconds: 21600,
+      },
+      departureTime: futureDeparture,
+      availableSeats: 1,
+      contributionPerSeat: 400,
+    }),
+  });
+  assert.strictEqual(res.status, 403);
+  const data = await res.json();
+  assert.strictEqual(data.success, false);
+  assert.match(data.message, /driver privileges required/i);
 });
 
 test('RIDES: Create ride with missing required fields is rejected with 400', async () => {

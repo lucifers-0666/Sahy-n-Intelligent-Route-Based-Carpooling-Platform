@@ -119,6 +119,48 @@ class MockProfileRepository implements ProfileRepository {
           .toList(),
     );
   }
+
+  @override
+  Future<Map<String, dynamic>> submitDriverApplication({
+    required String licenseNumber,
+    String? licenseDocUrl,
+    String? rcDocUrl,
+    String? idDocUrl,
+  }) async {
+    user = user.copyWith(
+      driverOnboardingStatus: 'submitted',
+      licenseNumber: licenseNumber,
+    );
+    return {
+      'status': 'submitted',
+      'message': 'Driver application submitted successfully for manual verification',
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> getDriverStatus() async {
+    return {
+      'canDrive': user.canDrive,
+      'onboardingStatus': user.driverOnboardingStatus,
+      'licenseNumber': user.licenseNumber,
+    };
+  }
+
+  @override
+  Future<void> anonymizeAccount({
+    String reason = 'User requested account erasure',
+  }) async {
+    user = const UserModel(
+      id: 'anonymized',
+      name: 'Sahyan Member',
+      phone: '',
+      email: '',
+      city: '',
+      verificationStatus: UserVerificationStatus.pending,
+      rating: 5.0,
+      totalRides: 0,
+    );
+  }
 }
 
 void main() {

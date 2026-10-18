@@ -492,6 +492,106 @@ const anonymizeUserData = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/v1/users/driver-application
+ * Submit driving licence details and documents for verification
+ */
+const submitDriverApplication = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const { licenseNumber, licenseDocUrl, rcDocUrl, idDocUrl } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User profile not found' });
+    }
+
+    if (!user.isVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number verification is required before applying for driver status.',
+      });
+    }
+
+    if (!licenseNumber || typeof licenseNumber !== 'string' || licenseNumber.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid driving licence number is required.',
+      });
+    }
+
+    const normalizedLicense = licenseNumber.trim().toUpperCase();
+
+    if (!user.driverProfile) {
+      user.driverProfile = {};
+    }
+
+    user.driverProfile.licenseNumber = normalizedLicense;
+    if (licenseDocUrl) user.driverProfile.licenseDocUrl = String(licenseDocUrl).trim();
+    if (rcDocUrl) user.driverProfile.rcDocUrl = String(rcDocUrl).trim();
+    if (idDocUrl) user.driverProfile.idDocUrl = String(idDocUrl).trim();
+    user.driverProfile.onboardingStatus = 'submitted';
+    user.driverProfile.rejectionReason = '';
+
+    user.markModified('driverProfile');
+    await user.save();
+
+    await AuditLog.create({
+      action: 'DRIVER_APPLICATION_SUBMITTED',
+      admin: userId,
+      targetUser: userId,
+      reason: 'User submitted driver application for verification',
+      metadata: { licenseNumber: normalizedLicense },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Driver application submitted successfully and is pending administrative review.',
+      data: {
+        driverProfile: user.driverProfile,
+        capabilities: user.capabilities,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * GET /api/v1/users/driver-status
+ * Retrieve driver onboarding and verification status
+ */
+const getDriverStatus = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    const [user, vehiclesCount] = await Promise.all([
+      User.findById(userId),
+      Vehicle.countDocuments({ owner: userId, status: 'active' }),
+    ]);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User profile not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        onboardingStatus: user.driverProfile?.onboardingStatus || 'not_started',
+        canDrive: Boolean(user.capabilities?.canDrive),
+        canRide: Boolean(user.capabilities?.canRide),
+        isVerified: Boolean(user.isVerified),
+        licenseNumber: user.driverProfile?.licenseNumber || '',
+        rejectionReason: user.driverProfile?.rejectionReason || '',
+        verifiedAt: user.driverProfile?.verifiedAt || null,
+        vehiclesCount,
+        hasActiveVehicle: vehiclesCount > 0,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -503,4 +603,7 @@ module.exports = {
   triggerEmergencySos,
   exportUserData,
   anonymizeUserData,
+  submitDriverApplication,
+  getDriverStatus,
 };
+

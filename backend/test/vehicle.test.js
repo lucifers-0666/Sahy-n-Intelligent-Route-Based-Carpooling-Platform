@@ -182,7 +182,7 @@ test('VEHICLES: Create vehicle with missing or invalid fields is rejected with 4
 
 let vehicleAId;
 
-test('VEHICLES: Create vehicle successfully normalizes registration and enables driver capability', async () => {
+test('VEHICLES: Create vehicle successfully normalizes registration and advances onboarding status', async () => {
   const initialUser = await User.findById(userA._id);
   assert.strictEqual(initialUser.capabilities.canDrive, false);
   assert.strictEqual(initialUser.driverProfile.onboardingStatus, 'not_started');
@@ -219,10 +219,10 @@ test('VEHICLES: Create vehicle successfully normalizes registration and enables 
   vehicleAId = data.vehicle.id || data.vehicle._id;
   assert.ok(vehicleAId);
 
-  // Verify driver capability transition on User model
+  // Verify onboarding status transition on User model
   const updatedUser = await User.findById(userA._id);
-  assert.strictEqual(updatedUser.capabilities.canDrive, true);
-  assert.strictEqual(updatedUser.driverProfile.onboardingStatus, 'approved');
+  assert.strictEqual(updatedUser.capabilities.canDrive, false);
+  assert.strictEqual(updatedUser.driverProfile.onboardingStatus, 'in_progress');
 });
 
 test('VEHICLES: Rejects duplicate registration number (case and whitespace insensitive)', async () => {

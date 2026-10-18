@@ -153,7 +153,16 @@ const createRide = async (req, res, next) => {
       arrTime = new Date(depTime.getTime() + durationSeconds * 1000);
     }
 
-    // 6. Vehicle existence and ownership authorization
+    // 6. Driver capability and approval verification
+    const driverUser = await User.findById(req.user._id);
+    if (!driverUser || !driverUser.capabilities?.canDrive || driverUser.driverProfile?.onboardingStatus !== 'approved') {
+      return res.status(403).json({
+        success: false,
+        message: 'Driver privileges required. You must have an approved driver application to offer a ride.',
+      });
+    }
+
+    // 7. Vehicle existence and ownership authorization
     if (!mongoose.Types.ObjectId.isValid(vehicleId)) {
       return res.status(400).json({
         success: false,

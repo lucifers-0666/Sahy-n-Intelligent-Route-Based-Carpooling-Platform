@@ -43,6 +43,22 @@ class TestProfileNotifier extends StateNotifier<ProfileState> implements Profile
 
   @override
   Future<bool> deleteEmergencyContact(String id) async => true;
+
+  @override
+  Future<bool> submitDriverApplication({
+    required String licenseNumber,
+    String? licenseDocUrl,
+    String? rcDocUrl,
+    String? idDocUrl,
+  }) async => true;
+
+  @override
+  Future<Map<String, dynamic>> fetchDriverStatus() async => {};
+
+  @override
+  Future<bool> anonymizeAccount({
+    String reason = 'User requested account erasure',
+  }) async => true;
 }
 
 void main() {

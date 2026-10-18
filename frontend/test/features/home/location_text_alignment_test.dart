@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/features/home/presentation/widgets/hero_search_card.dart';
 import 'package:sahyan/shared/models/location_model.dart';
@@ -182,7 +181,6 @@ void main() {
     });
 
     testWidgets('4. Focused field allows normal editing and cursor behavior without data modification', (tester) async {
-      LocationModel? selectedOrigin;
       originCtrl.text = 'Vadodara Central Railway Station';
 
       await tester.pumpWidget(
@@ -192,7 +190,7 @@ void main() {
             destinationController: destCtrl,
             onSwap: () {},
             onSelectCorridor: (_) {},
-            onOriginLocationSelected: (loc) => selectedOrigin = loc,
+            onOriginLocationSelected: (_) {},
             selectedDate: DateTime(2026, 10, 20),
             selectedTime: const TimeOfDay(hour: 17, minute: 30),
             onPickDateTime: () {},

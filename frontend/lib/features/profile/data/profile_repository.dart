@@ -28,6 +28,14 @@ abstract class ProfileRepository {
     String? relationship,
   });
   Future<void> deleteEmergencyContact(String id);
+  Future<Map<String, dynamic>> submitDriverApplication({
+    required String licenseNumber,
+    String? licenseDocUrl,
+    String? rcDocUrl,
+    String? idDocUrl,
+  });
+  Future<Map<String, dynamic>> getDriverStatus();
+  Future<void> anonymizeAccount({String reason = 'User requested account erasure'});
 }
 
 class ProfileRepositoryImpl implements ProfileRepository {
@@ -197,4 +205,57 @@ class ProfileRepositoryImpl implements ProfileRepository {
       );
     }
   }
+
+  @override
+  Future<Map<String, dynamic>> submitDriverApplication({
+    required String licenseNumber,
+    String? licenseDocUrl,
+    String? rcDocUrl,
+    String? idDocUrl,
+  }) async {
+    final payload = {
+      'licenseNumber': licenseNumber.trim().toUpperCase(),
+      if (licenseDocUrl != null && licenseDocUrl.isNotEmpty)
+        'licenseDocUrl': licenseDocUrl,
+      if (rcDocUrl != null && rcDocUrl.isNotEmpty) 'rcDocUrl': rcDocUrl,
+      if (idDocUrl != null && idDocUrl.isNotEmpty) 'idDocUrl': idDocUrl,
+    };
+
+    final response = await apiClient.post(
+      '/users/driver-application',
+      body: payload,
+    );
+
+    // Sync locally stored user
+    final storedUser = await storageService.getUser();
+    if (storedUser != null) {
+      final updatedUser = storedUser.copyWith(
+        driverOnboardingStatus: 'submitted',
+        licenseNumber: licenseNumber.trim().toUpperCase(),
+        rejectionReason: '',
+      );
+      await storageService.saveUser(updatedUser);
+    }
+
+    return response;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getDriverStatus() async {
+    final response = await apiClient.get('/users/driver-status');
+    return response['data'] as Map<String, dynamic>? ?? {};
+  }
+
+  @override
+  Future<void> anonymizeAccount({
+    String reason = 'User requested account erasure',
+  }) async {
+    await apiClient.post(
+      '/users/anonymize-data',
+      body: {'reason': reason},
+    );
+    await storageService.clearSession();
+  }
 }
+
+

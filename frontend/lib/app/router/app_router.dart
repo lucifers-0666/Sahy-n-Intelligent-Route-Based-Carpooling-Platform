@@ -23,6 +23,7 @@ import 'package:sahyan/features/bookings/presentation/screens/driver_rides_scree
 import 'package:sahyan/features/bookings/presentation/screens/driver_request_details_screen.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/profile/presentation/screens/profile_screen.dart';
+import 'package:sahyan/features/profile/presentation/screens/driver_onboarding_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/emergency_contacts_screen.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
@@ -388,6 +389,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/personal-details',
       builder: (context, state) => const PersonalDetailsScreen(),
+    ),
+    GoRoute(
+      path: '/driver-onboarding',
+      builder: (context, state) => const DriverOnboardingScreen(),
     ),
     GoRoute(
       path: '/privacy-permissions',

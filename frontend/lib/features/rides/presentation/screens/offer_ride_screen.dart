@@ -16,6 +16,7 @@ import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
+import 'package:sahyan/shared/models/user_model.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 
@@ -189,6 +190,20 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
   }
 
   Future<void> _onPublishPressed() async {
+    final user = ref.read(authProvider).user;
+    if (user == null || !user.isDriverEligible) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Driver verification required. You must have an approved driver application to offer a ride.',
+          ),
+          backgroundColor: AppColors.mutedRust,
+        ),
+      );
+      context.push('/driver-onboarding');
+      return;
+    }
+
     final draft = ref.read(offerRideProvider);
     if (draft.selectedVehicle == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -492,6 +507,8 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               ],
             ),
           )
+        else if (authState.user != null && !authState.user!.isDriverEligible)
+          _buildDriverEligibilityGate(context, authState.user!)
         else
           vehiclesAsync.when(
             loading: () => const Center(
@@ -1663,6 +1680,23 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 : () {
                     if (_currentStep < 2) {
                       if (_currentStep == 0) {
+                        final user = ref.read(authProvider).user;
+                        if (user == null) {
+                          context.push('/auth-entry');
+                          return;
+                        }
+                        if (!user.isDriverEligible) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Approved driver status is required to offer a ride. Please complete driver onboarding.',
+                              ),
+                              backgroundColor: AppColors.mutedRust,
+                            ),
+                          );
+                          context.push('/driver-onboarding');
+                          return;
+                        }
                         if (draft.selectedVehicle == null) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -1705,4 +1739,253 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
       ],
     );
   }
+
+  Widget _buildDriverEligibilityGate(BuildContext context, UserModel user) {
+    if (user.isDriverSubmitted) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFED7AA)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFF7ED),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.hourglass_top_rounded,
+                    color: Color(0xFFC2410C),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Driver Application Under Review',
+                        style: AppTypography.cardTitle.copyWith(
+                          fontSize: 16,
+                          color: const Color(0xFF9A3412),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Licence verification in progress',
+                        style: AppTypography.caption.copyWith(
+                          color: const Color(0xFFC2410C),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Your driving licence documentation is currently being reviewed by administrators. Ride publishing unlocks automatically upon approval.',
+              style: AppTypography.secondary.copyWith(
+                color: const Color(0xFF7C2D12),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEA580C),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () => context.push('/driver-onboarding'),
+                icon: const Icon(Icons.badge_outlined, size: 16),
+                label: const Text('View Application Details'),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (user.isDriverRejected) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFCA5A5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFEE2E2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.error_outline_rounded,
+                    color: Color(0xFFDC2626),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Action Required on Driver Profile',
+                        style: AppTypography.cardTitle.copyWith(
+                          fontSize: 16,
+                          color: const Color(0xFF991B1B),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Documentation criteria update needed',
+                        style: AppTypography.caption.copyWith(
+                          color: const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              user.rejectionReason.isNotEmpty
+                  ? user.rejectionReason
+                  : 'Your submitted driving licence details could not be verified. Please update your document details to offer rides.',
+              style: AppTypography.secondary.copyWith(
+                color: const Color(0xFF7F1D1D),
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () => context.push('/driver-onboarding'),
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('Update Licence Documents'),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // not_started or in_progress
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: AppColors.softForest,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.verified_user_outlined,
+                  color: AppColors.primaryForest,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Become a Sahyān Driver',
+                      style: AppTypography.cardTitle.copyWith(
+                        fontSize: 16,
+                        color: AppColors.deepForest,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Verification required before offering rides',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'To maintain community trust and road safety, offering carpool seats requires verifying your driving licence and registered vehicle.',
+            style: AppTypography.secondary.copyWith(fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryForest,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => context.push('/driver-onboarding'),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: const Text('Complete Driver Onboarding'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              'Passenger seat booking remains available without driver verification.',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.mutedSage,
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+

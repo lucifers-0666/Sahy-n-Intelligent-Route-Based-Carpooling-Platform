@@ -242,9 +242,14 @@ test('6. Vehicle creation works for an authenticated user (POST /api/vehicles)',
   assert.strictEqual(driverVehicle.registrationNumber, 'GJ01AB1234');
   assert.strictEqual(driverVehicle.seatCapacity, 4);
 
-  // Verify driver capability enabled
+  // Verify driver onboarding status updated to in_progress upon vehicle registration
   const updatedUser = await User.findById(driverUser._id);
-  assert.strictEqual(updatedUser.capabilities.canDrive, true);
+  assert.strictEqual(updatedUser.driverProfile.onboardingStatus, 'in_progress');
+
+  // Complete driver verification approval for subsequent ride lifecycle tests
+  updatedUser.capabilities.canDrive = true;
+  updatedUser.driverProfile.onboardingStatus = 'approved';
+  await updatedUser.save();
 });
 
 // 7. A user cannot update/delete another user’s vehicle
