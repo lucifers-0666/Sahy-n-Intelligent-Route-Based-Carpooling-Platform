@@ -297,6 +297,36 @@ test('SOCKET SECURITY: Driver emits location update and booked passenger receive
   passengerClient.disconnect();
 });
 
+test('SOCKET SECURITY: Connects successfully with Firebase ID Token and authenticates user', async () => {
+  driverUser.firebaseUid = 'driver999';
+  await driverUser.save();
+
+  const firebaseToken = 'mock_firebase_driver999_driveruser_+919876543210';
+  const socketUrl = `http://127.0.0.1:${serverPort}`;
+  const client = ioClient(socketUrl, {
+    auth: { token: firebaseToken },
+    transports: ['websocket'],
+    reconnection: false,
+  });
+
+  await new Promise((resolve, reject) => {
+    client.on('connect', resolve);
+    client.on('connect_error', (err) => reject(new Error(`Socket handshake failed: ${err.message}`)));
+  });
+
+  client.emit('join_ride_room', { rideId: testRide._id.toString() });
+
+  const roomJoined = await new Promise((resolve, reject) => {
+    client.on('room_joined', resolve);
+    client.on('error', (err) => reject(new Error(err.message || 'Room join failed')));
+  });
+
+  assert.equal(roomJoined.rideId, testRide._id.toString());
+  assert.equal(roomJoined.role, 'driver');
+
+  client.disconnect();
+});
+
 test.after(async () => {
   if (io) {
     io.close();

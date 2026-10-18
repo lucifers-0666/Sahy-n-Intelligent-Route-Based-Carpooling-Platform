@@ -6,6 +6,7 @@ const Vehicle = require('../models/Vehicle');
 const Report = require('../models/Report');
 const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
+const PaymentTransaction = require('../models/PaymentTransaction');
 const socketService = require('../services/socketService');
 
 /**
@@ -795,14 +796,14 @@ exports.unmaskPii = async (req, res, next) => {
     let rawValue = null;
 
     if (!user) {
-      const booking = await Booking.findById(resourceId).populate('passenger').populate('driver');
+      const booking = await Booking.findById(resourceId).populate('passenger').populate({ path: 'ride', populate: { path: 'driver' } });
       if (booking) {
         if (fieldName === 'passengerPhone' && booking.passenger) {
           user = booking.passenger;
           rawValue = booking.passenger.phone;
-        } else if (fieldName === 'driverPhone' && booking.driver) {
-          user = booking.driver;
-          rawValue = booking.driver.phone;
+        } else if (fieldName === 'driverPhone' && booking.ride && booking.ride.driver) {
+          user = booking.ride.driver;
+          rawValue = booking.ride.driver.phone;
         }
       }
     }
@@ -867,21 +868,52 @@ exports.forceRefundBooking = async (req, res, next) => {
     const { id } = req.params;
     const { reason = 'Administrative safety force-refund' } = req.body;
 
-    const booking = await Booking.findById(id).populate('passenger').populate('driver');
+    const booking = await Booking.findById(id);
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found.' });
     }
 
     const previousStatus = booking.status;
     booking.status = 'cancelled';
-    booking.cancellationReason = `Force refund by admin (${req.user.name}): ${reason}`;
+    booking.cancellationReason = `Force refund by admin (${req.user.name || 'Safety Administration'}): ${reason}`;
     booking.refundStatus = 'refunded';
+    booking.paymentStatus = 'refunded';
     await booking.save();
 
+    // 1. Restore seats on ride if ride exists and booking was active
+    if (booking.ride && ['pending', 'accepted'].includes(previousStatus)) {
+      const rideId = booking.ride._id || booking.ride;
+      const requestedSeats = booking.requestedSeats;
+      const updatePipeline = [
+        {
+          $set: {
+            availableSeats: {
+              $min: ['$totalSeats', { $add: ['$availableSeats', requestedSeats] }],
+            },
+            ...(previousStatus === 'accepted'
+              ? {
+                  bookedSeats: {
+                    $max: [0, { $subtract: ['$bookedSeats', requestedSeats] }],
+                  },
+                }
+              : {}),
+          },
+        },
+      ];
+      await Ride.updateOne({ _id: rideId }, updatePipeline);
+    }
+
+    // 2. Settle payment transaction from escrow to refunded
+    await PaymentTransaction.updateMany(
+      { bookingId: booking._id, status: { $in: ['pending', 'escrow_held'] } },
+      { $set: { status: 'refunded' } }
+    );
+
+    // 3. Persist audit ledger record
     await AuditLog.create({
       action: 'FORCE_REFUND',
       admin: req.user._id,
-      targetUser: booking.passenger ? booking.passenger._id : null,
+      targetUser: booking.passenger || null,
       reason,
       metadata: {
         bookingId: booking._id,
@@ -892,17 +924,19 @@ exports.forceRefundBooking = async (req, res, next) => {
 
     if (booking.passenger) {
       await Notification.create({
-        user: booking.passenger._id,
+        user: booking.passenger,
         title: 'Booking Escrow Refunded',
         message: `Your booking contribution of ₹${booking.totalContribution} has been force-refunded by Sahyān Safety Administration.`,
         category: 'system',
       });
     }
 
+    const populatedBooking = await Booking.findById(id).populate('passenger').populate('ride');
+
     return res.status(200).json({
       success: true,
       message: 'Booking force-refunded successfully. Escrow funds released to passenger.',
-      data: { booking },
+      data: { booking: populatedBooking || booking },
     });
   } catch (error) {
     next(error);

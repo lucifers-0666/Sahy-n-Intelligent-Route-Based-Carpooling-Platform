@@ -777,3 +777,173 @@ test('21. Concurrent same-passenger requests cannot create duplicate active book
   const ride = await Ride.findById(activeRide._id);
   assert.strictEqual(ride.availableSeats, 2); // 3 - 1 = 2
 });
+
+test('22. Duplicate and concurrent cancellations for the same booking cannot double-restore seats', async () => {
+  const testRide = await Ride.create({
+    driver: driverUser._id,
+    vehicle: driverVehicle._id,
+    origin: {
+      name: 'Ahmedabad',
+      latitude: 23.0225,
+      longitude: 72.5714,
+      point: { type: 'Point', coordinates: [72.5714, 23.0225] },
+    },
+    destination: {
+      name: 'Vadodara',
+      latitude: 22.3072,
+      longitude: 73.1812,
+      point: { type: 'Point', coordinates: [73.1812, 22.3072] },
+    },
+    route: {
+      encodedPolyline: 'test_polyline',
+      distanceMeters: 110000,
+      durationSeconds: 7200,
+    },
+    departureTime: new Date(Date.now() + 86400000),
+    estimatedArrivalTime: new Date(Date.now() + 93600000),
+    totalSeats: 4,
+    availableSeats: 4,
+    bookedSeats: 0,
+    contributionPerSeat: 250,
+  });
+
+  const bookRes = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${passengerToken}`,
+    },
+    body: JSON.stringify({
+      rideId: testRide._id.toString(),
+      requestedSeats: 2,
+    }),
+  });
+  assert.strictEqual(bookRes.status, 201);
+  const booking = (await bookRes.json()).data;
+
+  const rideAfterBook = await Ride.findById(testRide._id);
+  assert.strictEqual(rideAfterBook.availableSeats, 2);
+
+  // Fire two concurrent cancellations for the SAME booking
+  const [cancel1, cancel2] = await Promise.all([
+    fetch(`${baseUrl}/bookings/${booking.id}/cancel`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${passengerToken}` },
+    }),
+    fetch(`${baseUrl}/bookings/${booking.id}/cancel`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${passengerToken}` },
+    }),
+  ]);
+
+  const cancelStatuses = [cancel1.status, cancel2.status].sort();
+  assert.deepStrictEqual(cancelStatuses, [200, 409]);
+
+  // Seats must be restored exactly once: 2 + 2 = 4 (never 6)
+  const rideAfterCancel = await Ride.findById(testRide._id);
+  assert.strictEqual(rideAfterCancel.availableSeats, 4);
+  assert.strictEqual(rideAfterCancel.bookedSeats, 0);
+
+  // A third repeated cancellation request must return 400 (already cancelled)
+  const cancel3 = await fetch(`${baseUrl}/bookings/${booking.id}/cancel`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${passengerToken}` },
+  });
+  assert.strictEqual(cancel3.status, 400);
+  const cancel3Data = await cancel3.json();
+  assert.match(cancel3Data.message, /already cancelled/i);
+
+  // Seat count remains strictly 4
+  const rideFinal = await Ride.findById(testRide._id);
+  assert.strictEqual(rideFinal.availableSeats, 4);
+});
+
+test('23. Concurrent cancellation of separate bookings preserves exact capacity invariants', async () => {
+  const multiRide = await Ride.create({
+    driver: driverUser._id,
+    vehicle: driverVehicle._id,
+    origin: {
+      name: 'Surat',
+      latitude: 21.1702,
+      longitude: 72.8311,
+      point: { type: 'Point', coordinates: [72.8311, 21.1702] },
+    },
+    destination: {
+      name: 'Mumbai',
+      latitude: 19.0760,
+      longitude: 72.8777,
+      point: { type: 'Point', coordinates: [72.8777, 19.0760] },
+    },
+    route: {
+      encodedPolyline: 'test_polyline_surat_mumbai',
+      distanceMeters: 280000,
+      durationSeconds: 18000,
+    },
+    departureTime: new Date(Date.now() + 86400000),
+    estimatedArrivalTime: new Date(Date.now() + 104400000),
+    totalSeats: 4,
+    availableSeats: 4,
+    bookedSeats: 0,
+    contributionPerSeat: 400,
+  });
+
+  const passenger2 = await User.create({
+    name: 'Pooja Shah',
+    email: 'pooja.shah@example.com',
+    phone: '+919876599999',
+    password: 'Password123!',
+    role: 'user',
+    isVerified: true,
+  });
+  const passenger2Token = jwt.sign({ id: passenger2._id, role: passenger2.role }, getJwtSecret(), { expiresIn: '1h' });
+
+  // Booking 1: Passenger 1 requests 1 seat
+  const b1Res = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${passengerToken}` },
+    body: JSON.stringify({ rideId: multiRide._id.toString(), requestedSeats: 1 }),
+  });
+  assert.strictEqual(b1Res.status, 201);
+  const b1 = (await b1Res.json()).data;
+
+  // Booking 2: Passenger 2 requests 2 seats
+  const b2Res = await fetch(`${baseUrl}/bookings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${passenger2Token}` },
+    body: JSON.stringify({ rideId: multiRide._id.toString(), requestedSeats: 2 }),
+  });
+  assert.strictEqual(b2Res.status, 201);
+  const b2 = (await b2Res.json()).data;
+
+  const rideMid = await Ride.findById(multiRide._id);
+  assert.strictEqual(rideMid.availableSeats, 1); // 4 - 1 - 2 = 1
+
+  // Driver accepts Booking 1 (availableSeats=1, bookedSeats=1)
+  const acceptRes = await fetch(`${baseUrl}/bookings/${b1.id}/accept`, {
+    method: 'PATCH',
+    headers: { Authorization: `Bearer ${driverToken}` },
+  });
+  assert.strictEqual(acceptRes.status, 200);
+
+  // Concurrently cancel Booking 1 (accepted) and Booking 2 (pending)
+  const [c1, c2] = await Promise.all([
+    fetch(`${baseUrl}/bookings/${b1.id}/cancel`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${passengerToken}` },
+    }),
+    fetch(`${baseUrl}/bookings/${b2.id}/cancel`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${passenger2Token}` },
+    }),
+  ]);
+
+  assert.strictEqual(c1.status, 200);
+  assert.strictEqual(c2.status, 200);
+
+  // All 4 seats restored, bookedSeats decremented back to 0
+  const finalRide = await Ride.findById(multiRide._id);
+  assert.strictEqual(finalRide.availableSeats, 4);
+  assert.strictEqual(finalRide.bookedSeats, 0);
+  assert.ok(finalRide.availableSeats <= finalRide.totalSeats);
+  assert.ok(finalRide.bookedSeats >= 0);
+});

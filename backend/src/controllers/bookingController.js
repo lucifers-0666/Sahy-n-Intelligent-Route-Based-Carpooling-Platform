@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Ride = require('../models/Ride');
+const PaymentTransaction = require('../models/PaymentTransaction');
 
 /**
  * Sahyan Capacity Model Definition (Phase 8 & Future Phase 9):
@@ -469,17 +470,43 @@ exports.cancelBooking = async (req, res, next) => {
       });
     }
 
-    // 2. Release reserved seats back to ride atomically and safely
-    const rideDoc = await Ride.findById(rideId);
-    if (rideDoc) {
-      const newAvailable = Math.min(rideDoc.totalSeats, rideDoc.availableSeats + requestedSeats);
-      const updateOps = {
-        $set: { availableSeats: newAvailable },
-      };
-      if (previousStatus === 'accepted') {
-        updateOps.$set.bookedSeats = Math.max(0, rideDoc.bookedSeats - requestedSeats);
+    // 2. Release reserved seats back to ride atomically and safely via atomic aggregation pipeline
+    const updatePipeline = [
+      {
+        $set: {
+          availableSeats: {
+            $min: ['$totalSeats', { $add: ['$availableSeats', requestedSeats] }],
+          },
+          ...(previousStatus === 'accepted'
+            ? {
+                bookedSeats: {
+                  $max: [0, { $subtract: ['$bookedSeats', requestedSeats] }],
+                },
+              }
+            : {}),
+        },
+      },
+    ];
+
+    try {
+      await Ride.updateOne({ _id: rideId }, updatePipeline);
+    } catch (rideErr) {
+      await Booking.findByIdAndUpdate(id, { $set: { status: previousStatus } });
+      throw rideErr;
+    }
+
+    // 3. Settle payment transaction and refund escrow if booking was paid
+    if (booking.paymentStatus === 'paid') {
+      try {
+        await Booking.updateOne({ _id: id }, { $set: { paymentStatus: 'refunded' } });
+        await PaymentTransaction.updateMany(
+          { bookingId: id, status: { $in: ['pending', 'escrow_held'] } },
+          { $set: { status: 'refunded' } }
+        );
+      } catch (payErr) {
+        console.error('Failed to settle payment refund for cancelled booking:', payErr);
+        throw payErr;
       }
-      await Ride.findByIdAndUpdate(rideId, updateOps);
     }
 
     // 3. Populate response

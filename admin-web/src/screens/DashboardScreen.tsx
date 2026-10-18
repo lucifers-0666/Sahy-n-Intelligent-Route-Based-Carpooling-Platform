@@ -15,6 +15,8 @@ import { PlatformSettingsTab } from '../components/tabs/PlatformSettingsTab';
 import { SosIncidentModal } from '../components/SosIncidentModal';
 import { AdminStats, SosIncident } from '../types/admin';
 import { adminApi } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { isTabAuthorized, hasCapability } from '../utils/rbac';
 import { ShieldAlert, X, Radio } from 'lucide-react';
 
 const VALID_TABS: TabKey[] = [
@@ -41,27 +43,47 @@ const getInitialTab = (): TabKey => {
 };
 
 export const DashboardScreen: React.FC = () => {
-  const [activeTab, setActiveTabState] = useState<TabKey>(getInitialTab);
+  const { user } = useAuth();
+  const canManageSos = hasCapability(user?.role, 'MANAGE_SOS_INCIDENTS');
+
+  const [activeTab, setActiveTabState] = useState<TabKey>(() => {
+    const initial = getInitialTab();
+    return isTabAuthorized(initial, user?.role) ? initial : 'overview';
+  });
 
   const setActiveTab = (tab: TabKey) => {
-    setActiveTabState(tab);
+    const target = isTabAuthorized(tab, user?.role) ? tab : 'overview';
+    setActiveTabState(target);
     if (typeof window !== 'undefined') {
-      window.location.hash = tab;
-      localStorage.setItem('sahyan_active_tab', tab);
+      window.location.hash = target;
+      localStorage.setItem('sahyan_active_tab', target);
     }
   };
+
+  useEffect(() => {
+    if (!isTabAuthorized(activeTab, user?.role)) {
+      setActiveTab('overview');
+    }
+  }, [activeTab, user?.role]);
 
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash.replace('#', '') as TabKey;
       if (VALID_TABS.includes(hash)) {
-        setActiveTabState(hash);
-        localStorage.setItem('sahyan_active_tab', hash);
+        if (isTabAuthorized(hash, user?.role)) {
+          setActiveTabState(hash);
+          localStorage.setItem('sahyan_active_tab', hash);
+        } else {
+          setActiveTabState('overview');
+          window.location.hash = 'overview';
+          localStorage.setItem('sahyan_active_tab', 'overview');
+        }
       }
     };
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
-  }, []);
+  }, [user?.role]);
+
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [dbConnected, setDbConnected] = useState(true);
@@ -92,8 +114,10 @@ export const DashboardScreen: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Connect to Socket.IO server & join admin_emergency_channel
+  // Connect to Socket.IO server & join admin_emergency_channel only if authorized
   useEffect(() => {
+    if (!canManageSos) return;
+
     const token = localStorage.getItem('sahyan_admin_token');
     const s = io('http://127.0.0.1:5000', {
       auth: { token },
@@ -124,7 +148,7 @@ export const DashboardScreen: React.FC = () => {
     return () => {
       s.disconnect();
     };
-  }, []);
+  }, [canManageSos]);
 
   const triggerMockSos = () => {
     const mockIncident: SosIncident = {
@@ -175,8 +199,8 @@ export const DashboardScreen: React.FC = () => {
         />
       </div>
 
-      {/* Real-Time Emergency SOS Alert Banner */}
-      {unreadAlerts.length > 0 && (
+      {/* Real-Time Emergency SOS Alert Banner (Protected: super_admin, safety_officer) */}
+      {canManageSos && unreadAlerts.length > 0 && (
         <div className="shrink-0 bg-rose-700 text-white px-4 sm:px-6 py-2.5 flex items-center justify-between border-b border-rose-900 shadow-md animate-pulse z-20">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
@@ -226,16 +250,18 @@ export const DashboardScreen: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-6 sm:p-8 min-h-0 h-full">
           <div className="max-w-7xl mx-auto space-y-4">
             {/* Simulation pill for quick reviewer inspection */}
-            <div className="flex justify-end">
-              <button
-                onClick={triggerMockSos}
-                className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition-colors"
-                title="Simulate Mobile SOS Trigger"
-              >
-                <Radio className="w-3 h-3 text-rose-600 animate-pulse" />
-                <span>Simulate Real-Time Mobile SOS Dispatch</span>
-              </button>
-            </div>
+            {canManageSos && (
+              <div className="flex justify-end">
+                <button
+                  onClick={triggerMockSos}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition-colors"
+                  title="Simulate Mobile SOS Trigger"
+                >
+                  <Radio className="w-3 h-3 text-rose-600 animate-pulse" />
+                  <span>Simulate Real-Time Mobile SOS Dispatch</span>
+                </button>
+              </div>
+            )}
 
             {activeTab === 'overview' && (
               <OverviewTab stats={stats} onNavigateTab={setActiveTab} />

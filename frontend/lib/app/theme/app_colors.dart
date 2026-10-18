@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 /// Implements the approved Sahyān brand palette.
 abstract class AppColors {
   // ── Master Brief 2026 Approved Tokens (Light) ──────────────────────────
-  static const Color brand = Color(
-    0xFF0B5D4B,
-  ); // Primary brand, primary buttons, logo (#0B5D4B)
+  static const Color brand = Color(0xFF0B5D4B); // Deep Emerald (#0B5D4B)
   static const Color deepEmerald = Color(0xFF0B5D4B);
   static const Color darkEmerald = Color(0xFF084C3A);
+  static const Color softMint = Color(0xFFA7E8D2); // Soft Mint (#A7E8D2)
+  static const Color lightSurface = Color(0xFFF2F7F4); // Light Surface (#F2F7F4)
+  static const Color primaryText = Color(0xFF12352E); // Primary Text (#12352E)
+  static const Color mutedText = Color(0xFF6B7F78); // Muted Text (#6B7F78)
+  static const Color champagneGold = Color(0xFFC9A96E); // Champagne Gold (#C9A96E)
   static const Color brandBright = Color(
     0xFF0F7A5F,
   ); // Links, active states, success (#0F7A5F)

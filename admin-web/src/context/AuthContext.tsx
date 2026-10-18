@@ -31,7 +31,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedToken && savedUserStr) {
       try {
         const savedUser = JSON.parse(savedUserStr);
-        if (savedUser.role === 'admin') {
+        const ADMIN_ROLES = ['admin', 'super_admin', 'safety_officer', 'support_lead'];
+        if (ADMIN_ROLES.includes(savedUser.role)) {
           setToken(savedToken);
           setUser(savedUser);
         } else {

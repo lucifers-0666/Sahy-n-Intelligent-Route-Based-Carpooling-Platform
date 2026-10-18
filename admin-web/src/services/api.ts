@@ -42,7 +42,8 @@ export const adminApi = {
       user: { _id: string; name: string; email: string; role: string };
     }>(res);
 
-    if (data.user.role !== 'admin') {
+    const ADMIN_ROLES = ['admin', 'super_admin', 'safety_officer', 'support_lead'];
+    if (!ADMIN_ROLES.includes(data.user.role)) {
       throw new ApiError('Access denied. Administrator privileges required.', 403);
     }
     return data;

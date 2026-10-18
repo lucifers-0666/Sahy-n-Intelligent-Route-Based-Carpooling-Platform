@@ -14,8 +14,12 @@ import {
   X,
   CreditCard,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { hasCapability } from '../../utils/rbac';
 
 export const BookingsTab: React.FC = () => {
+  const { user } = useAuth();
+  const canRefund = hasCapability(user?.role, 'MANAGE_FORCE_REFUNDS');
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -305,8 +309,8 @@ export const BookingsTab: React.FC = () => {
               </div>
             )}
 
-            {/* Dispute Resolution: Force Refund */}
-            {selectedBooking.paymentStatus !== 'refunded' && (
+            {/* Dispute Resolution: Force Refund (Protected: super_admin, safety_officer) */}
+            {canRefund && selectedBooking.paymentStatus !== 'refunded' && (
               <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-200 space-y-2.5">
                 <div className="text-xs font-bold text-rose-900 flex items-center justify-between">
                   <span>Dispute Resolution: Force Refund</span>

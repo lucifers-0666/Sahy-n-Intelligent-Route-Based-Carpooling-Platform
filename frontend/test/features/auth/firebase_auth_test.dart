@@ -48,6 +48,9 @@ class MockFirebaseCapableAuthRepo implements FirebaseAuthRepository {
   @override
   bool get isFirebaseAvailable => true;
 
+  @override
+  Future<String?> refreshToken() async => 'mock_refreshed_id_token';
+
   bool sendPhoneOtpCalled = false;
   bool verifyPhoneOtpCalled = false;
   bool googleSignInCalled = false;

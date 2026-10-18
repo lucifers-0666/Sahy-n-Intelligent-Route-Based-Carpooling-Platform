@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/config/app_region.dart';
+import '../../../../app/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/location/data/providers/geolocator_provider.dart';
 import '../../../../core/location/domain/gps_provider.dart';
@@ -66,48 +67,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       'toLat': 22.3072,
       'toLng': 73.1812,
       'viaHighway': 'NE1',
-      'avgSpeedKmh': 92,
-      'activeDriversCount': 14,
       'matchScore': 95,
     },
     {
-      'from': 'Mumbai',
-      'to': 'Pune',
-      'price': 320,
-      'fromLat': 19.0760,
-      'fromLng': 72.8777,
-      'toLat': 18.5204,
-      'toLng': 73.8567,
+      'from': 'Surat',
+      'to': 'Mumbai',
+      'price': 380,
+      'fromLat': 21.1702,
+      'fromLng': 72.8311,
+      'toLat': 19.0760,
+      'toLng': 72.8777,
       'viaHighway': 'NH48',
-      'avgSpeedKmh': 88,
-      'activeDriversCount': 9,
       'matchScore': 92,
     },
     {
-      'from': 'Delhi',
-      'to': 'Jaipur',
-      'price': 450,
-      'fromLat': 28.6139,
-      'fromLng': 77.2090,
-      'toLat': 26.9124,
-      'toLng': 75.7873,
-      'viaHighway': 'NH48',
-      'avgSpeedKmh': 105,
-      'activeDriversCount': 21,
-      'matchScore': 98,
+      'from': 'Gandhinagar',
+      'to': 'Ahmedabad',
+      'price': 80,
+      'fromLat': 23.2156,
+      'fromLng': 72.6369,
+      'toLat': 23.0225,
+      'toLng': 72.5714,
+      'viaHighway': 'SG Highway',
+      'matchScore': 96,
     },
     {
-      'from': 'Bengaluru',
-      'to': 'Mysuru',
-      'price': 280,
-      'fromLat': 12.9716,
-      'fromLng': 77.5946,
-      'toLat': 12.2958,
-      'toLng': 76.6394,
-      'viaHighway': 'NH275',
-      'avgSpeedKmh': 78,
-      'activeDriversCount': 6,
-      'matchScore': 89,
+      'from': 'Rajkot',
+      'to': 'Ahmedabad',
+      'price': 250,
+      'fromLat': 22.3039,
+      'fromLng': 70.8022,
+      'toLat': 23.0225,
+      'toLng': 72.5714,
+      'viaHighway': 'NH47',
+      'matchScore': 90,
     },
   ];
 
@@ -239,47 +232,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
   }
 
-  Future<void> _pickDateTime() async {
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: SahyanColors.primaryDark,
-              onPrimary: Colors.white,
-              surface: SahyanColors.surface,
-              onSurface: SahyanColors.textMain,
-            ),
-          ),
-          child: child!,
-        );
+  Future<void> _navigateToDateTimeSelection() async {
+    final result = await context.push<Map<String, dynamic>>(
+      '/travel-date-time',
+      extra: {
+        'date': _selectedDate,
+        'time': _selectedTime,
       },
     );
-
-    if (pickedDate != null && mounted) {
-      final pickedTime = await showTimePicker(
-        context: context,
-        initialTime: _selectedTime,
-        builder: (context, child) {
-          return Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: SahyanColors.primaryDark,
-                onPrimary: Colors.white,
-                surface: SahyanColors.surface,
-                onSurface: SahyanColors.textMain,
-              ),
-            ),
-            child: child!,
-          );
-        },
-      );
-
-      if (pickedTime != null && mounted) {
+    if (result != null && mounted) {
+      final pickedDate = result['date'] as DateTime?;
+      final pickedTime = result['time'] as TimeOfDay?;
+      if (pickedDate != null && pickedTime != null) {
         setState(() {
           _selectedDate = pickedDate;
           _selectedTime = pickedTime;
@@ -287,6 +251,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     }
   }
+
+  Future<void> _navigateToPassengerSelection() async {
+    final result = await context.push<int>(
+      '/passenger-selection',
+      extra: _selectedSeats,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _selectedSeats = result;
+      });
+    }
+  }
+
 
   void _handleSearch() {
     HapticFeedback.mediumImpact();
@@ -311,11 +288,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       _selectedDate.day,
     );
 
+    final activeOrigin = _originLocation.name == originText
+        ? _originLocation
+        : LocationModel.fromCoordinates(
+            name: originText,
+            latitude: _originLocation.latitude,
+            longitude: _originLocation.longitude,
+          );
+    final activeDest = _destinationLocation.name == destText
+        ? _destinationLocation
+        : LocationModel.fromCoordinates(
+            name: destText,
+            latitude: _destinationLocation.latitude,
+            longitude: _destinationLocation.longitude,
+          );
+
     ref.read(rideSearchQueryProvider.notifier).state = RideSearchQuery(
       origin: originText,
       destination: destText,
-      originLocation: _originLocation,
-      destinationLocation: _destinationLocation,
+      originLocation: activeOrigin,
+      destinationLocation: activeDest,
       date: depDate,
       time: _selectedTime,
       seats: _selectedSeats,
@@ -335,7 +327,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
     final unreadNotifs = ref.watch(notificationsProvider).unreadCount;
-    final displayName = user?.name.split(' ').first ?? 'Arjun';
+    final displayName = user?.name.split(' ').first ?? 'Traveler';
     final corridorsAsync = ref.watch(corridorsProvider);
     final quickCorridors = corridorsAsync.value ?? _quickCorridors;
 
@@ -368,7 +360,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
 
     return Scaffold(
-      backgroundColor: SahyanColors.canvas,
+      backgroundColor: AppColors.canvasLight,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
@@ -389,7 +381,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Brand tag: ● SAHYĀN
+                          // Brand tag: SAHYAN
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
@@ -400,18 +392,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   width: 6,
                                   height: 6,
                                   decoration: const BoxDecoration(
-                                    color: SahyanColors.primaryDark,
+                                    color: AppColors.deepEmerald,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 const Text(
-                                  'SAHYĀN',
+                                  'SAHYAN',
                                   style: TextStyle(
                                     fontFamily: 'Plus Jakarta Sans',
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
-                                    color: SahyanColors.primaryDark,
+                                    color: AppColors.deepEmerald,
                                     letterSpacing: 2.0,
                                   ),
                                 ),
@@ -430,7 +422,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 fontSize: 22,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: -0.5,
-                                color: SahyanColors.textMain,
+                                color: AppColors.primaryText,
                               ),
                               maxLines: 1,
                             ),
@@ -451,11 +443,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: SahyanColors.primaryLight,
+                                    color: AppColors.primaryLight,
                                     borderRadius: BorderRadius.circular(999),
                                     border: Border.all(
-                                      color: SahyanColors.primaryMint
-                                          .withValues(alpha: 0.4),
+                                      color: AppColors.softMint.withValues(
+                                        alpha: 0.6,
+                                      ),
                                       width: 0.8,
                                     ),
                                   ),
@@ -466,7 +459,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         width: 6,
                                         height: 6,
                                         decoration: const BoxDecoration(
-                                          color: SahyanColors.primaryMint,
+                                          color: AppColors.softMint,
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -474,7 +467,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                       const Icon(
                                         Icons.location_on_rounded,
                                         size: 12,
-                                        color: SahyanColors.primaryDark,
+                                        color: AppColors.deepEmerald,
                                       ),
                                       const SizedBox(width: 4),
                                       const Text(
@@ -483,7 +476,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                           fontFamily: 'Plus Jakarta Sans',
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
-                                          color: SahyanColors.primaryDark,
+                                          color: AppColors.deepEmerald,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -492,7 +485,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                       const Icon(
                                         Icons.keyboard_arrow_down_rounded,
                                         size: 13,
-                                        color: SahyanColors.primaryDark,
+                                        color: AppColors.deepEmerald,
                                       ),
                                     ],
                                   ),
@@ -514,10 +507,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           clipBehavior: Clip.none,
                           children: [
                             Material(
-                              color: SahyanColors.surface,
+                              color: AppColors.white,
                               shape: const CircleBorder(
                                 side: BorderSide(
-                                  color: SahyanColors.border,
+                                  color: AppColors.border,
                                   width: 0.8,
                                 ),
                               ),
@@ -531,7 +524,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     child: Icon(
                                       Icons.notifications_outlined,
                                       size: 20,
-                                      color: SahyanColors.textMain,
+                                      color: AppColors.primaryText,
                                     ),
                                   ),
                                 ),
@@ -547,7 +540,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     vertical: 1,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: SahyanColors.primaryMint,
+                                    color: AppColors.deepEmerald,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                       color: Colors.white,
@@ -561,7 +554,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   child: Text(
                                     '$unreadNotifs',
                                     style: const TextStyle(
-                                      color: SahyanColors.primaryDark,
+                                      color: Colors.white,
                                       fontSize: 9,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -583,10 +576,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 width: 42,
                                 height: 42,
                                 decoration: BoxDecoration(
-                                  color: SahyanColors.primaryLight,
+                                  color: AppColors.primaryLight,
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: SahyanColors.primaryMint,
+                                    color: AppColors.softMint,
                                     width: 1.5,
                                   ),
                                 ),
@@ -597,7 +590,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                     fontFamily: 'Plus Jakarta Sans',
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
-                                    color: SahyanColors.primaryDark,
+                                    color: AppColors.deepEmerald,
                                   ),
                                 ),
                               ),
@@ -607,13 +600,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 child: Container(
                                   padding: const EdgeInsets.all(2),
                                   decoration: const BoxDecoration(
-                                    color: SahyanColors.surface,
+                                    color: AppColors.white,
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(
                                     Icons.verified_rounded,
                                     size: 14,
-                                    color: SahyanColors.primaryMint,
+                                    color: AppColors.deepEmerald,
                                   ),
                                 ),
                               ),
@@ -661,13 +654,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   onSelectCorridor: _selectQuickCorridor,
                   selectedDate: _selectedDate,
                   selectedTime: _selectedTime,
-                  onPickDateTime: _pickDateTime,
+                  onPickDateTime: _navigateToDateTimeSelection,
+                  onOpenDateTime: _navigateToDateTimeSelection,
                   selectedSeats: _selectedSeats,
                   onSeatsChanged: (val) => setState(() => _selectedSeats = val),
+                  onOpenPassengers: _navigateToPassengerSelection,
                   onSearch: _handleSearch,
                   popularCorridors: quickCorridors,
                   onTapPickup: _selectPickupLocation,
                   onTapDestination: _selectDestinationLocation,
+                  onOriginLocationSelected: (loc) =>
+                      setState(() => _originLocation = loc),
+                  onDestinationLocationSelected: (loc) =>
+                      setState(() => _destinationLocation = loc),
                 ),
               ),
             ),
@@ -712,7 +711,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
 
             // ──────────────────────────────────────────────────────────────
-            // 5. Section Header: Live Highway Corridors
+            // 5. Section Header: Popular Highway Corridors
             // ──────────────────────────────────────────────────────────────
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
@@ -729,7 +728,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.4,
-                          color: SahyanColors.textMain,
+                          color: AppColors.primaryText,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -743,28 +742,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
 
             // ──────────────────────────────────────────────────────────────
-            // 6. Intelligent Route Corridor Cards
+            // 6. Intelligent Route Corridor Cards & Trust Banner
             // ──────────────────────────────────────────────────────────────
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  // Featured all-India corridor
+                  // Corridor 1: Ahmedabad -> Vadodara
                   _CorridorBentoCard(
                     routeName:
                         '${quickCorridors.isNotEmpty ? quickCorridors[0]['from'] : 'Ahmedabad'} → ${quickCorridors.isNotEmpty ? quickCorridors[0]['to'] : 'Vadodara'} Express',
-                    speedLabel: 'Expressway Route',
-                    driverInfo: 'Daily commuter carpool corridor',
-                    matchScoreText: 'High Corridor Compatibility',
+                    speedLabel: 'Expressway Corridor',
+                    driverInfo: 'Regular daily commuter route',
+                    matchScoreText: '95% Corridor Match',
                     badges: [
                       'via ${quickCorridors.isNotEmpty ? quickCorridors[0]['viaHighway'] ?? 'NE1' : 'NE1'}',
-                      'EV Fastlane',
+                      'Direct Transit',
                     ],
                     badgeVariants: const [
                       PillTagVariant.neutral,
                       PillTagVariant.mint,
                     ],
-                    badgeIcons: const [null, Icons.bolt_rounded],
+                    badgeIcons: const [null, Icons.alt_route_rounded],
                     price:
                         '₹${quickCorridors.isNotEmpty ? quickCorridors[0]['price'] : 150} / seat',
                     onTap: () {
@@ -780,16 +779,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
                   const SizedBox(height: 12),
 
-                  // Mumbai -> Pune corridor
+                  // Corridor 2: Surat -> Mumbai
                   _CorridorBentoCard(
                     routeName:
-                        '${quickCorridors.length > 1 ? quickCorridors[1]['from'] : 'Mumbai'} → ${quickCorridors.length > 1 ? quickCorridors[1]['to'] : 'Pune'} Expressway',
-                    speedLabel: 'Direct Highway',
-                    driverInfo: 'Daily commuter carpool corridor',
-                    matchScoreText: 'High Corridor Compatibility',
+                        '${quickCorridors.length > 1 ? quickCorridors[1]['from'] : 'Surat'} → ${quickCorridors.length > 1 ? quickCorridors[1]['to'] : 'Mumbai'} Highway',
+                    speedLabel: 'Direct Route',
+                    driverInfo: 'Interstate carpool corridor',
+                    matchScoreText: '92% Corridor Match',
                     badges: [
                       'via ${quickCorridors.length > 1 ? quickCorridors[1]['viaHighway'] ?? 'NH48' : 'NH48'}',
-                      'Zero Toll',
+                      'Verified Hosts',
                     ],
                     badgeVariants: const [
                       PillTagVariant.neutral,
@@ -800,160 +799,100 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       Icons.check_circle_outline_rounded,
                     ],
                     price:
-                        '₹${quickCorridors.length > 1 ? quickCorridors[1]['price'] : 320} / seat',
+                        '₹${quickCorridors.length > 1 ? quickCorridors[1]['price'] : 380} / seat',
                     onTap: () {
                       _originController.text = quickCorridors.length > 1
                           ? quickCorridors[1]['from']
-                          : 'Mumbai';
+                          : 'Surat';
                       _destinationController.text = quickCorridors.length > 1
                           ? quickCorridors[1]['to']
-                          : 'Pune';
+                          : 'Mumbai';
                       _handleSearch();
                     },
                   ),
 
                   const SizedBox(height: 14),
 
-                  // Two-Column Impact Metrics
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isNarrow = constraints.maxWidth < 280;
-
-                      final co2Card = BentoContainer(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Icon(
-                                  Icons.eco_rounded,
-                                  size: 22,
-                                  color: SahyanColors.primaryDark,
-                                ),
-                                PillTag(
-                                  label: '+24%',
-                                  variant: PillTagVariant.mint,
-                                  fontSize: 10,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              '14.2 kg',
-                              style: TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: SahyanColors.textMain,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              'CO₂ Offset This Month',
-                              style: TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: SahyanColors.textMuted,
-                              ),
-                            ),
-                          ],
+                  // 7. Verified Platform Community Trust Card (No fake statistics)
+                  BentoContainer(
+                    padding: const EdgeInsets.all(16),
+                    borderRadius: BorderRadius.circular(18),
+                    color: AppColors.white,
+                    borderSide: const BorderSide(
+                      color: AppColors.border,
+                      width: 0.8,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.verified_user_rounded,
+                            color: AppColors.deepEmerald,
+                            size: 20,
+                          ),
                         ),
-                      );
-
-                      final surgeCard = BentoContainer(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Icon(
-                                  Icons.trending_down_rounded,
-                                  size: 22,
-                                  color: SahyanColors.goldStar,
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Verified Carpool Community',
+                                style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.primaryText,
                                 ),
-                                PillTag(
-                                  label: 'Off-Peak',
-                                  variant: PillTagVariant.gold,
-                                  fontSize: 10,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
+                              ),
+                              SizedBox(height: 3),
+                              Text(
+                                'Government ID verification, vehicle registration validation, and 4-digit boarding security on every planned journey.',
+                                style: TextStyle(
+                                  fontFamily: 'Plus Jakarta Sans',
+                                  fontSize: 12,
+                                  color: AppColors.mutedText,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.35,
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Save 18%',
-                              style: TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: SahyanColors.textMain,
-                                letterSpacing: -0.5,
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            const Text(
-                              'Shared Cost Savings',
-                              style: TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: SahyanColors.textMuted,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      );
-
-                      if (isNarrow) {
-                        return Column(
-                          children: [
-                            co2Card,
-                            const SizedBox(height: 12),
-                            surgeCard,
-                          ],
-                        );
-                      }
-
-                      return Row(
-                        children: [
-                          Expanded(child: co2Card),
-                          const SizedBox(width: 12),
-                          Expanded(child: surgeCard),
-                        ],
-                      );
-                    },
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 12),
 
-                  // Highway Status Card
+                  // 8. Highway Transit Flow Card
                   BentoContainer(
                     padding: const EdgeInsets.all(16),
+                    borderRadius: BorderRadius.circular(18),
+                    color: AppColors.white,
+                    borderSide: const BorderSide(
+                      color: AppColors.border,
+                      width: 0.8,
+                    ),
                     child: Row(
                       children: [
                         Container(
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: SahyanColors.primaryLight,
+                            color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: const Icon(
                             Icons.traffic_rounded,
-                            color: SahyanColors.primaryDark,
+                            color: AppColors.deepEmerald,
                             size: 22,
                           ),
                         ),
@@ -968,7 +907,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
-                                  color: SahyanColors.textMain,
+                                  color: AppColors.primaryText,
                                 ),
                               ),
                               SizedBox(height: 2),
@@ -977,7 +916,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                 style: TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 12,
-                                  color: SahyanColors.textMuted,
+                                  color: AppColors.mutedText,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -987,25 +926,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         const Icon(
                           Icons.arrow_forward_ios_rounded,
                           size: 14,
-                          color: SahyanColors.textDisabled,
+                          color: AppColors.border,
                         ),
                       ],
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
 
-                  // Non-Commercial P2P Compliance Disclaimer
+                  // 9. Non-Commercial P2P Compliance Disclaimer
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: SahyanColors.surface,
+                      color: AppColors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: SahyanColors.border,
+                        color: AppColors.border,
                         width: 0.8,
                       ),
                     ),
@@ -1015,7 +954,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         Icon(
                           Icons.info_outline_rounded,
                           size: 16,
-                          color: SahyanColors.textMuted,
+                          color: AppColors.mutedText,
                         ),
                         SizedBox(width: 10),
                         Expanded(
@@ -1024,7 +963,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             style: TextStyle(
                               fontFamily: 'Plus Jakarta Sans',
                               fontSize: 11,
-                              color: SahyanColors.textMuted,
+                              color: AppColors.mutedText,
                               height: 1.4,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1082,22 +1021,22 @@ class _ActiveJourneyCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       borderRadius: BorderRadius.circular(18),
       borderSide: BorderSide(
-        color: SahyanColors.primaryMint.withValues(alpha: 0.4),
+        color: AppColors.softMint.withValues(alpha: 0.6),
         width: 0.8,
       ),
-      color: const Color(0xFFF5FAF7),
+      color: AppColors.lightSurface,
       child: Row(
         children: [
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: SahyanColors.primaryDark,
+              color: AppColors.deepEmerald,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
               Icons.directions_car_filled_rounded,
-              color: SahyanColors.primaryMint,
+              color: AppColors.softMint,
               size: 22,
             ),
           ),
@@ -1114,7 +1053,7 @@ class _ActiveJourneyCard extends StatelessWidget {
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 11.5,
                         fontWeight: FontWeight.w700,
-                        color: SahyanColors.primaryDark,
+                        color: AppColors.deepEmerald,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -1124,7 +1063,7 @@ class _ActiveJourneyCard extends StatelessWidget {
                         vertical: 1.5,
                       ),
                       decoration: BoxDecoration(
-                        color: SahyanColors.primaryMint.withValues(alpha: 0.25),
+                        color: AppColors.primaryLight,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -1133,7 +1072,7 @@ class _ActiveJourneyCard extends StatelessWidget {
                           fontFamily: 'Plus Jakarta Sans',
                           fontSize: 9.5,
                           fontWeight: FontWeight.w800,
-                          color: SahyanColors.primaryDark,
+                          color: AppColors.deepEmerald,
                         ),
                       ),
                     ),
@@ -1146,7 +1085,7 @@ class _ActiveJourneyCard extends StatelessWidget {
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 13.5,
                     fontWeight: FontWeight.w800,
-                    color: SahyanColors.textMain,
+                    color: AppColors.primaryText,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1157,7 +1096,7 @@ class _ActiveJourneyCard extends StatelessWidget {
           const SizedBox(width: 8),
           const Icon(
             Icons.chevron_right_rounded,
-            color: SahyanColors.primaryDark,
+            color: AppColors.deepEmerald,
             size: 20,
           ),
         ],
@@ -1198,6 +1137,8 @@ class _QuickActionTileState extends State<_QuickActionTile> {
         duration: const Duration(milliseconds: 100),
         child: BentoContainer(
           onTap: widget.onTap,
+          color: AppColors.white,
+          borderSide: const BorderSide(color: AppColors.border, width: 0.8),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
           borderRadius: BorderRadius.circular(16),
           child: Column(
@@ -1207,13 +1148,13 @@ class _QuickActionTileState extends State<_QuickActionTile> {
                 width: 34,
                 height: 34,
                 decoration: BoxDecoration(
-                  color: SahyanColors.primaryLight,
+                  color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
                   widget.icon,
                   size: 18,
-                  color: SahyanColors.primaryDark,
+                  color: AppColors.deepEmerald,
                 ),
               ),
               const SizedBox(height: 10),
@@ -1223,7 +1164,7 @@ class _QuickActionTileState extends State<_QuickActionTile> {
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w800,
-                  color: SahyanColors.textMain,
+                  color: AppColors.primaryText,
                   letterSpacing: -0.2,
                 ),
                 maxLines: 1,
@@ -1235,7 +1176,7 @@ class _QuickActionTileState extends State<_QuickActionTile> {
                 style: const TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 10,
-                  color: SahyanColors.textMuted,
+                  color: AppColors.mutedText,
                   fontWeight: FontWeight.w500,
                 ),
                 maxLines: 1,
@@ -1277,6 +1218,8 @@ class _CorridorBentoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return BentoContainer(
       onTap: onTap,
+      color: AppColors.white,
+      borderSide: const BorderSide(color: AppColors.border, width: 0.8),
       padding: const EdgeInsets.all(18),
       borderRadius: BorderRadius.circular(20),
       child: Column(
@@ -1295,7 +1238,7 @@ class _CorridorBentoCard extends StatelessWidget {
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
-                  color: SahyanColors.textMain,
+                  color: AppColors.primaryText,
                   letterSpacing: -0.3,
                 ),
                 maxLines: 1,
@@ -1304,10 +1247,10 @@ class _CorridorBentoCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                 decoration: BoxDecoration(
-                  color: SahyanColors.primaryLight,
+                  color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: SahyanColors.primaryMint.withValues(alpha: 0.3),
+                    color: AppColors.softMint.withValues(alpha: 0.5),
                     width: 0.8,
                   ),
                 ),
@@ -1318,7 +1261,7 @@ class _CorridorBentoCard extends StatelessWidget {
                       width: 5,
                       height: 5,
                       decoration: const BoxDecoration(
-                        color: SahyanColors.primaryMint,
+                        color: AppColors.deepEmerald,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -1329,7 +1272,7 @@ class _CorridorBentoCard extends StatelessWidget {
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: SahyanColors.primaryDark,
+                        color: AppColors.deepEmerald,
                       ),
                     ),
                   ],
@@ -1352,7 +1295,7 @@ class _CorridorBentoCard extends StatelessWidget {
                 style: const TextStyle(
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 12,
-                  color: SahyanColors.textMuted,
+                  color: AppColors.mutedText,
                   fontWeight: FontWeight.w500,
                 ),
                 maxLines: 1,
@@ -1361,7 +1304,7 @@ class _CorridorBentoCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: SahyanColors.primaryLight,
+                  color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -1370,7 +1313,7 @@ class _CorridorBentoCard extends StatelessWidget {
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
-                    color: SahyanColors.primaryDark,
+                    color: AppColors.deepEmerald,
                   ),
                 ),
               ),
@@ -1404,7 +1347,7 @@ class _CorridorBentoCard extends StatelessWidget {
                   fontFamily: 'Plus Jakarta Sans',
                   fontSize: 16.5,
                   fontWeight: FontWeight.w900,
-                  color: SahyanColors.primaryDark,
+                  color: AppColors.deepEmerald,
                   letterSpacing: -0.3,
                 ),
               ),
@@ -1416,7 +1359,7 @@ class _CorridorBentoCard extends StatelessWidget {
   }
 }
 
-/// Pulsating "● Live Telematics" badge with scale animation
+/// Pulsating Live Telematics badge with scale animation
 class _PulsatingTelematics extends StatelessWidget {
   final Animation<double> animation;
 
@@ -1427,10 +1370,10 @@ class _PulsatingTelematics extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: SahyanColors.primaryLight,
+        color: AppColors.primaryLight,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: SahyanColors.primaryMint.withValues(alpha: 0.3),
+          color: AppColors.softMint.withValues(alpha: 0.5),
           width: 0.8,
         ),
       ),
@@ -1446,7 +1389,7 @@ class _PulsatingTelematics extends StatelessWidget {
                   width: 6,
                   height: 6,
                   decoration: const BoxDecoration(
-                    color: SahyanColors.primaryMint,
+                    color: AppColors.deepEmerald,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -1460,7 +1403,7 @@ class _PulsatingTelematics extends StatelessWidget {
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: SahyanColors.primaryDark,
+              color: AppColors.deepEmerald,
               letterSpacing: -0.1,
             ),
           ),
@@ -1469,3 +1412,4 @@ class _PulsatingTelematics extends StatelessWidget {
     );
   }
 }
+

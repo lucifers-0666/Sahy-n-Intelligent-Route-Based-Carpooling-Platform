@@ -38,6 +38,8 @@ abstract class AuthRepository {
 abstract class FirebaseAuthRepository extends AuthRepository {
   bool get isFirebaseAvailable;
 
+  Future<String?> refreshToken();
+
   Future<void> sendFirebasePhoneOtp({
     required String phoneNumber,
     required void Function(String verificationId, int? resendToken) onCodeSent,
@@ -535,5 +537,25 @@ class AuthRepositoryImpl implements FirebaseAuthRepository {
       if (storedUser != null) return storedUser;
       rethrow;
     }
+  }
+
+  @override
+  Future<String?> refreshToken() async {
+    if (isFirebaseAvailable) {
+      try {
+        final fbUser = auth.currentUser;
+        if (fbUser != null) {
+          final newToken = await fbUser.getIdToken(true);
+          if (newToken != null && newToken.isNotEmpty) {
+            apiClient.setAuthToken(newToken);
+            await storageService.saveToken(newToken);
+            return newToken;
+          }
+        }
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
   }
 }

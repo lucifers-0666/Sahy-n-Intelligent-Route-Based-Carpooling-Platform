@@ -30,6 +30,8 @@ class ApiClient {
   String? _authToken;
   void Function()? onUnauthorized;
   void Function(String reason, String? suspendedAt)? onAccountSuspended;
+  Future<String?> Function()? tokenRefresher;
+  Future<String?>? _activeRefreshOperation;
   static String? _resolvedBaseUrl;
 
   ApiClient({
@@ -37,6 +39,7 @@ class ApiClient {
     http.Client? client,
     this.onUnauthorized,
     this.onAccountSuspended,
+    this.tokenRefresher,
   }) : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl,
        _client = client ?? http.Client();
 
@@ -101,79 +104,123 @@ class ApiClient {
     return headers;
   }
 
-  Future<dynamic> get(String endpoint) async {
+  bool _isAuthEntryEndpoint(String endpoint) {
+    final clean = endpoint.toLowerCase().split('?').first;
+    return clean == '/auth/login' ||
+        clean == '/auth/register' ||
+        clean == '/auth/send-otp' ||
+        clean == '/auth/verify-otp' ||
+        clean == '/auth/forgot-password' ||
+        clean == '/auth/reset-password' ||
+        clean == '/auth/logout';
+  }
+
+  Future<dynamic> get(String endpoint) => _executeRequest('GET', endpoint);
+
+  Future<dynamic> post(String endpoint, {Map<String, dynamic>? body}) =>
+      _executeRequest('POST', endpoint, body: body);
+
+  Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) =>
+      _executeRequest('PUT', endpoint, body: body);
+
+  Future<dynamic> patch(String endpoint, {Map<String, dynamic>? body}) =>
+      _executeRequest('PATCH', endpoint, body: body);
+
+  Future<dynamic> delete(String endpoint) =>
+      _executeRequest('DELETE', endpoint);
+
+  Future<dynamic> _executeRequest(
+    String method,
+    String endpoint, {
+    Map<String, dynamic>? body,
+    bool isRetry = false,
+  }) async {
     try {
       final activeBase = await _resolveEffectiveBaseUrl();
-      final response = await _client
-          .get(Uri.parse('$activeBase$endpoint'), headers: _headers)
-          .timeout(const Duration(seconds: 7));
+      final uri = Uri.parse('$activeBase$endpoint');
+      final encodedBody = body != null ? jsonEncode(body) : null;
+
+      final http.Response response;
+      switch (method.toUpperCase()) {
+        case 'GET':
+          response = await _client
+              .get(uri, headers: _headers)
+              .timeout(const Duration(seconds: 7));
+          break;
+        case 'POST':
+          response = await _client
+              .post(uri, headers: _headers, body: encodedBody)
+              .timeout(const Duration(seconds: 7));
+          break;
+        case 'PUT':
+          response = await _client
+              .put(uri, headers: _headers, body: encodedBody)
+              .timeout(const Duration(seconds: 7));
+          break;
+        case 'PATCH':
+          response = await _client
+              .patch(uri, headers: _headers, body: encodedBody)
+              .timeout(const Duration(seconds: 7));
+          break;
+        case 'DELETE':
+          response = await _client
+              .delete(uri, headers: _headers)
+              .timeout(const Duration(seconds: 7));
+          break;
+        default:
+          throw ArgumentError('Unsupported HTTP method: $method');
+      }
+
+      // Check if 401 is eligible for token refresh
+      if (response.statusCode == 401 &&
+          !isRetry &&
+          tokenRefresher != null &&
+          _authToken != null &&
+          _authToken!.isNotEmpty &&
+          !_isAuthEntryEndpoint(endpoint)) {
+        // Prevent concurrent requests from triggering repeated refresh operations
+        _activeRefreshOperation ??= () async {
+          try {
+            final newToken = await tokenRefresher!();
+            if (newToken != null && newToken.isNotEmpty) {
+              setAuthToken(newToken);
+              return newToken;
+            }
+            return null;
+          } catch (_) {
+            return null;
+          } finally {
+            _activeRefreshOperation = null;
+          }
+        }();
+
+        final refreshedToken = await _activeRefreshOperation;
+        if (refreshedToken != null && refreshedToken.isNotEmpty) {
+          // Attempt at most one retry with the refreshed token
+          return await _executeRequest(
+            method,
+            endpoint,
+            body: body,
+            isRetry: true,
+          );
+        } else {
+          // Refresh failed: clear invalid session, notify unauthorized, and handle error
+          setAuthToken(null);
+          onUnauthorized?.call();
+          return _processResponse(response, skipUnauthorizedCallback: true);
+        }
+      }
+
       return _processResponse(response);
     } catch (e) {
       throw _handleError(e);
     }
   }
 
-  Future<dynamic> post(String endpoint, {Map<String, dynamic>? body}) async {
-    try {
-      final activeBase = await _resolveEffectiveBaseUrl();
-      final response = await _client
-          .post(
-            Uri.parse('$activeBase$endpoint'),
-            headers: _headers,
-            body: body != null ? jsonEncode(body) : null,
-          )
-          .timeout(const Duration(seconds: 7));
-      return _processResponse(response);
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) async {
-    try {
-      final activeBase = await _resolveEffectiveBaseUrl();
-      final response = await _client
-          .put(
-            Uri.parse('$activeBase$endpoint'),
-            headers: _headers,
-            body: body != null ? jsonEncode(body) : null,
-          )
-          .timeout(const Duration(seconds: 7));
-      return _processResponse(response);
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  Future<dynamic> patch(String endpoint, {Map<String, dynamic>? body}) async {
-    try {
-      final activeBase = await _resolveEffectiveBaseUrl();
-      final response = await _client
-          .patch(
-            Uri.parse('$activeBase$endpoint'),
-            headers: _headers,
-            body: body != null ? jsonEncode(body) : null,
-          )
-          .timeout(const Duration(seconds: 7));
-      return _processResponse(response);
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  Future<dynamic> delete(String endpoint) async {
-    try {
-      final activeBase = await _resolveEffectiveBaseUrl();
-      final response = await _client
-          .delete(Uri.parse('$activeBase$endpoint'), headers: _headers)
-          .timeout(const Duration(seconds: 7));
-      return _processResponse(response);
-    } catch (e) {
-      throw _handleError(e);
-    }
-  }
-
-  dynamic _processResponse(http.Response response) {
+  dynamic _processResponse(
+    http.Response response, {
+    bool skipUnauthorizedCallback = false,
+  }) {
     dynamic jsonResponseBody;
     try {
       jsonResponseBody = jsonDecode(response.body);
@@ -185,7 +232,7 @@ class ApiClient {
       return jsonResponseBody;
     }
 
-    if (response.statusCode == 401) {
+    if (response.statusCode == 401 && !skipUnauthorizedCallback) {
       onUnauthorized?.call();
     }
 

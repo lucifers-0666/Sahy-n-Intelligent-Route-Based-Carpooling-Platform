@@ -203,17 +203,21 @@ rideSchema.set('toJSON', {
       ret.id = ret._id.toString();
     }
     if (ret.driver) {
-      if (ret.driver._id) {
-        ret.driver.id = ret.driver._id.toString();
-      } else if (typeof ret.driver === 'object' && typeof ret.driver.toString === 'function') {
+      if (ret.driver instanceof mongoose.Types.ObjectId) {
         ret.driver = ret.driver.toString();
+      } else if (typeof ret.driver === 'object') {
+        if (ret.driver._id && !(ret.driver._id instanceof mongoose.Types.ObjectId && ret.driver._id === ret.driver)) {
+          ret.driver.id = ret.driver._id.toString();
+        }
       }
     }
     if (ret.vehicle) {
-      if (ret.vehicle._id) {
-        ret.vehicle.id = ret.vehicle._id.toString();
-      } else if (typeof ret.vehicle === 'object' && typeof ret.vehicle.toString === 'function') {
+      if (ret.vehicle instanceof mongoose.Types.ObjectId) {
         ret.vehicle = ret.vehicle.toString();
+      } else if (typeof ret.vehicle === 'object') {
+        if (ret.vehicle._id && !(ret.vehicle._id instanceof mongoose.Types.ObjectId && ret.vehicle._id === ret.vehicle)) {
+          ret.vehicle.id = ret.vehicle._id.toString();
+        }
       }
     }
     return ret;

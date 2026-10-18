@@ -30,6 +30,8 @@ logs/
 
 # Build outputs
 build/
+dist/
+out/
 *.apk
 *.aab
 *.ipa
@@ -46,11 +48,28 @@ temp/
 *.swo
 *~
 
-# Firebase
+# Firebase & Cloud Credentials
 .firebase/
 firestore-debug.log
 firebase-debug.log
 *service-account*.json
+*serviceAccountKey*.json
+*credentials*.json
+*client_secret*.json
+google-services.json
+GoogleService-Info.plist
+**/android/app/google-services.json
+**/ios/GoogleService-Info.plist
+
+# Security, Certificates & Signing Keys
+*.pem
+*.key
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.cert
+*.crt
 
 # Android
 **/android/**/gradle-wrapper.jar
@@ -77,3 +96,4 @@ vlc-help.txt
 
 # Design kits and previews
 JoyRide - Ride-Sharing App UI Kit (Preview)/
+

@@ -11,6 +11,8 @@ import {
   ScrollText,
   SlidersHorizontal,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { isTabAuthorized } from '../utils/rbac';
 
 export type TabKey =
   | 'overview'
@@ -126,8 +128,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
   ];
 
+  const { user } = useAuth();
+  const visibleNavItems = navItems.filter((item) => isTabAuthorized(item.key, user?.role));
+
   const renderGroup = (groupKey: 'ops' | 'biz' | 'admin', label: string) => {
-    const items = navItems.filter((i) => i.group === groupKey);
+    const items = visibleNavItems.filter((i) => i.group === groupKey);
+    if (items.length === 0) return null;
     return (
       <div className="space-y-0.5">
         <div className="px-3 py-2 text-[10px] font-bold text-textLight uppercase tracking-widest">

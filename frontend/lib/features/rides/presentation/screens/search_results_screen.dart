@@ -13,8 +13,8 @@ import 'package:sahyan/core/widgets/sahyan_loading_state.dart';
 import 'package:sahyan/shared/widgets/ride_card.dart';
 import '../rides_provider.dart';
 
-/// Redesigned Search Results screen matching the Sahyān Stitch & Figma mobile UI concept.
-/// Incorporates live search query tags, quick filter sheet, empty/error state widgets, and floating nav clearance.
+/// Redesigned Search Results screen matching the Sahyan Stitch and Figma mobile UI concept.
+/// Incorporates live search query tags, quick filter sheet, sorting options, and empty/error states.
 class SearchResultsScreen extends ConsumerStatefulWidget {
   const SearchResultsScreen({super.key});
 
@@ -25,6 +25,7 @@ class SearchResultsScreen extends ConsumerStatefulWidget {
 
 class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   String _selectedQuickFilter = 'All';
+  String _selectedSort = 'Best Match';
 
   @override
   Widget build(BuildContext context) {
@@ -32,14 +33,22 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     final searchResultsAsync = ref.watch(searchRidesProvider);
     final formattedDate = DateFormat('dd MMM yyyy').format(query.date);
 
+    final hasCustomFilters = query.maxPickupDistanceKm != 30.0 ||
+        query.timeWindowHours != 4 ||
+        query.seats != 1;
+
     return Scaffold(
-      backgroundColor: AppColors.warmBackground,
+      backgroundColor: AppColors.lightSurface,
       appBar: AppBar(
-        backgroundColor: AppColors.warmBackground,
+        backgroundColor: AppColors.lightSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: AppColors.primaryText,
+          ),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -59,6 +68,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     style: AppTypography.sectionHeader.copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
+                      color: AppColors.primaryText,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -69,7 +79,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                   child: Icon(
                     Icons.arrow_forward_rounded,
                     size: 14,
-                    color: AppColors.primaryForest,
+                    color: AppColors.deepEmerald,
                   ),
                 ),
                 Flexible(
@@ -80,6 +90,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     style: AppTypography.sectionHeader.copyWith(
                       fontWeight: FontWeight.w700,
                       fontSize: 16,
+                      color: AppColors.primaryText,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -91,7 +102,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             Text(
               '$formattedDate • ${query.seats} Seat${query.seats > 1 ? 's' : ''}',
               style: AppTypography.caption.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.mutedText,
                 fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
@@ -102,49 +113,58 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: Material(
-              color: AppColors.softForest,
-              shape: const CircleBorder(),
-              child: IconButton(
-                icon: const Icon(
-                  Icons.tune_rounded,
-                  color: AppColors.primaryForest,
-                  size: 20,
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                Material(
+                  color: hasCustomFilters
+                      ? AppColors.softMint.withValues(alpha: 0.3)
+                      : AppColors.white,
+                  shape: const CircleBorder(),
+                  elevation: 0.5,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.tune_rounded,
+                      color: AppColors.deepEmerald,
+                      size: 20,
+                    ),
+                    tooltip: 'Filter Search',
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: AppColors.white,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(AppRadii.lg),
+                          ),
+                        ),
+                        builder: (ctx) => const SearchFiltersBottomSheet(),
+                      );
+                    },
+                  ),
                 ),
-                tooltip: 'Filter Search',
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: AppColors.cardBackground,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(AppRadii.lg),
+                if (hasCustomFilters)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.deepEmerald,
+                        shape: BoxShape.circle,
                       ),
                     ),
-                    builder: (ctx) => const SearchFiltersBottomSheet(),
-                  );
-                },
-              ),
+                  ),
+              ],
             ),
           ),
         ],
       ),
       body: searchResultsAsync.when(
         data: (results) {
-          // In-memory quick filter application
-          final filteredResults = results.where((r) {
-            if (_selectedQuickFilter == 'Direct Only') {
-              return r.pickupDistanceKm <= 2.0;
-            }
-            if (_selectedQuickFilter == 'High Match') {
-              return (r.match?.score ?? 0) >= 80;
-            }
-            if (_selectedQuickFilter == 'Under ₹350') {
-              return r.ride.contributionPerSeat <= 350;
-            }
-            return true;
-          }).toList();
           if (results.isEmpty) {
             return SingleChildScrollView(
               padding: const EdgeInsets.only(
@@ -159,7 +179,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     icon: Icons.directions_car_outlined,
                     title: 'No Planned Rides Found',
                     description:
-                        'No drivers are scheduled between ${query.origin} and ${query.destination} within ±${query.timeWindowHours}h and ${query.maxPickupDistanceKm.toInt()}km radius.',
+                        'No drivers are scheduled between ${query.origin} and ${query.destination} within +/-${query.timeWindowHours}h and ${query.maxPickupDistanceKm.toInt()}km radius.',
                     actionText: 'Broaden Search (50 km)',
                     onAction: () {
                       ref.read(rideSearchQueryProvider.notifier).state = query
@@ -182,7 +202,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                     child: Text(
                       'Change Route or Date',
                       style: AppTypography.bodyMedium.copyWith(
-                        color: AppColors.primaryForest,
+                        color: AppColors.deepEmerald,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -192,8 +212,38 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             );
           }
 
+          // In-memory quick filter application
+          final filteredResults = results.where((r) {
+            if (_selectedQuickFilter == 'Direct Only') {
+              return r.pickupDistanceKm <= 2.0;
+            }
+            if (_selectedQuickFilter == 'High Match') {
+              return (r.match?.score ?? 0) >= 80;
+            }
+            if (_selectedQuickFilter == 'Under \u20B9350') {
+              return r.ride.contributionPerSeat <= 350;
+            }
+            return true;
+          }).toList();
+
+          // In-memory sorting application
+          filteredResults.sort((a, b) {
+            if (_selectedSort == 'Earliest Departure') {
+              return a.ride.dateTime.compareTo(b.ride.dateTime);
+            }
+            if (_selectedSort == 'Lowest Price') {
+              return a.ride.contributionPerSeat.compareTo(
+                b.ride.contributionPerSeat,
+              );
+            }
+            // Best Match default
+            final scoreA = a.match?.score ?? (100 - (a.pickupDistanceKm * 10).toInt());
+            final scoreB = b.match?.score ?? (100 - (b.pickupDistanceKm * 10).toInt());
+            return scoreB.compareTo(scoreA);
+          });
+
           return RefreshIndicator(
-            color: AppColors.primaryForest,
+            color: AppColors.deepEmerald,
             onRefresh: () async {
               ref.invalidate(searchRidesProvider);
               await ref.read(searchRidesProvider.future);
@@ -208,62 +258,175 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 top: AppSpacing.sm,
                 bottom: 110.0, // Floating bottom nav clearance
               ),
-              itemCount: filteredResults.length + 1,
+              itemCount: filteredResults.isEmpty ? 2 : filteredResults.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const BouncingScrollPhysics(),
-                      child: Row(
-                        children:
-                            [
-                              'All',
-                              'Direct Only',
-                              'High Match',
-                              'Under ₹350',
-                            ].map((filterLabel) {
-                              final isSelected =
-                                  _selectedQuickFilter == filterLabel;
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: ChoiceChip(
-                                  label: Text(filterLabel),
-                                  selected: isSelected,
-                                  selectedColor: AppColors.primaryForest,
-                                  backgroundColor: AppColors.white,
-                                  labelStyle: AppTypography.caption.copyWith(
-                                    color: isSelected
-                                        ? AppColors.white
-                                        : AppColors.textPrimary,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w700
-                                        : FontWeight.w600,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: [
+                            'All',
+                            'Direct Only',
+                            'High Match',
+                            'Under \u20B9350',
+                          ].map((filterLabel) {
+                            final isSelected =
+                                _selectedQuickFilter == filterLabel;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: ChoiceChip(
+                                label: Text(filterLabel),
+                                selected: isSelected,
+                                selectedColor: AppColors.deepEmerald,
+                                backgroundColor: AppColors.white,
+                                labelStyle: AppTypography.caption.copyWith(
+                                  color: isSelected
+                                      ? AppColors.white
+                                      : AppColors.primaryText,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                ),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? AppColors.deepEmerald
+                                      : AppColors.border,
+                                  width: 0.8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadii.full,
                                   ),
-                                  side: BorderSide(
-                                    color: isSelected
-                                        ? AppColors.primaryForest
-                                        : AppColors.border,
-                                    width: 0.8,
+                                ),
+                                onSelected: (_) {
+                                  setState(
+                                    () => _selectedQuickFilter = filterLabel,
+                                  );
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      // Results summary & sort indicator
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${filteredResults.length} available ride${filteredResults.length == 1 ? '' : 's'}',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.mutedText,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            PopupMenuButton<String>(
+                              initialValue: _selectedSort,
+                              tooltip: 'Sort Rides',
+                              onSelected: (val) {
+                                setState(() => _selectedSort = val);
+                              },
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.sort_rounded,
+                                    size: 14,
+                                    color: AppColors.deepEmerald,
                                   ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadii.full,
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _selectedSort,
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.deepEmerald,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                  onSelected: (_) {
-                                    setState(
-                                      () => _selectedQuickFilter = filterLabel,
-                                    );
-                                  },
+                                  const Icon(
+                                    Icons.arrow_drop_down,
+                                    size: 16,
+                                    color: AppColors.deepEmerald,
+                                  ),
+                                ],
+                              ),
+                              itemBuilder: (ctx) => [
+                                const PopupMenuItem(
+                                  value: 'Best Match',
+                                  child: Text('Best Match (Recommended)'),
                                 ),
-                              );
-                            }).toList(),
+                                const PopupMenuItem(
+                                  value: 'Earliest Departure',
+                                  child: Text('Earliest Departure'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'Lowest Price',
+                                  child: Text('Lowest Price'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
+                    ],
+                  );
+                }
+
+                if (filteredResults.isEmpty) {
+                  return Container(
+                    margin: const EdgeInsets.only(top: AppSpacing.lg),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(AppRadii.card),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      children: [
+                        const Icon(
+                          Icons.filter_list_off_rounded,
+                          size: 36,
+                          color: AppColors.mutedText,
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'No rides match "$_selectedQuickFilter"',
+                          style: AppTypography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Try clearing the quick filter to see all ${results.length} scheduled rides.',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.mutedText,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        TextButton(
+                          onPressed: () {
+                            setState(() => _selectedQuickFilter = 'All');
+                          },
+                          child: Text(
+                            'Show All ${results.length} Rides',
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.deepEmerald,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }
+
                 final result = filteredResults[index - 1];
                 return RideCard(
                   ride: result.ride,
@@ -358,13 +521,18 @@ class _SearchFiltersBottomSheetState
                         style: AppTypography.sectionHeader.copyWith(
                           fontWeight: FontWeight.w700,
                           fontSize: 18,
+                          color: AppColors.primaryText,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: AppColors.primaryText,
+                      ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       onPressed: () => Navigator.of(context).pop(),
@@ -378,6 +546,7 @@ class _SearchFiltersBottomSheetState
                   'Pickup Deviation Radius',
                   style: AppTypography.fieldLabel.copyWith(
                     fontWeight: FontWeight.w700,
+                    color: AppColors.primaryText,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -391,19 +560,19 @@ class _SearchFiltersBottomSheetState
                         '${dist.toInt()} km',
                         style: AppTypography.caption.copyWith(
                           color: isSelected
-                              ? AppColors.primaryForest
-                              : AppColors.textPrimary,
+                              ? AppColors.white
+                              : AppColors.primaryText,
                           fontWeight: isSelected
                               ? FontWeight.w700
                               : FontWeight.w500,
                         ),
                       ),
                       selected: isSelected,
-                      selectedColor: AppColors.softForest,
-                      backgroundColor: AppColors.warmBackground,
+                      selectedColor: AppColors.deepEmerald,
+                      backgroundColor: AppColors.lightSurface,
                       side: BorderSide(
                         color: isSelected
-                            ? AppColors.primaryForest
+                            ? AppColors.deepEmerald
                             : AppColors.border,
                       ),
                       onSelected: (val) {
@@ -421,6 +590,7 @@ class _SearchFiltersBottomSheetState
                   'Departure Time Window',
                   style: AppTypography.fieldLabel.copyWith(
                     fontWeight: FontWeight.w700,
+                    color: AppColors.primaryText,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -431,22 +601,22 @@ class _SearchFiltersBottomSheetState
                     final isSelected = _selectedWindow == hours;
                     return ChoiceChip(
                       label: Text(
-                        '± $hours hrs',
+                        '+/- $hours hrs',
                         style: AppTypography.caption.copyWith(
                           color: isSelected
-                              ? AppColors.primaryForest
-                              : AppColors.textPrimary,
+                              ? AppColors.white
+                              : AppColors.primaryText,
                           fontWeight: isSelected
                               ? FontWeight.w700
                               : FontWeight.w500,
                         ),
                       ),
                       selected: isSelected,
-                      selectedColor: AppColors.softForest,
-                      backgroundColor: AppColors.warmBackground,
+                      selectedColor: AppColors.deepEmerald,
+                      backgroundColor: AppColors.lightSurface,
                       side: BorderSide(
                         color: isSelected
-                            ? AppColors.primaryForest
+                            ? AppColors.deepEmerald
                             : AppColors.border,
                       ),
                       onSelected: (val) {
@@ -464,6 +634,7 @@ class _SearchFiltersBottomSheetState
                   'Seats Required',
                   style: AppTypography.fieldLabel.copyWith(
                     fontWeight: FontWeight.w700,
+                    color: AppColors.primaryText,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -477,19 +648,19 @@ class _SearchFiltersBottomSheetState
                         '$s Seat${s > 1 ? 's' : ''}',
                         style: AppTypography.caption.copyWith(
                           color: isSelected
-                              ? AppColors.primaryForest
-                              : AppColors.textPrimary,
+                              ? AppColors.white
+                              : AppColors.primaryText,
                           fontWeight: isSelected
                               ? FontWeight.w700
                               : FontWeight.w500,
                         ),
                       ),
                       selected: isSelected,
-                      selectedColor: AppColors.softForest,
-                      backgroundColor: AppColors.warmBackground,
+                      selectedColor: AppColors.deepEmerald,
+                      backgroundColor: AppColors.lightSurface,
                       side: BorderSide(
                         color: isSelected
-                            ? AppColors.primaryForest
+                            ? AppColors.deepEmerald
                             : AppColors.border,
                       ),
                       onSelected: (val) {

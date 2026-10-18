@@ -93,13 +93,31 @@ class AuthNotifier extends StateNotifier<AuthState> {
       ? repository as FirebaseAuthRepository
       : null;
 
+  bool _isLoggingOut = false;
+
   AuthNotifier({
     required this.repository,
     required this.storageService,
     required this.apiClient,
   }) : super(const AuthState()) {
     apiClient.onUnauthorized = () {
-      logout();
+      if (!_isLoggingOut) {
+        logout();
+      }
+    };
+    apiClient.tokenRefresher = () async {
+      try {
+        final fbRepo = _firebaseRepo;
+        if (fbRepo != null && fbRepo.isFirebaseAvailable) {
+          final newToken = await fbRepo.refreshToken();
+          if (newToken != null && newToken.isNotEmpty) {
+            state = state.copyWith(token: newToken);
+            await storageService.saveToken(newToken);
+            return newToken;
+          }
+        }
+      } catch (_) {}
+      return null;
     };
     apiClient.onAccountSuspended = (reason, suspendedAt) {
       handleSuspension(reason, suspendedAt);
@@ -301,6 +319,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
 
+      apiClient.setAuthToken(token);
       state = state.copyWith(
         status: AuthStatus.authenticated,
         token: token,
@@ -348,6 +367,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
 
+      apiClient.setAuthToken(token);
       await storageService.saveToken(token);
       await storageService.saveUser(user);
       await storageService.setCompletedOnboarding(true);
@@ -408,6 +428,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
 
+      apiClient.setAuthToken(token);
       await storageService.saveToken(token);
       await storageService.saveUser(user);
       await storageService.setCompletedOnboarding(true);
@@ -458,6 +479,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
 
+      apiClient.setAuthToken(token);
       await storageService.saveToken(token);
       await storageService.saveUser(user);
       await storageService.setCompletedOnboarding(true);
@@ -604,6 +626,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final token = result['token'] as String;
       final user = result['user'] as UserModel;
 
+      apiClient.setAuthToken(token);
       await storageService.saveToken(token);
       await storageService.saveUser(user);
       await storageService.setCompletedOnboarding(true);
@@ -773,6 +796,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         throw Exception('Authentication failed: Missing token or user profile');
       }
 
+      apiClient.setAuthToken(token);
       await storageService.saveToken(token);
       await storageService.saveUser(user);
       await storageService.setCompletedOnboarding(true);
@@ -830,17 +854,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    if (_isLoggingOut) return;
+    _isLoggingOut = true;
     try {
-      await apiClient.post('/auth/logout');
-    } catch (_) {}
-    if (repository is FirebaseAuthRepository) {
+      apiClient.setAuthToken(null);
       try {
-        await (repository as FirebaseAuthRepository).signOut();
+        await apiClient.post('/auth/logout');
       } catch (_) {}
+      if (repository is FirebaseAuthRepository) {
+        try {
+          await (repository as FirebaseAuthRepository).signOut();
+        } catch (_) {}
+      }
+      await storageService.clearSession();
+      state = const AuthState(status: AuthStatus.unauthenticated);
+    } finally {
+      _isLoggingOut = false;
     }
-    await storageService.clearSession();
-    apiClient.setAuthToken(null);
-    state = const AuthState(status: AuthStatus.unauthenticated);
   }
 }
 

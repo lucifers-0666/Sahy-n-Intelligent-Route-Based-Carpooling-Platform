@@ -53,7 +53,7 @@ export interface UserItem {
   name: string;
   email: string;
   phone: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'super_admin' | 'safety_officer' | 'support_lead';
   isVerified: boolean;
   city?: string;
   capabilities?: {

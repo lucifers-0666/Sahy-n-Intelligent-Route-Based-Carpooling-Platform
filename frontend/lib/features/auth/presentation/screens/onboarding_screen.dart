@@ -10,6 +10,7 @@ import 'package:sahyan/app/providers/app_startup_provider.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/shared/widgets/sahyan_logo.dart';
 import '../auth_provider.dart';
+import '../widgets/onboarding_vector_illustrations.dart';
 
 /// Premium Production-Quality Onboarding Walkthrough for Sahyān.
 ///
@@ -291,6 +292,7 @@ class _LuxuryOnboardingScreenState extends State<LuxuryOnboardingScreen>
                                   : _headerFadeAnimation,
                               child: Center(
                                 child: _OnboardingArtworkCard(
+                                  pageIndex: index,
                                   imageAsset: page.imageAsset,
                                   badgeLabel: page.badgeLabel,
                                   isDark: isDark,
@@ -638,11 +640,13 @@ class _OnboardingPillButtonState extends State<_OnboardingPillButton> {
 
 /// Standardized Framed Artwork Card displaying authentic 3D mobile art
 class _OnboardingArtworkCard extends StatelessWidget {
+  final int pageIndex;
   final String imageAsset;
   final String badgeLabel;
   final bool isDark;
 
   const _OnboardingArtworkCard({
+    required this.pageIndex,
     required this.imageAsset,
     required this.badgeLabel,
     required this.isDark,
@@ -678,26 +682,9 @@ class _OnboardingArtworkCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // High-resolution 3D Artwork
-              Image.asset(
-                imageAsset,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: AppColors.brand.withValues(alpha: 0.1),
-                    child: Center(
-                      child: Text(
-                        badgeLabel,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.brand,
-                        ),
-                      ),
-                    ),
-                  );
-                },
+              OnboardingVectorIllustration(
+                pageIndex: pageIndex,
+                isDark: isDark,
               ),
 
               // Subtle bottom gradient scrim for caption contrast

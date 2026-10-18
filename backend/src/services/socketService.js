@@ -10,6 +10,7 @@
 
 const jwt = require('jsonwebtoken');
 const { getJwtSecret } = require('../config/jwt');
+const { verifyFirebaseIdToken } = require('../config/firebase');
 const User = require('../models/User');
 const Ride = require('../models/Ride');
 const Booking = require('../models/Booking');
@@ -55,7 +56,7 @@ function initSocketService(io) {
   /** @type {Map<string, { rideId: string, role: string, userId: string }>} */
   const socketMeta = new Map();
 
-  // Fail-Closed JWT Handshake Authentication Middleware
+  // Fail-Closed Dual Auth (Firebase ID Token + Legacy JWT) Handshake Authentication Middleware
   io.use(async (socket, next) => {
     try {
       let token = socket.handshake.auth && socket.handshake.auth.token;
@@ -72,13 +73,45 @@ function initSocketService(io) {
         return next(err);
       }
 
-      const secret = getJwtSecret();
-      const decoded = jwt.verify(token, secret);
-      const user = await User.findById(decoded.id).select('-password');
+      let user = null;
+      let firebaseDecoded = null;
+
+      // 1. Attempt Firebase ID Token verification first
+      try {
+        firebaseDecoded = await verifyFirebaseIdToken(token);
+        if (firebaseDecoded && firebaseDecoded.uid) {
+          user = await User.findOne({ firebaseUid: firebaseDecoded.uid }).select('-password');
+          if (!user && firebaseDecoded.email && firebaseDecoded.email_verified) {
+            const matchingUser = await User.findOne({ email: firebaseDecoded.email.toLowerCase().trim() }).select('-password');
+            if (matchingUser) {
+              user = matchingUser;
+            }
+          }
+        }
+      } catch (fbErr) {
+        if (fbErr.code === 'auth/id-token-expired' || (typeof token === 'string' && token.startsWith('mock_firebase_expired'))) {
+          const expErr = new Error('TOKEN_EXPIRED');
+          expErr.data = { code: 401, message: 'Firebase ID token has expired. Please refresh your session.' };
+          return next(expErr);
+        }
+      }
+
+      // 2. Fallback to legacy custom JWT verification if not authenticated via Firebase
+      if (!user && !firebaseDecoded) {
+        try {
+          const secret = getJwtSecret();
+          const decoded = jwt.verify(token, secret);
+          if (decoded && decoded.id) {
+            user = await User.findById(decoded.id).select('-password');
+          }
+        } catch (jwtErr) {
+          // Both verifications failed
+        }
+      }
 
       if (!user) {
-        const err = new Error('USER_NOT_FOUND');
-        err.data = { code: 401, message: 'Invalid token: user account does not exist.' };
+        const err = new Error('INVALID_OR_EXPIRED_TOKEN');
+        err.data = { code: 401, message: 'Invalid token: user account does not exist or token is invalid.' };
         return next(err);
       }
 

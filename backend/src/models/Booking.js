@@ -126,17 +126,21 @@ bookingSchema.set('toJSON', {
       ret.id = ret._id.toString();
     }
     if (ret.passenger) {
-      if (ret.passenger._id) {
-        ret.passenger.id = ret.passenger._id.toString();
-      } else if (typeof ret.passenger === 'object' && typeof ret.passenger.toString === 'function') {
+      if (ret.passenger instanceof mongoose.Types.ObjectId) {
         ret.passenger = ret.passenger.toString();
+      } else if (typeof ret.passenger === 'object') {
+        if (ret.passenger._id && !(ret.passenger._id instanceof mongoose.Types.ObjectId && ret.passenger._id === ret.passenger)) {
+          ret.passenger.id = ret.passenger._id.toString();
+        }
       }
     }
     if (ret.ride) {
-      if (ret.ride._id) {
-        ret.ride.id = ret.ride._id.toString();
-      } else if (typeof ret.ride === 'object' && typeof ret.ride.toString === 'function') {
+      if (ret.ride instanceof mongoose.Types.ObjectId) {
         ret.ride = ret.ride.toString();
+      } else if (typeof ret.ride === 'object') {
+        if (ret.ride._id && !(ret.ride._id instanceof mongoose.Types.ObjectId && ret.ride._id === ret.ride)) {
+          ret.ride.id = ret.ride._id.toString();
+        }
       }
     }
     if (ret.paymentTransactionId && typeof ret.paymentTransactionId.toString === 'function') {

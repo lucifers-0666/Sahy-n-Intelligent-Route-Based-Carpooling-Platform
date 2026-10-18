@@ -9,6 +9,8 @@ import 'package:sahyan/features/auth/presentation/screens/forgot_password_screen
 import 'package:sahyan/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/otp_screen.dart';
 import 'package:sahyan/features/home/presentation/screens/home_screen.dart';
+import 'package:sahyan/features/home/presentation/screens/travel_date_time_screen.dart';
+import 'package:sahyan/features/home/presentation/screens/passenger_selection_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/search_results_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/offer_ride_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/ride_details_screen.dart';
@@ -237,6 +239,26 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/seat-selection',
       builder: (context, state) => const SeatSelectionScreen(),
+    ),
+    GoRoute(
+      path: '/travel-date-time',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final initialDate = extra?['date'] as DateTime? ?? DateTime.now();
+        final initialTime = extra?['time'] as TimeOfDay? ??
+            const TimeOfDay(hour: 17, minute: 30);
+        return TravelDateTimeScreen(
+          initialDate: initialDate,
+          initialTime: initialTime,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/passenger-selection',
+      builder: (context, state) {
+        final seats = state.extra as int? ?? 2;
+        return PassengerSelectionScreen(initialSeats: seats);
+      },
     ),
     GoRoute(
       path: '/confirm-pay',

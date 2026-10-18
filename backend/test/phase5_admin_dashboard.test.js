@@ -337,3 +337,166 @@ test('8. Admin retrieves safety reports and resolves an open incident', async ()
   assert.strictEqual(resolveData.data.report.status, 'resolved');
   assert.strictEqual(resolveData.data.report.resolutionNotes, 'Driver was counseled regarding speed compliance; warning issued.');
 });
+
+test('9. RBAC: super_admin has access to administrative dashboard and config', async () => {
+  const superAdmin = await User.create({
+    name: 'Super Administrator',
+    email: 'superadmin@sahyan.app',
+    phone: '+919999977777',
+    password: 'Password123!',
+    role: 'super_admin',
+    isVerified: true,
+  });
+  const superToken = jwt.sign({ id: superAdmin._id, role: superAdmin.role }, getJwtSecret(), { expiresIn: '1h' });
+
+  const statsRes = await fetch(`${baseUrl}/api/v1/admin/stats`, {
+    headers: { Authorization: `Bearer ${superToken}` },
+  });
+  assert.strictEqual(statsRes.status, 200);
+  const statsData = await statsRes.json();
+  assert.strictEqual(statsData.success, true);
+
+  const configRes = await fetch(`${baseUrl}/api/v1/admin/config`, {
+    headers: { Authorization: `Bearer ${superToken}` },
+  });
+  assert.strictEqual(configRes.status, 200);
+});
+
+test('10. RBAC: safety_officer can access admin stats and is authorized for driver suspension', async () => {
+  const safetyOfficer = await User.create({
+    name: 'Chief Safety Officer',
+    email: 'safety@sahyan.app',
+    phone: '+919999966666',
+    password: 'Password123!',
+    role: 'safety_officer',
+    isVerified: true,
+  });
+  const safetyToken = jwt.sign({ id: safetyOfficer._id, role: safetyOfficer.role }, getJwtSecret(), { expiresIn: '1h' });
+
+  // Safety officer accesses stats
+  const statsRes = await fetch(`${baseUrl}/api/v1/admin/stats`, {
+    headers: { Authorization: `Bearer ${safetyToken}` },
+  });
+  assert.strictEqual(statsRes.status, 200);
+
+  // Safety officer can suspend a driver
+  const suspendRes = await fetch(`${baseUrl}/api/v1/admin/users/${pendingDriverUser._id}/suspend`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${safetyToken}`,
+    },
+    body: JSON.stringify({ reason: 'Safety review pending investigation' }),
+  });
+  assert.strictEqual(suspendRes.status, 200);
+  const suspendData = await suspendRes.json();
+  assert.strictEqual(suspendData.success, true);
+  assert.strictEqual(suspendData.data.user.accountStatus, 'suspended');
+
+  // Reactivate for subsequent tests
+  await User.findByIdAndUpdate(pendingDriverUser._id, { accountStatus: 'active', suspensionReason: '' });
+});
+
+test('11. RBAC: support_lead can access admin stats and reports, but is denied driver suspension (403)', async () => {
+  const supportLead = await User.create({
+    name: 'Customer Support Lead',
+    email: 'supportlead@sahyan.app',
+    phone: '+919999955555',
+    password: 'Password123!',
+    role: 'support_lead',
+    isVerified: true,
+  });
+  const supportToken = jwt.sign({ id: supportLead._id, role: supportLead.role }, getJwtSecret(), { expiresIn: '1h' });
+
+  // Support lead can view stats and reports
+  const statsRes = await fetch(`${baseUrl}/api/v1/admin/stats`, {
+    headers: { Authorization: `Bearer ${supportToken}` },
+  });
+  assert.strictEqual(statsRes.status, 200);
+
+  // Support lead CANNOT suspend drivers (requires super_admin or safety_officer)
+  const suspendRes = await fetch(`${baseUrl}/api/v1/admin/users/${pendingDriverUser._id}/suspend`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${supportToken}`,
+    },
+    body: JSON.stringify({ reason: 'Unauthorized attempt' }),
+  });
+  assert.strictEqual(suspendRes.status, 403);
+  const suspendData = await suspendRes.json();
+  assert.strictEqual(suspendData.success, false);
+});
+
+test('12. RBAC: support_lead is denied updating platform config with 403 Forbidden', async () => {
+  const supportLead = await User.findOne({ role: 'support_lead' });
+  const supportToken = jwt.sign({ id: supportLead._id, role: supportLead.role }, getJwtSecret(), { expiresIn: '1h' });
+
+  const res = await fetch(`${baseUrl}/api/v1/admin/config`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${supportToken}`,
+    },
+    body: JSON.stringify({ maxSeatsPerRide: 4 }),
+  });
+  assert.strictEqual(res.status, 403);
+  const data = await res.json();
+  assert.strictEqual(data.success, false);
+  assert.match(data.message, /Access denied/i);
+});
+
+test('13. RBAC: support_lead is denied force refunding a booking with 403 Forbidden', async () => {
+  const supportLead = await User.findOne({ role: 'support_lead' });
+  const supportToken = jwt.sign({ id: supportLead._id, role: supportLead.role }, getJwtSecret(), { expiresIn: '1h' });
+
+  const testBooking = await Booking.findOne();
+  const res = await fetch(`${baseUrl}/api/v1/admin/bookings/${testBooking._id}/force-refund`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${supportToken}`,
+    },
+    body: JSON.stringify({ reason: 'Support lead unauthorized refund' }),
+  });
+  assert.strictEqual(res.status, 403);
+  const data = await res.json();
+  assert.strictEqual(data.success, false);
+  assert.match(data.message, /Access denied/i);
+});
+
+test('14. RBAC: safety_officer is permitted updating platform config with 200 OK', async () => {
+  const safetyOfficer = await User.findOne({ role: 'safety_officer' });
+  const safetyToken = jwt.sign({ id: safetyOfficer._id, role: safetyOfficer.role }, getJwtSecret(), { expiresIn: '1h' });
+
+  const res = await fetch(`${baseUrl}/api/v1/admin/config`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${safetyToken}`,
+    },
+    body: JSON.stringify({ maxSeatsPerRide: 5 }),
+  });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+});
+
+test('15. RBAC: safety_officer is permitted force refunding a booking with 200 OK', async () => {
+  const safetyOfficer = await User.findOne({ role: 'safety_officer' });
+  const safetyToken = jwt.sign({ id: safetyOfficer._id, role: safetyOfficer.role }, getJwtSecret(), { expiresIn: '1h' });
+
+  const testBooking = await Booking.findOne();
+  const res = await fetch(`${baseUrl}/api/v1/admin/bookings/${testBooking._id}/force-refund`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${safetyToken}`,
+    },
+    body: JSON.stringify({ reason: 'Safety review confirmed incident refund' }),
+  });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+  assert.strictEqual(data.data.booking.paymentStatus, 'refunded');
+});
