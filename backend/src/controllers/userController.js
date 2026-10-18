@@ -431,8 +431,8 @@ const exportUserData = async (req, res, next) => {
       registeredVehicles: vehicles.map((v) => ({
         make: v.make,
         model: v.model,
-        licensePlate: v.licensePlate,
-        seats: v.capacity,
+        licensePlate: v.registrationNumber || v.licensePlate,
+        seats: v.seatCapacity || v.capacity,
       })),
     };
 
@@ -506,7 +506,8 @@ const submitDriverApplication = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'User profile not found' });
     }
 
-    if (!user.isVerified) {
+    const isEligibleToApply = user.isVerified || user.isPhoneVerified || user.driverProfile?.onboardingStatus === 'rejected';
+    if (!isEligibleToApply) {
       return res.status(400).json({
         success: false,
         message: 'Phone number verification is required before applying for driver status.',

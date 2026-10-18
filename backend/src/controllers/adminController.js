@@ -183,6 +183,7 @@ exports.verifyDriver = async (req, res, next) => {
       });
     } else {
       user.isVerified = false;
+      user.capabilities.canDrive = false;
       user.driverProfile.onboardingStatus = 'rejected';
       user.driverProfile.rejectionReason = reason || 'Documentation failed verification checks.';
 

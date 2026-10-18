@@ -180,7 +180,11 @@ class _DriverOnboardingScreenState
             if (_currentStep > 0) {
               setState(() => _currentStep--);
             } else {
-              context.pop();
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/profile');
+              }
             }
           },
         ),
@@ -980,6 +984,20 @@ class _DriverOnboardingScreenState
         title: Text('Driver Account', style: AppTypography.screenTitle),
         backgroundColor: AppColors.warmBackground,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
       ),
       body: SafeArea(
         child: Padding(
@@ -1046,7 +1064,7 @@ class _DriverOnboardingScreenState
               const SizedBox(height: 28),
               PrimaryButton(
                 text: 'Offer a Ride',
-                onPressed: () => context.push('/offer-ride'),
+                onPressed: () => context.go('/offer-ride'),
               ),
               const SizedBox(height: 12),
               OutlinedButton(
@@ -1075,6 +1093,20 @@ class _DriverOnboardingScreenState
         title: Text('Driver Status', style: AppTypography.screenTitle),
         backgroundColor: AppColors.warmBackground,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
       ),
       body: SafeArea(
         child: Padding(
@@ -1153,7 +1185,13 @@ class _DriverOnboardingScreenState
               ),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => context.pop(),
+                onPressed: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/profile');
+                  }
+                },
                 child: Text(
                   'Back to Account Profile',
                   style: AppTypography.bodyMedium.copyWith(
@@ -1176,6 +1214,20 @@ class _DriverOnboardingScreenState
         title: Text('Driver Application', style: AppTypography.screenTitle),
         backgroundColor: AppColors.warmBackground,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
       ),
       body: SafeArea(
         child: Padding(

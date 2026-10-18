@@ -630,51 +630,55 @@ class ProfileScreen extends ConsumerWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color:
-                      isDriver ? AppColors.softForest : AppColors.warmBackground,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color:
+                  isDriver ? AppColors.softForest : AppColors.warmBackground,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isDriver
+                  ? Icons.directions_car_rounded
+                  : Icons.person_outline_rounded,
+              color:
                   isDriver
-                      ? Icons.directions_car_rounded
-                      : Icons.person_outline_rounded,
-                  color:
-                      isDriver
-                          ? AppColors.primaryForest
-                          : AppColors.textSecondary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isDriver ? 'Active Driver Mode' : 'Passenger Mode',
-                    style: AppTypography.bodyMedium.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  Text(
-                    isDriver
-                        ? 'Publishing and managing rides'
-                        : 'Searching and booking seats',
-                    style: AppTypography.caption.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                      ? AppColors.primaryForest
+                      : AppColors.textSecondary,
+              size: 20,
+            ),
           ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isDriver ? 'Active Driver Mode' : 'Passenger Mode',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isDriver
+                      ? 'Publishing and managing rides'
+                      : 'Searching and booking seats',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
           Switch(
             value: isDriver,
             activeThumbColor: AppColors.primaryForest,
