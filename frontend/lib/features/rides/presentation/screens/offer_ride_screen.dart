@@ -236,72 +236,112 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
     final vehiclesAsync = ref.watch(vehiclesProvider);
     final authState = ref.watch(authProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.warmBackground,
-      appBar: AppBar(
-        title: Text(
-          'Offer a Ride',
-          style: AppTypography.screenTitle.copyWith(
-            fontSize: 20,
-            color: AppColors.deepForest,
-          ),
-        ),
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(
-              Icons.list_alt_rounded,
-              color: AppColors.primaryForest,
+    return PopScope(
+      canPop: _currentStep == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentStep > 0) {
+          setState(() => _currentStep--);
+        } else {
+          final router = GoRouter.maybeOf(context);
+          if (router != null && router.canPop()) {
+            router.pop();
+          } else if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else if (router != null) {
+            router.go('/home');
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.warmBackground,
+        appBar: AppBar(
+          title: Text(
+            'Offer a Ride',
+            style: AppTypography.screenTitle.copyWith(
+              fontSize: 20,
+              color: AppColors.deepForest,
             ),
-            tooltip: 'My Offered Rides',
-            onPressed: () => context.push('/driver/rides'),
           ),
-          if (draft.selectedVehicle != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.softForest,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    draft.selectedVehicle!.registrationNumber,
-                    style: AppTypography.caption.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryForest,
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          centerTitle: false,
+          leading: IconButton(
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: AppColors.textPrimary,
+              size: 20,
+            ),
+            tooltip: 'Back',
+            onPressed: () {
+              if (_currentStep > 0) {
+                setState(() => _currentStep--);
+              } else {
+                final router = GoRouter.maybeOf(context);
+                if (router != null && router.canPop()) {
+                  router.pop();
+                } else if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else if (router != null) {
+                  router.go('/home');
+                }
+              }
+            },
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(
+                Icons.list_alt_rounded,
+                color: AppColors.primaryForest,
+              ),
+              tooltip: 'My Offered Rides',
+              onPressed: () => context.push('/driver/rides'),
+            ),
+            if (draft.selectedVehicle != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.softForest,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      draft.selectedVehicle!.registrationNumber,
+                      style: AppTypography.caption.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryForest,
+                      ),
                     ),
                   ),
                 ),
               ),
+          ],
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildStepIndicator(),
+                const SizedBox(height: 16),
+                if (_currentStep == 0)
+                  _buildStep1VehicleAndRoute(draft, vehiclesAsync, authState)
+                else if (_currentStep == 1)
+                  _buildStep2ScheduleAndCapacity(draft)
+                else
+                  _buildStep3PreferencesAndReview(draft),
+                const SizedBox(height: 24),
+                _buildNavigationButtons(draft),
+                const SizedBox(height: 20),
+              ],
             ),
-        ],
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStepIndicator(),
-              const SizedBox(height: 16),
-              if (_currentStep == 0)
-                _buildStep1VehicleAndRoute(draft, vehiclesAsync, authState)
-              else if (_currentStep == 1)
-                _buildStep2ScheduleAndCapacity(draft)
-              else
-                _buildStep3PreferencesAndReview(draft),
-              const SizedBox(height: 24),
-              _buildNavigationButtons(draft),
-              const SizedBox(height: 20),
-            ],
           ),
         ),
       ),

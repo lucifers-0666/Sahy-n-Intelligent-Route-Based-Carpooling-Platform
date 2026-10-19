@@ -435,6 +435,38 @@ void main() {
       expect(find.text('Journey Summary'), findsOneWidget);
       expect(find.text('Publish Ride'), findsOneWidget);
     });
+
+    testWidgets('AppBar back button steps back through the wizard steps', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      // Verify back button is present in AppBar
+      final backButton = find.byIcon(Icons.arrow_back_ios_new_rounded);
+      expect(backButton, findsOneWidget);
+
+      // Select origin and destination to advance to Step 2
+      await tester.tap(find.widgetWithText(ActionChip, 'Bhuj'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ActionChip, 'Ahmedabad').last);
+      await tester.pumpAndSettle();
+
+      final continueBtn = find.text('Continue');
+      await tester.ensureVisible(continueBtn);
+      await tester.tap(continueBtn);
+      await tester.pumpAndSettle();
+
+      // Verify on Step 2
+      expect(find.text('Departure Schedule'), findsOneWidget);
+
+      // Tap AppBar back button
+      await tester.tap(backButton);
+      await tester.pumpAndSettle();
+
+      // Verify returned to Step 1
+      expect(find.text('1. Choose Your Vehicle'), findsOneWidget);
+    });
   });
 
   group('Responsive Layout Testing Across Viewports & 1.5x Text Scaling', () {
