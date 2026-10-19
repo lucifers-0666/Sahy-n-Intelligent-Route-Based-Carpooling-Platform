@@ -14,6 +14,10 @@ import {
   RotateCcw,
   Info,
   Eye,
+  Phone,
+  MessageSquare,
+  Mail,
+  Copy,
 } from 'lucide-react';
 
 export const UsersTab: React.FC = () => {
@@ -44,6 +48,14 @@ export const UsersTab: React.FC = () => {
 
   // Selected driver for detail inspection
   const [inspectedUser, setInspectedUser] = useState<UserItem | null>(null);
+
+  const copyToClipboard = (text: string, label: string) => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+      setFeedback({ type: 'success', message: `${label} copied to clipboard.` });
+      setTimeout(() => setFeedback(null), 3000);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -342,38 +354,105 @@ export const UsersTab: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 font-medium" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between space-x-2">
-                          <span className="text-gray-950 font-bold truncate max-w-[160px]">
-                            {unmaskedValues[`email_${userIdStr}`] || u?.email || 'N/A'}
-                          </span>
-                          {!unmaskedValues[`email_${userIdStr}`] && userIdStr && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setUnmaskTarget({ id: userIdStr, field: 'email', label: 'Email Address' });
-                                setUnmaskOpen(true);
-                              }}
-                              className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
-                            >
-                              Unmask
-                            </button>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-between space-x-2 text-[11px] text-gray-500 font-mono mt-0.5">
-                          <span>{unmaskedValues[`phone_${userIdStr}`] || u?.phone || 'N/A'}</span>
-                          {!unmaskedValues[`phone_${userIdStr}`] && userIdStr && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setUnmaskTarget({ id: userIdStr, field: 'phone', label: 'Phone Number' });
-                                setUnmaskOpen(true);
-                              }}
-                              className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
-                            >
-                              Unmask
-                            </button>
-                          )}
-                        </div>
+                        {/* Email Row */}
+                        {(() => {
+                          const unmaskedEmail = unmaskedValues[`email_${userIdStr}`];
+                          const unmaskedPhone = unmaskedValues[`phone_${userIdStr}`];
+                          const cleanPhone = (unmaskedPhone || '').replace(/[\s\-]/g, '');
+                          const digitsOnly = cleanPhone.replace(/\D/g, '');
+
+                          return (
+                            <>
+                              <div className="flex items-center justify-between space-x-2">
+                                <span className={`truncate max-w-[150px] ${unmaskedEmail ? 'text-gray-950 font-black' : 'text-gray-950 font-bold'}`}>
+                                  {unmaskedEmail || u?.email || 'N/A'}
+                                </span>
+                                {unmaskedEmail ? (
+                                  <div className="flex items-center space-x-1 shrink-0">
+                                    <a
+                                      href={`mailto:${unmaskedEmail}`}
+                                      title="Send Email"
+                                      className="p-1 hover:bg-gray-200 border border-gray-900 text-gray-900 transition-colors"
+                                    >
+                                      <Mail className="w-3 h-3" />
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyToClipboard(unmaskedEmail, 'Email')}
+                                      title="Copy Email"
+                                      className="p-1 hover:bg-gray-200 border border-gray-900 text-gray-900 transition-colors cursor-pointer"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  userIdStr && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setUnmaskTarget({ id: userIdStr, field: 'email', label: 'Email Address' });
+                                        setUnmaskOpen(true);
+                                      }}
+                                      className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
+                                    >
+                                      Unmask
+                                    </button>
+                                  )
+                                )}
+                              </div>
+
+                              {/* Phone Row with Direct Communication Mediums */}
+                              <div className="flex items-center justify-between space-x-2 text-[11px] font-mono mt-0.5">
+                                <span className={unmaskedPhone ? 'text-emerald-950 font-black' : 'text-gray-500'}>
+                                  {unmaskedPhone || u?.phone || 'N/A'}
+                                </span>
+                                {unmaskedPhone ? (
+                                  <div className="flex items-center space-x-1 shrink-0">
+                                    <a
+                                      href={`tel:${cleanPhone}`}
+                                      title="Direct Phone Call"
+                                      className="px-1.5 py-0.5 bg-emerald-100 hover:bg-emerald-200 border border-emerald-900 text-emerald-950 text-[10px] font-bold flex items-center space-x-1 transition-colors"
+                                    >
+                                      <Phone className="w-2.5 h-2.5" />
+                                      <span>Call</span>
+                                    </a>
+                                    <a
+                                      href={`https://wa.me/${digitsOnly}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="WhatsApp Direct Message"
+                                      className="px-1.5 py-0.5 bg-green-100 hover:bg-green-200 border border-green-900 text-green-950 text-[10px] font-bold flex items-center space-x-1 transition-colors"
+                                    >
+                                      <MessageSquare className="w-2.5 h-2.5" />
+                                      <span>Chat</span>
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => copyToClipboard(unmaskedPhone, 'Phone number')}
+                                      title="Copy Phone Number"
+                                      className="p-1 hover:bg-gray-200 border border-gray-900 text-gray-900 transition-colors cursor-pointer"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  userIdStr && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setUnmaskTarget({ id: userIdStr, field: 'phone', label: 'Phone Number' });
+                                        setUnmaskOpen(true);
+                                      }}
+                                      className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
+                                    >
+                                      Unmask
+                                    </button>
+                                  )
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -490,9 +569,51 @@ export const UsersTab: React.FC = () => {
               <span className="font-bold text-gray-950 select-all">{inspectedUser._id || 'N/A'}</span>
             </div>
             <div className="p-3 bg-gray-50 border border-gray-900">
-              <span className="text-gray-500 block uppercase text-[10px]">Email & Mobile</span>
-              <span className="font-bold text-gray-950 block">{inspectedUser.email || 'N/A'}</span>
-              <span className="text-gray-600 block">{inspectedUser.phone || 'N/A'}</span>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-gray-500 uppercase text-[10px]">Email & Mobile</span>
+                {(!unmaskedValues[`phone_${inspectedUser._id}`] || !unmaskedValues[`email_${inspectedUser._id}`]) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnmaskTarget({ id: String(inspectedUser._id), field: 'phone', label: 'Phone Number' });
+                      setUnmaskOpen(true);
+                    }}
+                    className="text-[9px] uppercase font-bold text-forest hover:underline"
+                  >
+                    Unmask PII
+                  </button>
+                )}
+              </div>
+              <span className="font-bold text-gray-950 block">
+                {unmaskedValues[`email_${inspectedUser._id}`] || inspectedUser.email || 'N/A'}
+              </span>
+              <div className="flex items-center justify-between mt-1">
+                <span className={unmaskedValues[`phone_${inspectedUser._id}`] ? 'text-emerald-950 font-black' : 'text-gray-600'}>
+                  {unmaskedValues[`phone_${inspectedUser._id}`] || inspectedUser.phone || 'N/A'}
+                </span>
+                {unmaskedValues[`phone_${inspectedUser._id}`] && (
+                  <div className="flex items-center space-x-1 shrink-0 ml-2">
+                    <a
+                      href={`tel:${(unmaskedValues[`phone_${inspectedUser._id}`] || '').replace(/[\s\-]/g, '')}`}
+                      title="Direct Phone Call"
+                      className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 border border-emerald-900 text-emerald-950 text-[10px] font-bold flex items-center space-x-1"
+                    >
+                      <Phone className="w-2.5 h-2.5" />
+                      <span>Call</span>
+                    </a>
+                    <a
+                      href={`https://wa.me/${(unmaskedValues[`phone_${inspectedUser._id}`] || '').replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Direct WhatsApp"
+                      className="px-2 py-0.5 bg-green-100 hover:bg-green-200 border border-green-900 text-green-950 text-[10px] font-bold flex items-center space-x-1"
+                    >
+                      <MessageSquare className="w-2.5 h-2.5" />
+                      <span>WhatsApp</span>
+                    </a>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="p-3 bg-gray-50 border border-gray-900">
               <span className="text-gray-500 block uppercase text-[10px]">Access Status</span>
