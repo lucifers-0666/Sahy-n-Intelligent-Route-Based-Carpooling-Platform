@@ -233,11 +233,6 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                               hint: 'arjun@example.com',
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              prefixIcon: Icon(
-                                Icons.alternate_email,
-                                color: tokens.brand,
-                                size: 20,
-                              ),
                               validator: (v) {
                                 if (v == null || v.trim().isEmpty) {
                                   return 'Please enter your email address';

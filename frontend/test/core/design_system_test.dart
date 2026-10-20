@@ -235,11 +235,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.check_circle), findsOneWidget);
-      expect(find.byIcon(Icons.error_outline), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
       expect(find.text('Enter a valid phone number'), findsOneWidget);
       expect(
-        tester.getSize(find.byType(TextFormField).first).height,
+        tester.getSize(find.byType(SahyanTextField).first).height,
         greaterThanOrEqualTo(54),
       );
     });

@@ -488,13 +488,20 @@ class _OtpScreenState extends ConsumerState<OtpScreen>
                       final isFocused =
                           _otpFocusNode.hasFocus && index == activeIndex;
                       final isFilled = index < entered;
+                      const restColor = Color(0xFF7C918A);
+                      final restDark = const Color(0xFF5A6E67);
+                      const brandColor = Color(0xFF0B5D4B);
+                      const errorColor = Color(0xFFC23B2F);
+
                       final borderColor = _hasError
-                          ? AppColors.error
+                          ? errorColor
                           : (isFocused || isFilled
-                                ? AppColors.brand
-                                : (isDark
-                                      ? AppColors.darkSurfaceHigh
-                                      : AppColors.border));
+                                ? (isDark ? AppColors.mint : brandColor)
+                                : (isDark ? restDark : restColor));
+
+                      final fieldFill = isDark
+                          ? const Color(0xB312302A)
+                          : const Color(0xB3FFFFFF);
 
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 160),
@@ -503,18 +510,18 @@ class _OtpScreenState extends ConsumerState<OtpScreen>
                         height: 58,
                         decoration: BoxDecoration(
                           color: isFilled
-                              ? AppColors.brand.withValues(alpha: 0.06)
-                              : (isDark ? AppColors.darkSurface : Colors.white),
-                          borderRadius: BorderRadius.circular(AppRadii.md),
+                              ? (isDark ? AppColors.mint.withValues(alpha: 0.12) : AppColors.brand.withValues(alpha: 0.06))
+                              : fieldFill,
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: borderColor,
-                            width: isFocused ? 2 : 1.2,
+                            width: isFocused ? 2.0 : 1.5,
                           ),
                           boxShadow: isFocused
                               ? [
                                   BoxShadow(
-                                    color: AppColors.mint.withValues(
-                                      alpha: 0.35,
+                                    color: (isDark ? AppColors.mint : brandColor).withValues(
+                                      alpha: 0.25,
                                     ),
                                     blurRadius: 10,
                                     spreadRadius: 1,

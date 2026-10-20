@@ -199,11 +199,6 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                               label: 'Reset Token',
                               hint: 'Paste the reset token from your email',
                               controller: _tokenController,
-                              prefixIcon: Icon(
-                                Icons.vpn_key,
-                                color: tokens.brand,
-                                size: 20,
-                              ),
                               validator: (v) {
                                 if (v == null || v.trim().isEmpty) {
                                   return 'Reset token is required';
@@ -211,18 +206,13 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
 
                             SahyanTextField(
                               label: 'New Password',
                               hint: 'Min. 8 characters',
                               controller: _passwordController,
                               isPassword: true,
-                              prefixIcon: Icon(
-                                Icons.lock_outline,
-                                color: tokens.brand,
-                                size: 20,
-                              ),
                               validator: (v) {
                                 if (v == null || v.isEmpty) {
                                   return 'New password is required';
@@ -233,18 +223,13 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                                 return null;
                               },
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: 12),
 
                             SahyanTextField(
                               label: 'Confirm New Password',
                               hint: 'Re-enter your new password',
                               controller: _confirmPasswordController,
                               isPassword: true,
-                              prefixIcon: Icon(
-                                Icons.lock_reset,
-                                color: tokens.brand,
-                                size: 20,
-                              ),
                               validator: (v) {
                                 if (v == null || v.isEmpty) {
                                   return 'Please confirm your new password';

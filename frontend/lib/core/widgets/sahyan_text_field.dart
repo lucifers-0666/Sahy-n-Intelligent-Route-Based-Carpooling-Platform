@@ -1,65 +1,157 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/app_colors.dart';
-import '../../app/theme/app_radii.dart';
-import '../../app/theme/app_typography.dart';
 
-/// Standardized Sahyān Form Input Field component.
-/// Provides consistent height, typography, prefix/suffix styling, and clear focus/error states.
-/// Features a predictable structure: visible label above, clean input container, and helper/error below.
+/// Formats 10-digit Indian numbers as '98765 43210' while strictly preserving
+/// cursor offset and preventing cursor jumps to the end of input during editing.
+class IndianPhoneInputFormatter extends TextInputFormatter {
+  const IndianPhoneInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final rawDigits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limitedDigits = rawDigits.length > 10
+        ? rawDigits.substring(0, 10)
+        : rawDigits;
+
+    if (limitedDigits.isEmpty) {
+      return const TextEditingValue(
+        text: '',
+        selection: TextSelection.collapsed(offset: 0),
+      );
+    }
+
+    final rawCursor = newValue.selection.baseOffset;
+    int digitsBeforeCursor = 0;
+    if (rawCursor > 0) {
+      final safeCursor = math.min(rawCursor, newValue.text.length);
+      final textBeforeCursor = newValue.text.substring(0, safeCursor);
+      digitsBeforeCursor = textBeforeCursor
+          .replaceAll(RegExp(r'\D'), '')
+          .length;
+      if (digitsBeforeCursor > 10) digitsBeforeCursor = 10;
+    }
+
+    final StringBuffer formatted = StringBuffer();
+    for (int i = 0; i < limitedDigits.length; i++) {
+      if (i == 5) {
+        formatted.write(' ');
+      }
+      formatted.write(limitedDigits[i]);
+    }
+    final formattedString = formatted.toString();
+
+    int newOffset = digitsBeforeCursor;
+    if (digitsBeforeCursor > 5) {
+      newOffset += 1;
+    }
+    if (newOffset > formattedString.length) {
+      newOffset = formattedString.length;
+    }
+
+    return TextEditingValue(
+      text: formattedString,
+      selection: TextSelection.collapsed(offset: newOffset),
+    );
+  }
+}
+
+/// Alias for [IndianPhoneInputFormatter] as specified in design guidelines.
+typedef IndianMobileFormatter = IndianPhoneInputFormatter;
+
+/// Validates whether a given phone number is a valid 10-digit Indian mobile number (starting with 6-9).
+bool isValidIndianMobile(String phone) {
+  final clean = phone.replaceAll(RegExp(r'\D'), '');
+  final digits = clean.length == 12 && clean.startsWith('91')
+      ? clean.substring(2)
+      : clean;
+  return RegExp(r'^[6-9]\d{9}$').hasMatch(digits);
+}
+
+/// Standardized Sahyān Form Input Field component (Style C: Outlined, Label on Border).
+///
+/// Features:
+/// - Single border owner: Flutter's [OutlineInputBorder] cuts the notch gap automatically
+/// - Label sits on the border with [FloatingLabelBehavior.always]
+/// - Never fakes the notch with a background chip (works cleanly over gradients & route lines)
+/// - Radius 14 dp, Rest border 1.5 dp (#7C918A), Focus 2 dp brand (#0B5D4B)
+/// - Error border 1.5-2 dp (#C23B2F) with icon + message below
+/// - Label 13 sp w600 sitting on the border (muted at rest, brand on focus, red on error)
+/// - Field fill white ~70% (#B3FFFFFF) via token [fieldFill] (can be set to Colors.transparent)
+/// - Height ~58 dp with accessible touch targets >= 48 dp
 class SahyanTextField extends StatefulWidget {
   final String? label;
-  final String hint;
+  final String? hint;
+  final String? hintText;
+  final String? helper;
   final String? helperText;
+  final String? errorText;
   final TextEditingController? controller;
-  final TextInputType keyboardType;
+  final FocusNode? focusNode;
+  final String? prefixText;
+  final Widget? prefixIcon;
+  final Widget? trailing;
+  final Widget? suffixIcon;
+  final bool isValid;
   final bool obscureText;
   final bool isPassword;
-  final Widget? prefixIcon;
-  final Widget? suffixIcon;
-  final String? Function(String?)? validator;
-  final ValueChanged<String>? onChanged;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final TextCapitalization textCapitalization;
+  final List<TextInputFormatter>? inputFormatters;
+  final Iterable<String>? autofillHints;
+  final int? maxLength;
+  final int maxLines;
+  final int? minLines;
   final bool readOnly;
   final bool enabled;
   final VoidCallback? onTap;
-  final TextInputAction? textInputAction;
-  final FocusNode? focusNode;
+  final String? Function(String?)? validator;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
   final ValueChanged<String>? onFieldSubmitted;
-  final Iterable<String>? autofillHints;
-  final String? errorText;
-  final bool isValid;
-  final List<TextInputFormatter>? inputFormatters;
-  final TextCapitalization textCapitalization;
-  final int maxLines;
-  final int? minLines;
+  final Color? fieldFill;
+  final double borderRadius;
 
   const SahyanTextField({
     super.key,
     this.label,
-    required this.hint,
+    this.hint,
+    this.hintText,
+    this.helper,
     this.helperText,
+    this.errorText,
     this.controller,
-    this.keyboardType = TextInputType.text,
+    this.focusNode,
+    this.prefixText,
+    this.prefixIcon,
+    this.trailing,
+    this.suffixIcon,
+    this.isValid = false,
     this.obscureText = false,
     this.isPassword = false,
-    this.prefixIcon,
-    this.suffixIcon,
-    this.validator,
-    this.onChanged,
+    this.keyboardType,
+    this.textInputAction,
+    this.textCapitalization = TextCapitalization.none,
+    this.inputFormatters,
+    this.autofillHints,
+    this.maxLength,
+    this.maxLines = 1,
+    this.minLines,
     this.readOnly = false,
     this.enabled = true,
     this.onTap,
-    this.textInputAction,
-    this.focusNode,
+    this.validator,
+    this.onChanged,
+    this.onSubmitted,
     this.onFieldSubmitted,
-    this.autofillHints,
-    this.errorText,
-    this.isValid = false,
-    this.inputFormatters,
-    this.textCapitalization = TextCapitalization.none,
-    this.maxLines = 1,
-    this.minLines,
+    this.fieldFill,
+    this.borderRadius = 14.0,
   });
 
   @override
@@ -67,13 +159,17 @@ class SahyanTextField extends StatefulWidget {
 }
 
 class _SahyanTextFieldState extends State<SahyanTextField> {
+  FocusNode? _internalFocusNode;
   late bool _obscured;
-  bool _hasFocus = false;
+
+  FocusNode get _effectiveFocusNode =>
+      widget.focusNode ?? (_internalFocusNode ??= FocusNode());
 
   @override
   void initState() {
     super.initState();
     _obscured = widget.isPassword ? true : widget.obscureText;
+    _effectiveFocusNode.addListener(_onFocusChange);
   }
 
   @override
@@ -82,159 +178,206 @@ class _SahyanTextFieldState extends State<SahyanTextField> {
     if (!widget.isPassword && oldWidget.obscureText != widget.obscureText) {
       _obscured = widget.obscureText;
     }
+    if (oldWidget.focusNode != widget.focusNode) {
+      (oldWidget.focusNode ?? _internalFocusNode)?.removeListener(_onFocusChange);
+      _effectiveFocusNode.addListener(_onFocusChange);
+    }
   }
 
   @override
+  void dispose() {
+    _effectiveFocusNode.removeListener(_onFocusChange);
+    _internalFocusNode?.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() {});
+  }
+
+  OutlineInputBorder _border(Color c, double w) => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        borderSide: BorderSide(color: c, width: w),
+      );
+
+  @override
   Widget build(BuildContext context) {
-    Widget? effectiveSuffixIcon = widget.suffixIcon;
-
-    if (widget.isPassword) {
-      effectiveSuffixIcon = IconButton(
-        icon: Icon(
-          // Universal BMP icons (no surrogate pairs) to avoid tofu on Android 8.1
-          _obscured ? Icons.visibility : Icons.visibility_off,
-          color: AppColors.textSecondary,
-          size: 20,
-        ),
-        splashRadius: 20,
-        tooltip: _obscured ? 'Show password' : 'Hide password',
-        onPressed: () {
-          setState(() {
-            _obscured = !_obscured;
-          });
-        },
-      );
-    }
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final textColor = isDark ? AppColors.darkText : AppColors.ink;
-    final hintColor = isDark ? AppColors.darkMuted : AppColors.mutedLight;
-    final fillColor = widget.enabled
-        ? (isDark ? AppColors.darkSurface : Colors.white)
-        : (isDark ? AppColors.darkSurfaceHigh : AppColors.surfaceContainerLow);
-    final borderColor = isDark ? AppColors.darkSurfaceHigh : AppColors.border;
-    final focusColor = isDark ? AppColors.mint : AppColors.brand;
 
-    final hasError = widget.errorText != null;
-    if (hasError) {
-      effectiveSuffixIcon = const Padding(
-        padding: EdgeInsets.all(12),
-        child: Icon(Icons.error_outline, color: AppColors.error, size: 20),
+    // Design Tokens - Style C (Outline on border)
+    final brand = isDark ? AppColors.mint : const Color(0xFF0B5D4B);
+    final brandBright = isDark ? AppColors.mint : const Color(0xFF0F7A5F);
+    final ink = isDark ? AppColors.darkText : const Color(0xFF0A1F1A);
+    final muted = isDark ? AppColors.darkMuted : const Color(0xFF5B6B66);
+    final hint = isDark
+        ? AppColors.darkMuted.withValues(alpha: 0.75)
+        : const Color(0xFF6F8079);
+    final rest = isDark ? const Color(0xFF5A6E67) : const Color(0xFF7C918A);
+    const error = Color(0xFFC23B2F);
+    final defaultFieldFill =
+        isDark ? const Color(0xB312302A) : const Color(0xB3FFFFFF);
+    final effectiveFieldFill = widget.fieldFill ?? defaultFieldFill;
+    final dividerColor =
+        isDark ? const Color(0xFF2E4D45) : const Color(0xFFB9C7C1);
+
+    final focused = _effectiveFocusNode.hasFocus;
+    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
+    final labelColor = hasError ? error : (focused ? brand : muted);
+
+    final labelStyle = GoogleFonts.plusJakartaSans(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: labelColor,
+    );
+
+    final effectiveHint = widget.hint ?? widget.hintText;
+    final effectiveHelper = widget.helper ?? widget.helperText;
+
+    // Suffix / Trailing control
+    Widget? effectiveTrailing = widget.trailing ?? widget.suffixIcon;
+    if (widget.isPassword && effectiveTrailing == null) {
+      effectiveTrailing = IconButton(
+        icon: Icon(
+          _obscured ? Icons.visibility : Icons.visibility_off,
+          color: muted,
+          size: 22,
+        ),
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        splashRadius: 24,
+        tooltip: _obscured ? 'Show password' : 'Hide password',
+        onPressed: () => setState(() => _obscured = !_obscured),
       );
-    } else if (widget.isValid && effectiveSuffixIcon == null) {
-      effectiveSuffixIcon = const Padding(
-        padding: EdgeInsets.all(12),
-        child: Icon(Icons.check_circle, color: AppColors.success, size: 20),
+    } else if (effectiveTrailing == null && widget.isValid && !hasError) {
+      effectiveTrailing = Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Icon(
+          Icons.check_circle_rounded,
+          color: brandBright,
+          size: 22,
+        ),
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // 1. Visible External Label (Predictable structure, never crammed inside)
-        if (widget.label != null) ...[
-          Text(
-            widget.label!,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.darkText : AppColors.ink,
-            ),
-          ),
-          const SizedBox(height: 6),
-        ],
-
-        // 2. Consistent Input Container (Height 54dp, rounded border, focus glow)
-        Focus(
-          onFocusChange: (hasFocus) {
-            if (_hasFocus != hasFocus) setState(() => _hasFocus = hasFocus);
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: fillColor,
-              borderRadius: BorderRadius.circular(AppRadii.input),
-              border: Border.all(
-                color: hasError
-                    ? AppColors.error
-                    : (_hasFocus ? focusColor : borderColor),
-                width: _hasFocus ? 2 : 1.5,
-              ),
-              boxShadow: _hasFocus && !hasError
-                  ? [
-                      BoxShadow(
-                        color: focusColor.withValues(alpha: 0.14),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: TextFormField(
-              controller: widget.controller,
-              keyboardType: widget.keyboardType,
-              inputFormatters: widget.inputFormatters,
-              textCapitalization: widget.textCapitalization,
-              obscureText: _obscured,
-              readOnly: widget.readOnly,
-              enabled: widget.enabled,
-              onTap: widget.onTap,
-              validator: widget.validator,
-              onChanged: widget.onChanged,
-              textInputAction: widget.textInputAction,
-              focusNode: widget.focusNode,
-              onFieldSubmitted: widget.onFieldSubmitted,
-              autofillHints: widget.autofillHints,
-              maxLines: widget.isPassword ? 1 : widget.maxLines,
-              minLines: widget.minLines,
-              style: AppTypography.bodyLarge.copyWith(color: textColor),
-              decoration: InputDecoration(
-                hintText: widget.hint,
-                hintStyle: AppTypography.secondary.copyWith(color: hintColor),
-                prefixIcon: widget.prefixIcon,
-                suffixIcon: effectiveSuffixIcon,
-                filled: true,
-                fillColor: Colors.transparent,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-                constraints: const BoxConstraints(minHeight: 54),
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                prefixIconConstraints: const BoxConstraints(
-                  minWidth: 44,
-                  minHeight: 44,
-                ),
-                suffixIconConstraints: const BoxConstraints(
-                  minWidth: 44,
-                  minHeight: 44,
-                ),
-              ),
-            ),
-          ),
+    return Semantics(
+      label: widget.label,
+      textField: true,
+      child: TextFormField(
+        controller: widget.controller,
+        focusNode: _effectiveFocusNode,
+        obscureText: _obscured,
+        keyboardType: widget.keyboardType,
+        textInputAction: widget.textInputAction,
+        textCapitalization: widget.textCapitalization,
+        inputFormatters: widget.inputFormatters,
+        autofillHints: widget.autofillHints,
+        maxLength: widget.maxLength,
+        maxLines: (widget.isPassword || _obscured) ? 1 : widget.maxLines,
+        minLines: widget.minLines,
+        readOnly: widget.readOnly,
+        enabled: widget.enabled,
+        onTap: widget.onTap,
+        validator: widget.validator,
+        onChanged: widget.onChanged,
+        onFieldSubmitted: widget.onSubmitted ?? widget.onFieldSubmitted,
+        cursorColor: brand,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: ink,
         ),
-
-        // 3. Helper or Error Message Area (Clearly positioned below the field)
-        if (hasError || widget.helperText != null) ...[
-          const SizedBox(height: 5),
-          Padding(
-            padding: const EdgeInsets.only(left: 4),
-            child: Text(
-              widget.errorText ?? widget.helperText!,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: hasError ? AppColors.error : hintColor,
-              ),
-            ),
+        decoration: InputDecoration(
+          // Label sits ON the border; Flutter cuts the gap in the outline itself.
+          labelText: widget.label,
+          labelStyle: labelStyle,
+          floatingLabelStyle: labelStyle,
+          floatingLabelBehavior: FloatingLabelBehavior.always,
+          hintText: effectiveHint,
+          hintStyle: GoogleFonts.plusJakartaSans(
+            color: hint,
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
           ),
-        ],
-      ],
+          counterText: '',
+          filled: true,
+          fillColor: effectiveFieldFill,
+          contentPadding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
+          prefixIcon: widget.prefixIcon != null
+              ? IconTheme(
+                  data: IconThemeData(
+                    color: hasError ? error : (focused ? brand : muted),
+                    size: 20,
+                  ),
+                  child: widget.prefixIcon!,
+                )
+              : null,
+          prefix: (widget.prefixText == null || widget.prefixText!.isEmpty)
+              ? null
+              : Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        widget.prefixText!,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: ink,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(
+                        width: 1,
+                        height: 18,
+                        color: dividerColor,
+                      ),
+                    ],
+                  ),
+                ),
+          suffixIcon: effectiveTrailing,
+          helperText: effectiveHelper,
+          helperMaxLines: 2,
+          helperStyle: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            height: 1.35,
+            color: muted,
+          ),
+          error: hasError
+              ? Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 16,
+                        color: error,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          widget.errorText!,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            height: 1.35,
+                            color: error,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : null,
+          border: _border(rest, 1.5),
+          enabledBorder: _border(rest, 1.5),
+          focusedBorder: _border(brand, 2.0),
+          errorBorder: _border(error, 1.5),
+          focusedErrorBorder: _border(error, 2.0),
+          disabledBorder: _border(dividerColor, 1.5),
+        ),
+      ),
     );
   }
 }

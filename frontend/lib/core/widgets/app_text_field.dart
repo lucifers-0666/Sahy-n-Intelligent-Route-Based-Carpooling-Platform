@@ -7,11 +7,13 @@ import 'sahyan_text_field.dart';
 class AppTextField extends StatelessWidget {
   final String? label;
   final String hint;
+  final String? helperText;
   final TextEditingController? controller;
   final TextInputType keyboardType;
   final bool obscureText;
   final bool isPassword;
   final Widget? prefixIcon;
+  final String? prefixText;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final ValueChanged<String>? onChanged;
@@ -29,11 +31,13 @@ class AppTextField extends StatelessWidget {
     super.key,
     this.label,
     required this.hint,
+    this.helperText,
     this.controller,
     this.keyboardType = TextInputType.text,
     this.obscureText = false,
     this.isPassword = false,
     this.prefixIcon,
+    this.prefixText,
     this.suffixIcon,
     this.validator,
     this.onChanged,
@@ -53,11 +57,13 @@ class AppTextField extends StatelessWidget {
     return SahyanTextField(
       label: label,
       hint: hint,
+      helperText: helperText,
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
       isPassword: isPassword,
       prefixIcon: prefixIcon,
+      prefixText: prefixText,
       suffixIcon: suffixIcon,
       validator: validator,
       onChanged: onChanged,

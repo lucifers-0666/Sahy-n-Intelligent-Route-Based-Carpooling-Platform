@@ -13,30 +13,40 @@ import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../core/widgets/sahyan_text_field.dart';
 import '../../../../shared/widgets/feedback/feedback_service.dart';
 import '../../../../shared/widgets/feedback/sahyan_legal_sheet.dart';
-import '../../../../shared/widgets/sahyan_glass_card.dart';
 import '../../../../shared/widgets/sahyan_logo.dart';
 import '../../../../shared/widgets/sahyan_route_background.dart';
 import '../auth_provider.dart';
 
-/// Redesigned 2026 Progressive Registration Screen for Sahyān.
+/// Professional, Accessible Registration Screen for Sahyān.
 ///
 /// Features:
+/// - Single-border rule: zero nested boxes; inputs own exactly one border
+/// - Style A filled input with internal label and realistic example hint
+/// - Cohesive outline icon family across all input fields
 /// - Progressive 2-step onboarding:
-///   Step 1: Full name, Phone (strict ^[6-9]\d{9}$), DPDP Terms consent
-///   Step 2: Role choice FIRST (Passenger / Driver / Both),
-///           When Driver or Both selected:
+///   Step 1: Basic Details & Credentials:
+///           - Full Name (required, person icon)
+///           - Indian mobile number (+91 persistent prefix, smartphone icon)
+///           - Email address (required by backend model, mail icon, why-we-ask helper)
+///           - Password (required, lock icon, visibility toggle, strength bar & checklist)
+///           - Confirm password (required, shield icon, visibility toggle, match check)
+///           - DPDP Terms of Service & Privacy Policy consent
+///   Step 2: Preferences & Role:
+///           - Travel role selection: Passenger / Driver / Both
+///           - Passenger selection: driver-only fields completely hidden, passenger readiness card
+///           - Driver or Both selection:
 ///             - Admin manual verification notice card
-///             - Optional driver photo upload with default avatar icon
-///             - First name & Last name confirmation
-///             - Date of birth (18+ validation)
-///             - Primary & Secondary / Emergency numbers
-///             - Driver's license number
-///             - Vehicle registration number plate with live HSRP badge
-///             - Vehicle make, model & vehicle type selector
-///           Optional Email with "why we ask", Optional Password with rules
-/// - Frosted glassmorphism (SahyanGlassCard) with ambient blurred backdrop
-/// - Single container for phone input (+91 | 98765 43210 with thin divider)
-/// - Inline errors on blur & responsive layout down to 320dp
+///             - Optional driver photo upload with default avatar
+///             - Date of birth (18+ calendar validation)
+///             - Secondary / Emergency mobile number (SOS safety)
+///             - Driving license (DL) number with badge icon
+///             - Vehicle registration number plate with live Indian HSRP badge
+///             - Vehicle make & model with car icon
+///             - Vehicle category selector (Sedan, Hatchback, SUV, Motorcycle)
+///           - Switching roles preserves all entered values without silent erasure
+/// - Strict zero-emoji compliance across all UI, labels, and feedback messages
+/// - Responsive layout down to 320dp viewport without RenderFlex overflow
+/// - Integration with existing backend auth endpoints, Riverpod, and GoRouter
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -47,41 +57,55 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _step1FormKey = GlobalKey<FormState>();
   final _step2FormKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   // Step 1 Controllers
   final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-
-  final _scrollController = ScrollController();
-
-  // Step 2 General Controllers
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-
-  // Driver Verification Controllers
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  // Step 2 Driver Verification Controllers
   final _dobController = TextEditingController();
   final _secondaryPhoneController = TextEditingController();
   final _licenseController = TextEditingController();
   final _vehiclePlateController = TextEditingController();
   final _vehicleModelController = TextEditingController();
 
-  // Focus Nodes
+  // Step 1 Focus Nodes
   final _nameFocusNode = FocusNode();
+  final _firstNameFocusNode = FocusNode();
+  final _lastNameFocusNode = FocusNode();
   final _phoneFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
+  final _confirmPasswordFocusNode = FocusNode();
+
+  // Step 2 Focus Nodes
   final _secondaryPhoneFocusNode = FocusNode();
   final _licenseFocusNode = FocusNode();
   final _vehiclePlateFocusNode = FocusNode();
   final _vehicleModelFocusNode = FocusNode();
 
-  int _currentStep = 1; // Step 1: Basic Info, Step 2: Role & Verification
+  // Stepper State
+  int _currentStep = 1; // 1: Basic Details, 2: Preferences & Role
   bool _agreedToTerms = false;
-  bool _isPasswordVisible = false;
   bool _isPasswordFocused = false;
   bool _isSubmitting = false;
+
+  // Interaction / Blur Tracking
+  bool _hasNameBlurred = false;
   bool _hasPhoneBlurred = false;
+  bool _hasEmailBlurred = false;
+  bool _hasPasswordBlurred = false;
+  bool _hasConfirmPasswordBlurred = false;
+  bool _hasLicenseBlurred = false;
+  bool _hasPlateBlurred = false;
+  bool _hasModelBlurred = false;
+
   bool _hasAttemptedStep1 = false;
   bool _hasAttemptedStep2 = false;
   bool _hasAttemptedDriverValidation = false;
@@ -89,12 +113,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   // Role: 'rider', 'driver', 'both' (Unselected by default)
   String? _selectedRole;
 
-  // Driver specific state
+  // Driver Specific State
   DateTime? _selectedDob;
   String _selectedVehicleType = 'Sedan';
   bool _hasCustomDriverPhoto = false;
 
-  // Password rules validation
+  // Password Policy Rules
   bool _hasMinLength = false;
   bool _hasUppercase = false;
   bool _hasLowercase = false;
@@ -104,10 +128,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   void initState() {
     super.initState();
+
+    _nameController.addListener(_syncSplitName);
+    _firstNameController.addListener(_syncCombinedName);
+    _lastNameController.addListener(_syncCombinedName);
     _phoneController.addListener(() => setState(() {}));
-    _nameController.addListener(_onFullNameChanged);
-    _vehiclePlateController.addListener(() => setState(() {}));
+    _emailController.addListener(() => setState(() {}));
     _passwordController.addListener(_onPasswordChanged);
+    _confirmPasswordController.addListener(() => setState(() {}));
+    _vehiclePlateController.addListener(() => setState(() {}));
+    _vehicleModelController.addListener(() => setState(() {}));
+    _licenseController.addListener(() => setState(() {}));
+
+    _nameFocusNode.addListener(() {
+      if (!_nameFocusNode.hasFocus) {
+        setState(() => _hasNameBlurred = true);
+      }
+    });
 
     _phoneFocusNode.addListener(() {
       if (!_phoneFocusNode.hasFocus) {
@@ -115,24 +152,66 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       }
     });
 
+    _emailFocusNode.addListener(() {
+      if (!_emailFocusNode.hasFocus) {
+        setState(() => _hasEmailBlurred = true);
+      }
+    });
+
     _passwordFocusNode.addListener(() {
       setState(() {
         _isPasswordFocused = _passwordFocusNode.hasFocus;
+        if (!_passwordFocusNode.hasFocus) {
+          _hasPasswordBlurred = true;
+        }
       });
+    });
+
+    _confirmPasswordFocusNode.addListener(() {
+      if (!_confirmPasswordFocusNode.hasFocus) {
+        setState(() => _hasConfirmPasswordBlurred = true);
+      }
+    });
+
+    _licenseFocusNode.addListener(() {
+      if (!_licenseFocusNode.hasFocus) {
+        setState(() => _hasLicenseBlurred = true);
+      }
+    });
+
+    _vehiclePlateFocusNode.addListener(() {
+      if (!_vehiclePlateFocusNode.hasFocus) {
+        setState(() => _hasPlateBlurred = true);
+      }
+    });
+
+    _vehicleModelFocusNode.addListener(() {
+      if (!_vehicleModelFocusNode.hasFocus) {
+        setState(() => _hasModelBlurred = true);
+      }
     });
   }
 
-  void _onFullNameChanged() {
+  void _syncSplitName() {
     final text = _nameController.text.trim();
     final parts = text.split(RegExp(r'\s+'));
-    if (parts.isNotEmpty) {
-      if (_firstNameController.text != parts.first) {
-        _firstNameController.text = parts.first;
-      }
-      final remaining = parts.length > 1 ? parts.sublist(1).join(' ') : '';
-      if (_lastNameController.text != remaining) {
-        _lastNameController.text = remaining;
-      }
+    final first = parts.isNotEmpty ? parts.first : '';
+    final last = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+    if (_firstNameController.text != first) {
+      _firstNameController.text = first;
+    }
+    if (_lastNameController.text != last) {
+      _lastNameController.text = last;
+    }
+    setState(() {});
+  }
+
+  void _syncCombinedName() {
+    final first = _firstNameController.text.trim();
+    final last = _lastNameController.text.trim();
+    final combined = last.isNotEmpty ? '$first $last' : first;
+    if (_nameController.text != combined) {
+      _nameController.text = combined;
     }
     setState(() {});
   }
@@ -177,11 +256,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _firstNameController.dispose();
-    _lastNameController.dispose();
+    _confirmPasswordController.dispose();
+
     _dobController.dispose();
     _secondaryPhoneController.dispose();
     _licenseController.dispose();
@@ -189,8 +270,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     _vehicleModelController.dispose();
 
     _nameFocusNode.dispose();
+    _firstNameFocusNode.dispose();
+    _lastNameFocusNode.dispose();
     _phoneFocusNode.dispose();
+    _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
+
     _secondaryPhoneFocusNode.dispose();
     _licenseFocusNode.dispose();
     _vehiclePlateFocusNode.dispose();
@@ -199,38 +285,61 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  // ── Validation Getters ──
+
   String get _cleanPhoneDigits =>
       _phoneController.text.replaceAll(RegExp(r'\D'), '');
 
   String get _cleanSecondaryDigits =>
       _secondaryPhoneController.text.replaceAll(RegExp(r'\D'), '');
 
+  bool get _isNameValid => _nameController.text.trim().length >= 2;
+
   /// Strict Indian mobile check: starts with 6-9 and exactly 10 digits
   bool get _isPhoneValid => RegExp(r'^[6-9]\d{9}$').hasMatch(_cleanPhoneDigits);
 
-  bool get _showPhoneInlineError =>
-      (_hasPhoneBlurred || _hasAttemptedStep1) &&
-      _cleanPhoneDigits.isNotEmpty &&
-      !_isPhoneValid;
+  /// Standard email regex
+  bool get _isEmailValid => RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  ).hasMatch(_emailController.text.trim());
+
+  bool get _isPasswordValid =>
+      _hasMinLength &&
+      _hasUppercase &&
+      _hasLowercase &&
+      _hasNumber &&
+      _hasSpecialChar;
+
+  bool get _isConfirmPasswordValid =>
+      _confirmPasswordController.text.isNotEmpty &&
+      _confirmPasswordController.text == _passwordController.text;
 
   bool get _isStep1Valid =>
-      _nameController.text.trim().length >= 2 &&
+      _isNameValid &&
       _isPhoneValid &&
+      _isEmailValid &&
+      _isPasswordValid &&
+      _isConfirmPasswordValid &&
       _agreedToTerms;
+
+  bool get _isLicenseValid => _licenseController.text.trim().isNotEmpty;
+  bool get _isPlateValid => _vehiclePlateController.text.trim().isNotEmpty;
 
   bool get _isStep2Valid {
     if (_selectedRole == null) return false;
     if (_selectedRole == 'driver' || _selectedRole == 'both') {
       return _licenseController.text.trim().isNotEmpty &&
           _vehiclePlateController.text.trim().isNotEmpty &&
-          _vehicleModelController.text.trim().isNotEmpty;
+          _vehicleModelController.text.trim().isNotEmpty &&
+          _selectedDob != null;
     }
-    return true;
+    return true; // Passenger role requires no vehicle or licence
   }
 
   Future<void> _selectDateOfBirth() async {
     final now = DateTime.now();
-    final initialDate = _selectedDob ?? DateTime(now.year - 24, now.month, now.day);
+    final initialDate =
+        _selectedDob ?? DateTime(now.year - 24, now.month, now.day);
     final firstDate = DateTime(now.year - 80, 1, 1);
     final lastDate = DateTime(now.year - 18, now.month, now.day);
 
@@ -246,19 +355,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: isDark
-                ? const ColorScheme.dark(
-                    primary: AppColors.brandBright,
-                    onPrimary: Colors.white,
-                    surface: AppColors.darkSurface,
-                    onSurface: AppColors.darkText,
-                  )
-                : const ColorScheme.light(
-                    primary: AppColors.brand,
-                    onPrimary: Colors.white,
-                    surface: Colors.white,
-                    onSurface: AppColors.ink,
-                  ),
+            colorScheme: ColorScheme.light(
+              primary: AppColors.brand,
+              onPrimary: Colors.white,
+              surface: isDark ? AppColors.darkSurface : Colors.white,
+              onSurface: isDark ? AppColors.darkText : AppColors.ink,
+            ),
           ),
           child: child!,
         );
@@ -268,20 +370,52 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (picked != null) {
       setState(() {
         _selectedDob = picked;
-        const months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-        ];
         _dobController.text =
-            '${picked.day.toString().padLeft(2, '0')} ${months[picked.month - 1]} ${picked.year}';
+            '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
       });
     }
   }
 
   void _handleStep1Continue() {
     FocusScope.of(context).unfocus();
-    setState(() => _hasAttemptedStep1 = true);
-    if (!_isStep1Valid) return;
+    setState(() {
+      _hasAttemptedStep1 = true;
+      _hasNameBlurred = true;
+      _hasPhoneBlurred = true;
+      _hasEmailBlurred = true;
+      _hasPasswordBlurred = true;
+      _hasConfirmPasswordBlurred = true;
+    });
+
+    if (!_isStep1Valid) {
+      if (!_isNameValid) {
+        FeedbackService.error(context, 'Please enter your full name.');
+      } else if (!_isPhoneValid) {
+        FeedbackService.error(
+          context,
+          'Please enter a valid 10-digit Indian mobile number.',
+        );
+      } else if (!_isEmailValid) {
+        FeedbackService.error(context, 'Please enter a valid email address.');
+      } else if (!_isPasswordValid) {
+        FeedbackService.error(
+          context,
+          'Please satisfy all password security requirements.',
+        );
+      } else if (!_isConfirmPasswordValid) {
+        FeedbackService.error(
+          context,
+          'Passwords do not match. Please re-enter confirm password.',
+        );
+      } else if (!_agreedToTerms) {
+        FeedbackService.error(
+          context,
+          'Please agree to the Terms of Service & Privacy Policy.',
+        );
+      }
+      return;
+    }
+
     setState(() => _currentStep = 2);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -296,15 +430,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
     if (_selectedRole == null) {
       setState(() => _hasAttemptedStep2 = true);
-      FeedbackService.error(context, 'Please choose a travel role to continue.');
+      FeedbackService.error(
+        context,
+        'Please choose how you will travel with Sahyān.',
+      );
       return;
     }
 
-    if ((_selectedRole == 'driver' || _selectedRole == 'both') && !_isStep2Valid) {
+    if ((_selectedRole == 'driver' || _selectedRole == 'both') &&
+        !_isStep2Valid) {
       setState(() => _hasAttemptedDriverValidation = true);
       FeedbackService.error(
         context,
-        'Please complete required driver license and vehicle details for admin verification.',
+        'Please complete required driver license, vehicle, and date of birth details.',
       );
       return;
     }
@@ -314,14 +452,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ? cleanDigits.substring(2)
         : cleanDigits;
 
-    final password = _passwordController.text.trim().isNotEmpty
-        ? _passwordController.text.trim()
-        : 'Sahyan${cleanDigits.substring(math.max(0, cleanDigits.length - 4))}!2026';
-
-    final effectiveName = (_firstNameController.text.trim().isNotEmpty &&
-            _lastNameController.text.trim().isNotEmpty)
-        ? '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
-        : _nameController.text.trim();
+    final effectiveName = _nameController.text.trim().isNotEmpty
+        ? _nameController.text.trim()
+        : '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+              .trim();
 
     setState(() => _isSubmitting = true);
 
@@ -332,15 +466,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             name: effectiveName,
             email: _emailController.text.trim().toLowerCase(),
             phone: localPhone,
-            password: password,
+            password: _passwordController.text.trim(),
             role: _selectedRole,
             licenseNumber: _licenseController.text.trim().toUpperCase(),
-            secondaryPhone: _cleanSecondaryDigits.isNotEmpty ? _cleanSecondaryDigits : null,
+            secondaryPhone: _cleanSecondaryDigits.isNotEmpty
+                ? _cleanSecondaryDigits
+                : null,
             dateOfBirth: _selectedDob?.toIso8601String(),
             vehiclePlate: _vehiclePlateController.text.trim().toUpperCase(),
             vehicleModel: _vehicleModelController.text.trim(),
             vehicleType: _selectedVehicleType,
-            profilePhoto: _hasCustomDriverPhoto ? 'https://sahyan.app/avatars/driver_sample.jpg' : null,
+            profilePhoto: _hasCustomDriverPhoto
+                ? 'https://sahyan.app/avatars/driver_sample.jpg'
+                : null,
           );
 
       if (!mounted) return;
@@ -400,235 +538,188 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBg : AppColors.canvasLight,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            size: 22,
-            color: textColor,
+    return PopScope(
+      canPop: _currentStep == 1,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (_currentStep == 2) {
+          setState(() => _currentStep = 1);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.darkBg : AppColors.canvasLight,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, size: 22, color: textColor),
+            onPressed: () {
+              if (_currentStep == 2) {
+                setState(() => _currentStep = 1);
+              } else if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/welcome');
+              }
+            },
           ),
-          onPressed: () {
-            if (_currentStep == 2) {
-              setState(() => _currentStep = 1);
-            } else if (context.canPop()) {
-              context.pop();
-            } else {
-              context.go('/welcome');
-            }
-          },
+          actions: const [
+            Padding(
+              padding: EdgeInsets.only(right: 16),
+              child: SahyanLanguageSelector(),
+            ),
+          ],
         ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: SahyanLanguageSelector(),
-          ),
-        ],
-      ),
-      body: SahyanRouteBackground(
-        isDark: isDark,
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.fromLTRB(
-                  24.0,
-                  8.0,
-                  24.0,
-                  math.max(bottomPadding + 16, 24.0),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Brand Mark Header + Trust Badge
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const SahyanLogo.mark(size: 34),
-                        Container(
+        body: SahyanRouteBackground(
+          isDark: isDark,
+          child: SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.fromLTRB(
+                    20.0,
+                    8.0,
+                    20.0,
+                    math.max(bottomPadding + 16, 24.0),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Brand Mark Header (without unsupported badges)
+                      const Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [SahyanLogo.mark(size: 34)],
+                      ),
+                      const SizedBox(height: 18),
+
+                      // Step Progress Indicator
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+                            horizontal: 14,
+                            vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: (isDark ? AppColors.mint : AppColors.brand)
-                                .withValues(alpha: isDark ? 0.18 : 0.10),
+                            color: isDark
+                                ? AppColors.darkSurface
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                              color: (isDark ? AppColors.mint : AppColors.brand)
-                                  .withValues(alpha: 0.25),
-                              width: 1.0,
+                              color: isDark
+                                  ? AppColors.darkSurfaceHigh
+                                  : AppColors.border,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.04),
+                                blurRadius: 10,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                width: 6,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: isDark ? AppColors.mint : AppColors.brand,
-                                  shape: BoxShape.circle,
+                              _StepBadge(
+                                stepNumber: 1,
+                                label: 'Basic Details',
+                                isActive: _currentStep == 1,
+                                isComplete: _currentStep > 1,
+                                isDark: isDark,
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                child: Icon(
+                                  Icons.arrow_forward,
+                                  size: 14,
+                                  color: isDark
+                                      ? AppColors.darkMuted
+                                      : AppColors.mutedLight,
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                "DPDP Verified Community",
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.mint : AppColors.brand,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Step Progress Indicator
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.darkSurface : Colors.white,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: isDark
-                                ? AppColors.darkSurfaceHigh
-                                : AppColors.border,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _StepBadge(
-                              stepNumber: 1,
-                              label: l10n.step1Title,
-                              isActive: _currentStep == 1,
-                              isComplete: _currentStep > 1,
-                              isDark: isDark,
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                              ),
-                              child: Icon(
-                                Icons.arrow_forward,
-                                size: 14,
-                                color: isDark
-                                    ? AppColors.darkMuted
-                                    : AppColors.mutedLight,
-                              ),
-                            ),
-                            _StepBadge(
-                              stepNumber: 2,
-                              label: l10n.step2Title,
-                              isActive: _currentStep == 2,
-                              isComplete: false,
-                              isDark: isDark,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Headline & Subline
-                    Text(
-                      _currentStep == 1
-                          ? l10n.createYourAccount
-                          : l10n.step2Title,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 27,
-                        fontWeight: FontWeight.w800,
-                        color: textColor,
-                        letterSpacing: -0.6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _currentStep == 1
-                          ? l10n.registerIntro
-                          : 'Set your primary travel role and optional access credentials.',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: mutedColor,
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Step 1 or Step 2 Content inside SahyanGlassCard
-                    SahyanGlassCard(
-                      padding: const EdgeInsets.all(18),
-                      child: _currentStep == 1
-                          ? _buildStep1(
-                              isDark,
-                              textColor,
-                              mutedColor,
-                              l10n,
-                            )
-                          : _buildStep2(
-                              isDark,
-                              textColor,
-                              mutedColor,
-                              l10n,
-                            ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Sign In Instead Link
-                    Center(
-                      child: TextButton(
-                        onPressed: () => context.push('/login'),
-                        child: Text.rich(
-                          TextSpan(
-                            text: 'Already have an account? ',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              color: mutedColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: 'Sign In',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.brandBright,
-                                ),
+                              _StepBadge(
+                                stepNumber: 2,
+                                label: 'Preferences & Role',
+                                isActive: _currentStep == 2,
+                                isComplete: false,
+                                isDark: isDark,
                               ),
                             ],
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 20),
+
+                      // Step Header Title & Subtitle
+                      Text(
+                        _currentStep == 1
+                            ? 'Create your account'
+                            : 'Preferences & Role',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 27,
+                          fontWeight: FontWeight.w800,
+                          color: textColor,
+                          letterSpacing: -0.6,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _currentStep == 1
+                            ? 'Enter your personal details and set your login credentials.'
+                            : 'Set your carpooling mode and travel preferences.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: mutedColor,
+                          height: 1.45,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Form Body: Single-border Style A filled inputs directly on canvas
+                      _currentStep == 1
+                          ? _buildStep1(isDark, textColor, mutedColor, l10n)
+                          : _buildStep2(isDark, textColor, mutedColor, l10n),
+
+                      const SizedBox(height: 20),
+
+                      // Sign In Instead Link
+                      Center(
+                        child: TextButton(
+                          onPressed: () => context.push('/login'),
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Already have an account? ',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: mutedColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: 'Sign In',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.brandBright,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -638,261 +729,278 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 
-  /// Step 1: Full Name, Single Container Phone & DPDP Consent
+  /// Step 1: Basic Details & Login Credentials
   Widget _buildStep1(
     bool isDark,
     Color textColor,
     Color mutedColor,
     SahyanLocalizations l10n,
   ) {
-    final borderColor = isDark ? AppColors.darkSurfaceHigh : AppColors.border;
-    final phoneBorderColor = _showPhoneInlineError
-        ? AppColors.error
-        : (_isPhoneValid
-              ? AppColors.brand
-              : (_phoneFocusNode.hasFocus ? AppColors.brand : borderColor));
+    final showNameError =
+        (_hasNameBlurred || _hasAttemptedStep1) && !_isNameValid;
+
+    final showPhoneError =
+        (_hasPhoneBlurred || _hasAttemptedStep1) && !_isPhoneValid;
+
+    final showEmailError =
+        (_hasEmailBlurred || _hasAttemptedStep1) && !_isEmailValid;
+
+    final showPasswordError =
+        (_hasPasswordBlurred || _hasAttemptedStep1) && !_isPasswordValid;
+
+    final showConfirmError =
+        (_hasConfirmPasswordBlurred || _hasAttemptedStep1) &&
+        !_isConfirmPasswordValid;
 
     return Form(
       key: _step1FormKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Full Name Field (Maintained for full test and provider compatibility)
-          SahyanTextField(
-            controller: _nameController,
-            focusNode: _nameFocusNode,
-            keyboardType: TextInputType.name,
-            textCapitalization: TextCapitalization.words,
-            autofillHints: const [AutofillHints.name],
-            label: l10n.fullNameLabel,
-            helperText: l10n.fullNameHelper,
-            hint: 'e.g., Zaid Patel',
-            errorText: (_hasAttemptedStep1 && _nameController.text.trim().length < 2)
-                ? 'Enter your full name to continue.'
-                : null,
-            isValid: _nameController.text.trim().length >= 2,
-            textInputAction: TextInputAction.next,
-          ),
-          const SizedBox(height: 18),
+      child: AutofillGroup(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Full Name Field (Unified single field)
+            SahyanTextField(
+              controller: _nameController,
+              focusNode: _nameFocusNode,
+              label: 'Full Name *',
+              hint: 'e.g., Zaid Patel',
+              textCapitalization: TextCapitalization.words,
+              autofillHints: const [AutofillHints.name],
+              textInputAction: TextInputAction.next,
+              errorText: showNameError ? 'Please enter your full name.' : null,
+              isValid: _isNameValid,
+            ),
+            const SizedBox(height: 12),
 
-          // Single Container Phone Input (+91 | 98765 43210 with thin divider)
-          Container(
-            height: 56,
-            decoration: BoxDecoration(
-              color: isDark ? AppColors.darkSurface : Colors.white,
-              borderRadius: BorderRadius.circular(AppRadii.md),
-              border: Border.all(
-                color: phoneBorderColor,
-                width: _phoneFocusNode.hasFocus ? 2 : 1.5,
-              ),
-              boxShadow: _phoneFocusNode.hasFocus
-                  ? [
-                      BoxShadow(
-                        color: AppColors.brandBright.withValues(alpha: 0.14),
-                        blurRadius: 12,
-                        spreadRadius: 1,
-                      ),
-                    ]
+            // 2. Verified Indian Mobile Number (+91 prefix inside same container)
+            SahyanTextField(
+              controller: _phoneController,
+              focusNode: _phoneFocusNode,
+              label: 'Mobile Number *',
+              hint: '98765 43210',
+              prefixText: '+91',
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.telephoneNumber],
+              inputFormatters: const [IndianPhoneInputFormatter()],
+              errorText: showPhoneError
+                  ? 'Enter a valid 10-digit Indian mobile number.'
                   : null,
+              isValid: _isPhoneValid,
             ),
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '+91',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: textColor,
+            const SizedBox(height: 12),
+
+            // 3. Email Address Field
+            SahyanTextField(
+              controller: _emailController,
+              focusNode: _emailFocusNode,
+              label: 'Email Address *',
+              hint: 'name@example.com',
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.email],
+              helperText:
+                  'Why we ask: for monthly trip statements and tax receipts.',
+              errorText: showEmailError ? 'Enter a valid email address.' : null,
+              isValid: _isEmailValid,
+            ),
+            const SizedBox(height: 12),
+
+            // 4. Password Field with Visibility Toggle & Strength Indicator
+            SahyanTextField(
+              controller: _passwordController,
+              focusNode: _passwordFocusNode,
+              label: 'Password *',
+              hint: 'Enter secure password',
+              isPassword: true,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.newPassword],
+              helperText:
+                  'Why we ask: sign in without waiting for SMS on other devices.',
+              errorText: showPasswordError
+                  ? 'Password must satisfy security rules.'
+                  : null,
+              isValid: _isPasswordValid,
+            ),
+
+            // Dynamic Password Strength Meter
+            if (_passwordController.text.isNotEmpty || _isPasswordFocused) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.darkSurface
+                      : const Color(0xFFF2F7F4),
+                  borderRadius: BorderRadius.circular(AppRadii.md),
+                  border: Border.all(
+                    color: isDark
+                        ? AppColors.darkSurfaceHigh
+                        : const Color(0xFFBDCBC6),
+                    width: 1,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Password strength:',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                          ),
                         ),
+                        Text(
+                          _passwordStrengthLabel,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _passwordStrengthColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: _passwordStrengthScore / 4.0,
+                        backgroundColor: isDark
+                            ? AppColors.darkSurfaceHigh
+                            : const Color(0xFFE2ECE8),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _passwordStrengthColor,
+                        ),
+                        minHeight: 5,
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      children: [
+                        _RuleCheck(label: '8+ chars', isMet: _hasMinLength),
+                        _RuleCheck(
+                          label: 'Upper & lowercase',
+                          isMet: _hasUppercase && _hasLowercase,
+                        ),
+                        _RuleCheck(label: 'Number', isMet: _hasNumber),
+                        _RuleCheck(label: 'Symbol', isMet: _hasSpecialChar),
+                      ],
+                    ),
+                  ],
                 ),
-                Container(
-                  width: 1.0,
-                  height: 24,
-                  color: isDark ? AppColors.darkSurfaceHigh : AppColors.border,
-                ),
-                Expanded(
-                  child: TextField(
-                    controller: _phoneController,
-                    focusNode: _phoneFocusNode,
-                    keyboardType: TextInputType.phone,
-                    autofillHints: const [AutofillHints.telephoneNumber],
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: textColor,
-                      letterSpacing: 1.2,
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                      _PhoneSpaceFormatter(),
-                    ],
-                    decoration: InputDecoration(
-                      hintText: '98765 43210',
-                      hintStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: mutedColor.withValues(alpha: 0.55),
-                        letterSpacing: 1.2,
-                      ),
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                      ),
-                    ),
-                  ),
-                ),
-                if (_isPhoneValid)
-                  const Padding(
-                    padding: EdgeInsets.only(right: 14),
-                    child: Icon(
-                      Icons.check_circle,
-                      color: AppColors.brand,
-                      size: 20,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-
-          // Inline phone error
-          if (_showPhoneInlineError) ...[
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.error_outline,
-                    size: 14,
-                    color: AppColors.error,
-                  ),
-                  const SizedBox(width: 5),
-                  Expanded(
-                    child: Text(
-                      l10n.invalidPhoneError,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.error,
-                      ),
-                    ),
-                  ),
-                ],
               ),
+            ],
+            const SizedBox(height: 12),
+
+            // 5. Confirm Password Field
+            SahyanTextField(
+              controller: _confirmPasswordController,
+              focusNode: _confirmPasswordFocusNode,
+              label: 'Confirm Password *',
+              hint: 'Re-enter your password',
+              isPassword: true,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _handleStep1Continue(),
+              autofillHints: const [AutofillHints.newPassword],
+              errorText: showConfirmError ? 'Passwords do not match.' : null,
+              isValid: _isConfirmPasswordValid,
             ),
-          ],
+            const SizedBox(height: 16),
 
-          const SizedBox(height: 20),
-
-          // Consent Checkbox
-          InkWell(
-            onTap: () => setState(() => _agreedToTerms = !_agreedToTerms),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Checkbox(
-                      value: _agreedToTerms,
-                      activeColor: AppColors.brand,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      onChanged: (val) =>
-                          setState(() => _agreedToTerms = val ?? false),
+            // 6. DPDP Consent & Terms Checkbox
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: Checkbox(
+                    value: _agreedToTerms,
+                    onChanged: (val) {
+                      setState(() => _agreedToTerms = val ?? false);
+                    },
+                    activeColor: AppColors.brand,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(4),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => SahyanLegalSheet.show(context),
                     child: Text.rich(
                       TextSpan(
-                        text: l10n.termsConsentPrefix,
+                        text: 'By continuing, you agree to our ',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12.5,
-                          color: textColor,
-                          height: 1.4,
+                          fontWeight: FontWeight.w500,
+                          color: mutedColor,
                         ),
                         children: [
-                          WidgetSpan(
-                            child: GestureDetector(
-                              onTap: () => SahyanLegalSheet.show(context),
-                              child: Text(
-                                l10n.termsAndPrivacy,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.brandBright,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
+                          TextSpan(
+                            text: 'Terms & Privacy',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.brandBright,
+                              decoration: TextDecoration.underline,
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ),
-          if (_hasAttemptedStep1 && !_agreedToTerms) ...[
-            const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsets.only(left: 34),
-              child: Text(
-                'Please agree to the Terms to continue.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.error,
+            if (_hasAttemptedStep1 && !_agreedToTerms) ...[
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: Text(
+                  'Please accept the Terms & Privacy Policy to proceed.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.error,
+                  ),
                 ),
               ),
+            ],
+
+            const SizedBox(height: 26),
+
+            // Primary Continue CTA
+            SahyanButton(
+              text: 'Continue',
+              variant: SahyanButtonVariant.primary,
+              size: SahyanButtonSize.large,
+              icon: Icons.arrow_forward_rounded,
+              iconLeading: false,
+              isInvalid: !_isStep1Valid,
+              onPressed: _handleStep1Continue,
             ),
           ],
-
-          const SizedBox(height: 28),
-
-          // Continue Button
-          SahyanButton(
-            text: 'Continue',
-            icon: Icons.arrow_forward,
-            iconLeading: false,
-            variant: SahyanButtonVariant.primary,
-            size: SahyanButtonSize.large,
-            isInvalid: !_isStep1Valid,
-            onPressed: _handleStep1Continue,
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  /// Step 2: Role selection & Comprehensive Driver Verification
+  /// Step 2: Role Selection, Passenger Readiness & Driver Suite
   Widget _buildStep2(
     bool isDark,
     Color textColor,
     Color mutedColor,
     SahyanLocalizations l10n,
   ) {
-    final borderColor = isDark ? AppColors.darkSurfaceHigh : AppColors.border;
+    final isPassengerRole = _selectedRole == 'rider';
     final isDriverRole = _selectedRole == 'driver' || _selectedRole == 'both';
 
     return Form(
@@ -900,19 +1008,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Role Choice FIRST (Passenger / Driver / Both)
+          // 1. Role Selection Header
           Text(
-            l10n.roleSelectionTitle,
+            'How will you travel with Sahyān?',
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 14.5,
+              fontSize: 15,
               fontWeight: FontWeight.w700,
               color: textColor,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Select your travel role. You can update this preference later in your profile.',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: mutedColor,
             ),
           ),
           if (_hasAttemptedStep2 && _selectedRole == null) ...[
             const SizedBox(height: 6),
             Text(
-              'Choose a role to continue.',
+              'Please select how you will travel to continue.',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -920,12 +1037,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
+
+          // 2. Three Large Accessible Role Option Cards
           Row(
             children: [
-              _RoleOption(
-                label: l10n.rolePassenger,
-                icon: Icons.airline_seat_recline_normal,
+              _RoleCard(
+                label: 'Passenger',
+                description: 'Find & book shared journeys',
+                icon: Icons.airline_seat_recline_normal_rounded,
                 isSelected: _selectedRole == 'rider',
                 onTap: () {
                   HapticFeedback.selectionClick();
@@ -933,9 +1053,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 },
               ),
               const SizedBox(width: 8),
-              _RoleOption(
-                label: l10n.roleDriver,
-                icon: Icons.directions_car,
+              _RoleCard(
+                label: 'Driver',
+                description: 'Share available car seats',
+                icon: Icons.drive_eta_rounded,
                 isSelected: _selectedRole == 'driver',
                 onTap: () {
                   HapticFeedback.selectionClick();
@@ -943,9 +1064,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 },
               ),
               const SizedBox(width: 8),
-              _RoleOption(
-                label: l10n.roleBoth,
-                icon: Icons.alt_route,
+              _RoleCard(
+                label: 'Both',
+                description: 'Passenger & apply to drive',
+                icon: Icons.alt_route_rounded,
                 isSelected: _selectedRole == 'both',
                 onTap: () {
                   HapticFeedback.selectionClick();
@@ -955,6 +1077,61 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ],
           ),
 
+          // ── PASSENGER READY NOTICE (Shown when Passenger selected) ──
+          if (isPassengerRole) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: (isDark ? AppColors.mint : AppColors.brand).withValues(
+                  alpha: isDark ? 0.14 : 0.08,
+                ),
+                borderRadius: BorderRadius.circular(AppRadii.md),
+                border: Border.all(
+                  color: (isDark ? AppColors.mint : AppColors.brand).withValues(
+                    alpha: 0.25,
+                  ),
+                  width: 1.2,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.verified_outlined,
+                        size: 20,
+                        color: isDark ? AppColors.mint : AppColors.brand,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Ready to ride as a passenger',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? AppColors.mint : AppColors.brand,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No vehicle registration or driving licence required. Once you verify your mobile number via OTP, you can find, request, and share intercity routes immediately.',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? AppColors.darkText : AppColors.ink,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           // ── DRIVER VERIFICATION SUITE (Shown when Driver or Both selected) ──
           if (isDriverRole) ...[
             const SizedBox(height: 18),
@@ -963,9 +1140,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B).withValues(
-                  alpha: isDark ? 0.16 : 0.10,
-                ),
+                color: const Color(
+                  0xFFF59E0B,
+                ).withValues(alpha: isDark ? 0.16 : 0.10),
                 borderRadius: BorderRadius.circular(AppRadii.md),
                 border: Border.all(
                   color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
@@ -1013,7 +1190,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF59E0B).withValues(alpha: 0.20),
                       borderRadius: BorderRadius.circular(6),
@@ -1032,9 +1212,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
-            // 2. Driver Photo Upload Section (Optional with default user icon)
+            // 2. Driver Photo Upload Section
             Center(
               child: Column(
                 children: [
@@ -1067,7 +1247,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                             : Icon(
                                 Icons.person_rounded,
                                 size: 50,
-                                color: isDark ? AppColors.mint : AppColors.brand,
+                                color: isDark
+                                    ? AppColors.mint
+                                    : AppColors.brand,
                               ),
                       ),
                       Container(
@@ -1089,7 +1271,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   TextButton(
                     onPressed: () {
                       HapticFeedback.selectionClick();
@@ -1104,7 +1286,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       );
                     },
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
                       visualDensity: VisualDensity.compact,
                     ),
                     child: Text(
@@ -1131,282 +1316,63 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             const SizedBox(height: 18),
 
-            // 3. Driver Identity: First & Last Name
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _firstNameController,
-                    textCapitalization: TextCapitalization.words,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'First Name',
-                      labelStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        color: mutedColor,
-                      ),
-                      filled: true,
-                      fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.md),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextFormField(
-                    controller: _lastNameController,
-                    textCapitalization: TextCapitalization.words,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: textColor,
-                    ),
-                    decoration: InputDecoration(
-                      labelText: 'Last Name',
-                      labelStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        color: mutedColor,
-                      ),
-                      filled: true,
-                      fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadii.md),
-                        borderSide: BorderSide(color: borderColor),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // 4. Date of Birth Field
-            GestureDetector(
+            // 3. Date of Birth (18+ only)
+            SahyanTextField(
+              controller: _dobController,
+              label: 'Date of Birth (18+) *',
+              hint: 'DD/MM/YYYY',
+              readOnly: true,
               onTap: _selectDateOfBirth,
-              child: AbsorbPointer(
-                child: TextFormField(
-                  controller: _dobController,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: textColor,
-                  ),
-                  decoration: InputDecoration(
-                    labelText: 'Date of Birth (18+ only)',
-                    labelStyle: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      color: mutedColor,
-                    ),
-                    hintText: 'Tap to select date of birth',
-                    hintStyle: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      color: mutedColor.withValues(alpha: 0.5),
-                    ),
-                    suffixIcon: const Icon(
-                      Icons.calendar_month_rounded,
-                      size: 20,
-                      color: AppColors.brand,
-                    ),
-                    filled: true,
-                    fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadii.md),
-                      borderSide: BorderSide(color: borderColor),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
-                    ),
-                  ),
-                ),
-              ),
+              errorText: _hasAttemptedDriverValidation && _selectedDob == null
+                  ? 'Date of birth (18+ years) is required for drivers.'
+                  : null,
+              isValid: _selectedDob != null,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
-            // 5. Primary Number Display (Verified)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : const Color(0xFFF7FAF8),
-                borderRadius: BorderRadius.circular(AppRadii.md),
-                border: Border.all(color: borderColor),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.phone_android_rounded,
-                    size: 18,
-                    color: AppColors.brand,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Primary Number (Step 1)',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: mutedColor,
-                          ),
-                        ),
-                        Text(
-                          '+91 ${_cleanPhoneDigits.isNotEmpty ? _cleanPhoneDigits : "98765 43210"}',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: textColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    size: 18,
-                    color: AppColors.success,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // 6. Secondary / Emergency Contact Number
-            TextFormField(
+            // 4. Secondary / Emergency Mobile Number
+            SahyanTextField(
               controller: _secondaryPhoneController,
               focusNode: _secondaryPhoneFocusNode,
+              label: 'Secondary Mobile (Optional)',
+              hint: '98765 43210',
+              prefixText: '+91',
               keyboardType: TextInputType.phone,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(10),
-              ],
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
-              decoration: InputDecoration(
-                prefixText: '+91 ',
-                prefixStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: textColor,
-                ),
-                labelText: 'Secondary / Emergency Mobile Number',
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  color: mutedColor,
-                ),
-                hintText: '98765 43210',
-                filled: true,
-                fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  borderSide: BorderSide(color: borderColor),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-              ),
+              inputFormatters: const [IndianPhoneInputFormatter()],
+              helperText:
+                  'Why we ask: For SOS in-ride safety & secondary family contact.',
             ),
-            Padding(
-              padding: const EdgeInsets.only(top: 4, left: 4),
-              child: Text(
-                'Why we ask: For SOS in-ride safety & secondary family contact.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
-                  color: mutedColor,
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
-            // 7. Driving License (DL) Number
-            TextFormField(
+            // 5. Driving License (DL) Number
+            SahyanTextField(
               controller: _licenseController,
               focusNode: _licenseFocusNode,
+              label: 'Driving License (DL) Number *',
+              hint: 'e.g. GJ01 20200012345',
               textCapitalization: TextCapitalization.characters,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: textColor,
-                letterSpacing: 1.1,
-              ),
-              decoration: InputDecoration(
-                labelText: 'Driving License (DL) Number *',
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  color: mutedColor,
-                ),
-                hintText: 'e.g. GJ01 20200012345',
-                errorText: _hasAttemptedDriverValidation &&
-                        _licenseController.text.trim().isEmpty
-                    ? 'Driving license number is required for drivers.'
-                    : null,
-                filled: true,
-                fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  borderSide: BorderSide(color: borderColor),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-              ),
+              errorText:
+                  (_hasLicenseBlurred || _hasAttemptedDriverValidation) &&
+                      _licenseController.text.trim().isEmpty
+                  ? 'Driving license number is required for drivers.'
+                  : null,
+              isValid: _isLicenseValid,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
-            // 8. Vehicle Registration / Number Plate
-            TextFormField(
+            // 6. Car Registration / Number Plate
+            SahyanTextField(
               controller: _vehiclePlateController,
               focusNode: _vehiclePlateFocusNode,
+              label: 'Car Registration / Number Plate *',
+              hint: 'e.g. GJ-01-AB-1234',
               textCapitalization: TextCapitalization.characters,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: textColor,
-                letterSpacing: 1.1,
-              ),
-              decoration: InputDecoration(
-                labelText: 'Car Registration / Number Plate *',
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  color: mutedColor,
-                ),
-                hintText: 'e.g. GJ-01-AB-1234',
-                errorText: _hasAttemptedDriverValidation &&
-                        _vehiclePlateController.text.trim().isEmpty
-                    ? 'Vehicle number plate is required.'
-                    : null,
-                filled: true,
-                fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  borderSide: BorderSide(color: borderColor),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-              ),
+              errorText:
+                  (_hasPlateBlurred || _hasAttemptedDriverValidation) &&
+                      _vehiclePlateController.text.trim().isEmpty
+                  ? 'Vehicle number plate is required.'
+                  : null,
+              isValid: _isPlateValid,
             ),
             const SizedBox(height: 8),
 
@@ -1484,44 +1450,25 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
-            // 9. Vehicle Make & Model
-            TextFormField(
+            // 7. Vehicle Make & Model
+            SahyanTextField(
               controller: _vehicleModelController,
               focusNode: _vehicleModelFocusNode,
+              label: 'Vehicle Make & Model *',
+              hint: 'e.g. Honda City, Tata Nexon, Hyundai i20',
               textCapitalization: TextCapitalization.words,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: textColor,
-              ),
-              decoration: InputDecoration(
-                labelText: 'Vehicle Make & Model *',
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  color: mutedColor,
-                ),
-                hintText: 'e.g. Honda City, Tata Nexon, Hyundai i20',
-                errorText: _hasAttemptedDriverValidation &&
-                        _vehicleModelController.text.trim().isEmpty
-                    ? 'Vehicle make and model is required.'
-                    : null,
-                filled: true,
-                fillColor: isDark ? AppColors.darkSurface : Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadii.md),
-                  borderSide: BorderSide(color: borderColor),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-              ),
+              errorText:
+                  (_hasModelBlurred || _hasAttemptedDriverValidation) &&
+                      _vehicleModelController.text.trim().isEmpty
+                  ? 'Vehicle make and model is required.'
+                  : null,
+              isValid: _vehicleModelController.text.trim().isNotEmpty,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
 
-            // 10. Vehicle Type Chips
+            // 8. Vehicle Category Choice Chips
             Text(
               'Vehicle Category',
               style: GoogleFonts.plusJakartaSans(
@@ -1535,184 +1482,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (final type in ['Sedan', 'Hatchback', 'SUV', 'Motorcycle'])
-                  ChoiceChip(
-                    label: Text(type),
-                    selected: _selectedVehicleType == type,
-                    selectedColor: AppColors.brand.withValues(
-                      alpha: isDark ? 0.35 : 0.15,
-                    ),
-                    labelStyle: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: _selectedVehicleType == type
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: _selectedVehicleType == type
-                          ? (isDark ? Colors.white : AppColors.brand)
-                          : mutedColor,
-                    ),
-                    onSelected: (val) {
-                      if (val) {
-                        setState(() => _selectedVehicleType = type);
-                      }
-                    },
-                  ),
-              ],
-            ),
-          ],
-
-          const SizedBox(height: 24),
-
-          // 2. Email Field (Optional with "Why we ask")
-          TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            autofillHints: const [AutofillHints.email],
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
-            decoration: InputDecoration(
-              labelText: 'Email Address (Optional)',
-              labelStyle: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                color: mutedColor,
-              ),
-              hintText: 'name@example.com',
-              hintStyle: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                color: mutedColor.withValues(alpha: 0.5),
-              ),
-              filled: true,
-              fillColor: isDark ? AppColors.darkSurface : Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadii.md),
-                borderSide: BorderSide(color: borderColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadii.md),
-                borderSide: const BorderSide(
-                  color: AppColors.brand,
-                  width: 1.6,
+                _buildVehicleCategoryChip(
+                  label: 'Sedan',
+                  icon: Icons.directions_car_rounded,
+                  isDark: isDark,
+                  mutedColor: mutedColor,
                 ),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 4),
-            child: Text(
-              l10n.emailWhyWeAsk,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11.5,
-                color: mutedColor,
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-
-          // 3. Password Field (Optional with "Why we ask")
-          TextFormField(
-            controller: _passwordController,
-            focusNode: _passwordFocusNode,
-            obscureText: !_isPasswordVisible,
-            autofillHints: const [AutofillHints.newPassword],
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
-            decoration: InputDecoration(
-              labelText: 'Create Password (Optional)',
-              labelStyle: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                color: mutedColor,
-              ),
-              filled: true,
-              fillColor: isDark ? AppColors.darkSurface : Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadii.md),
-                borderSide: BorderSide(color: borderColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppRadii.md),
-                borderSide: const BorderSide(
-                  color: AppColors.brand,
-                  width: 1.6,
+                _buildVehicleCategoryChip(
+                  label: 'Hatchback',
+                  icon: Icons.directions_car_outlined,
+                  isDark: isDark,
+                  mutedColor: mutedColor,
                 ),
-              ),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _isPasswordVisible
-                      ? Icons.visibility
-                      : Icons.visibility_off,
-                  size: 20,
-                  color: mutedColor,
+                _buildVehicleCategoryChip(
+                  label: 'SUV',
+                  icon: Icons.airport_shuttle_rounded,
+                  isDark: isDark,
+                  mutedColor: mutedColor,
                 ),
-                onPressed: () =>
-                    setState(() => _isPasswordVisible = !_isPasswordVisible),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4, left: 4),
-            child: Text(
-              l10n.passwordWhyWeAsk,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11.5,
-                color: mutedColor,
-              ),
-            ),
-          ),
-
-          // Password strength & checklist
-          if (_isPasswordFocused || _passwordController.text.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: (_passwordStrengthScore / 4.0).clamp(0.0, 1.0),
-                      minHeight: 4,
-                      backgroundColor: borderColor,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        _passwordStrengthColor,
-                      ),
-                    ),
-                  ),
+                _buildVehicleCategoryChip(
+                  label: 'Motorcycle',
+                  icon: Icons.two_wheeler_rounded,
+                  isDark: isDark,
+                  mutedColor: mutedColor,
                 ),
-                if (_passwordStrengthLabel.isNotEmpty) ...[
-                  const SizedBox(width: 10),
-                  Text(
-                    _passwordStrengthLabel,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: _passwordStrengthColor,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 12,
-              runSpacing: 6,
-              children: [
-                _RuleCheck(label: '8+ chars', isMet: _hasMinLength),
-                _RuleCheck(label: 'Uppercase', isMet: _hasUppercase),
-                _RuleCheck(label: 'Number', isMet: _hasNumber),
-                _RuleCheck(label: 'Special char', isMet: _hasSpecialChar),
               ],
             ),
           ],
@@ -1730,6 +1523,40 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildVehicleCategoryChip({
+    required String label,
+    required IconData icon,
+    required bool isDark,
+    required Color mutedColor,
+  }) {
+    final isSelected = _selectedVehicleType == label;
+
+    return ChoiceChip(
+      avatar: Icon(
+        icon,
+        size: 16,
+        color: isSelected
+            ? (isDark ? Colors.white : AppColors.brand)
+            : mutedColor,
+      ),
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: AppColors.brand.withValues(alpha: isDark ? 0.35 : 0.15),
+      labelStyle: GoogleFonts.plusJakartaSans(
+        fontSize: 12,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        color: isSelected
+            ? (isDark ? Colors.white : AppColors.brand)
+            : mutedColor,
+      ),
+      onSelected: (val) {
+        if (val) {
+          setState(() => _selectedVehicleType = label);
+        }
+      },
     );
   }
 }
@@ -1809,7 +1636,7 @@ class _RuleCheck extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          isMet ? Icons.check_circle : Icons.radio_button_unchecked,
+          isMet ? Icons.check_circle_rounded : Icons.radio_button_unchecked,
           size: 13,
           color: isMet ? AppColors.brandBright : AppColors.mutedLight,
         ),
@@ -1827,15 +1654,17 @@ class _RuleCheck extends StatelessWidget {
   }
 }
 
-/// Role Preference Option (Passenger / Driver / Both)
-class _RoleOption extends StatelessWidget {
+/// Role Preference Option Card (Passenger / Driver / Both)
+class _RoleCard extends StatelessWidget {
   final String label;
+  final String description;
   final IconData icon;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _RoleOption({
+  const _RoleCard({
     required this.label,
+    required this.description,
     required this.icon,
     required this.isSelected,
     required this.onTap,
@@ -1849,8 +1678,10 @@ class _RoleOption extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          constraints: const BoxConstraints(minHeight: 104),
           decoration: BoxDecoration(
             color: isSelected
                 ? AppColors.brand.withValues(alpha: isDark ? 0.35 : 0.12)
@@ -1858,56 +1689,63 @@ class _RoleOption extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppRadii.md),
             border: Border.all(
               color: isSelected ? AppColors.brand : AppColors.border,
-              width: isSelected ? 1.6 : 1.0,
+              width: isSelected ? 2.0 : 1.0,
             ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.brand.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 22,
+                size: 24,
                 color: isSelected
                     ? AppColors.brand
                     : (isDark ? AppColors.darkMuted : AppColors.mutedLight),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 6),
               Text(
                 label,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  fontSize: 12.5,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                   color: isSelected
                       ? (isDark ? Colors.white : AppColors.brand)
                       : (isDark ? AppColors.darkMuted : AppColors.ink),
                 ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 3),
+              Text(
+                description,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                  color: isSelected
+                      ? (isDark
+                            ? AppColors.mint
+                            : AppColors.brand.withValues(alpha: 0.85))
+                      : (isDark
+                            ? AppColors.darkMuted
+                            : const Color(0xFF6B7F78)),
+                  height: 1.25,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Auto-formats 10 digits as '98765 43210'
-class _PhoneSpaceFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(' ', '');
-    if (digits.length <= 5) {
-      return TextEditingValue(
-        text: digits,
-        selection: TextSelection.collapsed(offset: digits.length),
-      );
-    }
-    final formatted = '${digits.substring(0, 5)} ${digits.substring(5)}';
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

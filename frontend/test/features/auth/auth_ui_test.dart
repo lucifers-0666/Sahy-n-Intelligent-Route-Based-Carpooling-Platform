@@ -235,7 +235,7 @@ void main() {
       expect(find.byIcon(Icons.visibility_off), findsOneWidget);
     });
 
-    testWidgets('valid phone entry does not add a green status dot', (
+    testWidgets('valid phone entry shows valid tick as suffix', (
       tester,
     ) async {
       await tester.pumpWidget(createTestApp(const LoginScreen()));
@@ -244,11 +244,54 @@ void main() {
       await tester.enterText(find.byType(TextField), '9876543210');
       await tester.pump();
 
-      expect(find.byIcon(Icons.check_circle_rounded), findsNothing);
+      expect(find.byIcon(Icons.check_circle_rounded), findsOneWidget);
     });
   });
 
   group('Responsive RegisterScreen UI Tests', () {
+    Future<void> advanceRegisterToStep2(WidgetTester tester) async {
+      // Full Name
+      await tester.enterText(
+        find.widgetWithText(TextField, 'e.g., Zaid Patel'),
+        'Zaid Patel',
+      );
+      await tester.pump();
+      // Phone
+      await tester.enterText(
+        find.widgetWithText(TextField, '98765 43210'),
+        '9876543210',
+      );
+      await tester.pump();
+      // Email
+      await tester.enterText(
+        find.widgetWithText(TextField, 'name@example.com'),
+        'zaid@example.com',
+      );
+      await tester.pump();
+      // Password (satisfies 8+ chars, upper, lower, number, special char)
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Enter secure password'),
+        'Sahyan@2026',
+      );
+      await tester.pump();
+      // Confirm Password
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Re-enter your password'),
+        'Sahyan@2026',
+      );
+      await tester.pump();
+      // Terms Checkbox
+      await tester.ensureVisible(find.byType(Checkbox));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(Checkbox));
+      await tester.pump();
+      // Continue
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+    }
+
     for (final width in testWidths) {
       testWidgets(
         'RegisterScreen renders without overflow on width ${width.toInt()}dp',
@@ -267,8 +310,11 @@ void main() {
           await tester.pump(const Duration(milliseconds: 100));
 
           expect(find.text('Create your account'), findsOneWidget);
-          expect(find.text('Full name'), findsOneWidget);
+          expect(find.text('Full Name *'), findsOneWidget);
           expect(find.text('+91'), findsOneWidget);
+          expect(find.text('Email Address *'), findsOneWidget);
+          expect(find.text('Password *'), findsOneWidget);
+          expect(find.text('Confirm Password *'), findsOneWidget);
           expect(find.text('Continue'), findsOneWidget);
         },
       );
@@ -299,6 +345,37 @@ void main() {
       },
     );
 
+    testWidgets(
+      'RegisterScreen password and confirm-password validation flags mismatch',
+      (tester) async {
+        await tester.pumpWidget(createTestApp(const RegisterScreen()));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        // Enter password
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Enter secure password'),
+          'Sahyan@2026',
+        );
+        await tester.pump();
+
+        // Enter mismatched confirm password
+        await tester.enterText(
+          find.widgetWithText(TextField, 'Re-enter your password'),
+          'Different@123',
+        );
+        await tester.pump();
+
+        // Tap continue to trigger validation
+        await tester.ensureVisible(find.text('Continue'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Continue'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Passwords do not match.'), findsOneWidget);
+      },
+    );
+
     testWidgets('RegisterScreen step progression works from Step 1 to Step 2', (
       tester,
     ) async {
@@ -306,32 +383,38 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Enter name
-      final nameFinder = find.byType(TextFormField).first;
-      await tester.enterText(nameFinder, 'Zaid Patel');
-      await tester.pump();
-
-      // Enter phone
-      final phoneFinder = find.widgetWithText(TextField, '98765 43210');
-      await tester.enterText(phoneFinder, '9876543210');
-      await tester.pump();
-
-      // Tick consent checkbox
-      final checkboxFinder = find.byType(Checkbox);
-      await tester.tap(checkboxFinder);
-      await tester.pump();
-
-      // Scroll to and tap Continue
-      await tester.ensureVisible(find.text('Continue'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      await advanceRegisterToStep2(tester);
 
       // Verifies Step 2 is shown
       expect(find.text('Preferences & Role'), findsWidgets);
+      expect(find.text('How will you travel with Sahyān?'), findsOneWidget);
+      expect(find.text('Passenger'), findsOneWidget);
+      expect(find.text('Driver'), findsOneWidget);
+      expect(find.text('Both'), findsOneWidget);
       expect(find.text('Complete Registration'), findsOneWidget);
     });
+
+    testWidgets(
+      'RegisterScreen passenger role selection keeps driver fields hidden and displays readiness card',
+      (tester) async {
+        await tester.pumpWidget(createTestApp(const RegisterScreen()));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await advanceRegisterToStep2(tester);
+
+        // Select Passenger Role
+        await tester.tap(find.text('Passenger'));
+        await tester.pumpAndSettle();
+
+        // Verifies Passenger Readiness Card
+        expect(find.text('Ready to ride as a passenger'), findsOneWidget);
+        // Driver fields must be completely hidden
+        expect(find.text('Manual Admin Verification Required'), findsNothing);
+        expect(find.text('Driving License (DL) Number *'), findsNothing);
+        expect(find.text('Car Registration / Number Plate *'), findsNothing);
+      },
+    );
 
     testWidgets(
       'RegisterScreen driver role selection reveals admin manual verification, driver details, and photo toggle',
@@ -340,18 +423,7 @@ void main() {
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
 
-        // Advance to Step 2
-        await tester.enterText(find.byType(TextFormField).first, 'Zaid Patel');
-        await tester.pump();
-        await tester.enterText(find.widgetWithText(TextField, '98765 43210'), '9876543210');
-        await tester.pump();
-        await tester.tap(find.byType(Checkbox));
-        await tester.pump();
-        await tester.ensureVisible(find.text('Continue'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Continue'));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 350));
+        await advanceRegisterToStep2(tester);
 
         // Select Driver Role
         await tester.ensureVisible(find.text('Driver'));
@@ -386,11 +458,60 @@ void main() {
         expect(find.text('Remove photo (Use default icon)'), findsOneWidget);
 
         // Toggle back to Default Avatar Icon
-        await tester.ensureVisible(find.text('Remove photo (Use default icon)'));
+        await tester.ensureVisible(
+          find.text('Remove photo (Use default icon)'),
+        );
         await tester.pumpAndSettle();
         await tester.tap(find.text('Remove photo (Use default icon)'));
         await tester.pumpAndSettle();
         expect(find.text('Upload driver photo (Optional)'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'RegisterScreen switching roles preserves entered driver data without loss',
+      (tester) async {
+        await tester.pumpWidget(createTestApp(const RegisterScreen()));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        await advanceRegisterToStep2(tester);
+
+        // Select Driver Role and enter details
+        await tester.tap(find.text('Driver'));
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'e.g. GJ01 20200012345'),
+          'GJ01 20240098765',
+        );
+        await tester.pump();
+
+        await tester.enterText(
+          find.widgetWithText(TextField, 'e.g. GJ-01-AB-1234'),
+          'GJ-01-XX-9999',
+        );
+        await tester.pump();
+
+        // Switch to Passenger role
+        await tester.ensureVisible(find.text('Passenger'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Passenger'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Driving License (DL) Number *'), findsNothing);
+
+        // Switch back to Driver role
+        await tester.ensureVisible(find.text('Driver'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Driver'));
+        await tester.pumpAndSettle();
+
+        // Verify values are preserved!
+        await tester.ensureVisible(find.text('GJ01 20240098765'));
+        expect(find.text('GJ01 20240098765'), findsOneWidget);
+        await tester.ensureVisible(find.text('GJ-01-XX-9999').first);
+        expect(find.text('GJ-01-XX-9999'), findsWidgets);
       },
     );
 
@@ -404,21 +525,12 @@ void main() {
           tester.view.resetDevicePixelRatio();
         });
 
-        await tester.pumpWidget(createTestApp(const RegisterScreen(), width: 320));
+        await tester.pumpWidget(
+          createTestApp(const RegisterScreen(), width: 320),
+        );
         await tester.pumpAndSettle();
 
-        // Advance to Step 2
-        await tester.enterText(find.byType(TextFormField).first, 'Zaid Patel');
-        await tester.pump();
-        await tester.enterText(find.widgetWithText(TextField, '98765 43210'), '9876543210');
-        await tester.pump();
-        await tester.tap(find.byType(Checkbox));
-        await tester.pump();
-        await tester.ensureVisible(find.text('Continue'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('Continue'));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 350));
+        await advanceRegisterToStep2(tester);
 
         // Select Driver Role
         await tester.ensureVisible(find.text('Driver'));
@@ -427,7 +539,9 @@ void main() {
         await tester.pumpAndSettle();
 
         // Ensure everything fits and renders without overflow
-        await tester.ensureVisible(find.text('Manual Admin Verification Required'));
+        await tester.ensureVisible(
+          find.text('Manual Admin Verification Required'),
+        );
         expect(find.text('Manual Admin Verification Required'), findsOneWidget);
         expect(find.text('Complete Registration'), findsOneWidget);
       },
@@ -698,41 +812,42 @@ void main() {
       expect(find.text('A more connected way to travel.'), findsOneWidget);
     });
 
-    testWidgets('Onboarding renders without overflow on 320dp and 360dp screens', (
-      tester,
-    ) async {
-      for (final width in [320.0, 360.0, 390.0, 412.0]) {
-        tester.view.physicalSize = Size(width, 640.0);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Onboarding renders without overflow on 320dp and 360dp screens',
+      (tester) async {
+        for (final width in [320.0, 360.0, 390.0, 412.0]) {
+          tester.view.physicalSize = Size(width, 640.0);
+          tester.view.devicePixelRatio = 1.0;
+          addTearDown(tester.view.resetPhysicalSize);
 
-        await tester.pumpWidget(
-          createTestApp(
-            LuxuryOnboardingScreen(
-              key: ValueKey<double>(width),
-              onFinish: () {},
+          await tester.pumpWidget(
+            createTestApp(
+              LuxuryOnboardingScreen(
+                key: ValueKey<double>(width),
+                onFinish: () {},
+              ),
             ),
-          ),
-        );
-        await tester.pumpAndSettle();
+          );
+          await tester.pumpAndSettle();
 
-        // Check page 1
-        expect(tester.takeException(), isNull);
-        expect(find.text('Better journeys start together.'), findsOneWidget);
+          // Check page 1
+          expect(tester.takeException(), isNull);
+          expect(find.text('Better journeys start together.'), findsOneWidget);
 
-        // Check page 2
-        await tester.tap(find.text('Continue'));
-        await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
-        expect(find.text('Find rides that fit your route.'), findsOneWidget);
+          // Check page 2
+          await tester.tap(find.text('Continue'));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(find.text('Find rides that fit your route.'), findsOneWidget);
 
-        // Check page 3
-        await tester.tap(find.text('Continue'));
-        await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
-        expect(find.text('A more connected way to travel.'), findsOneWidget);
-        expect(find.text('Get started'), findsOneWidget);
-      }
-    });
+          // Check page 3
+          await tester.tap(find.text('Continue'));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(find.text('A more connected way to travel.'), findsOneWidget);
+          expect(find.text('Get started'), findsOneWidget);
+        }
+      },
+    );
   });
 }
