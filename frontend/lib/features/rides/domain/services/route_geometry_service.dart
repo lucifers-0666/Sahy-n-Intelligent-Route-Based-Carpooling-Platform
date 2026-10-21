@@ -126,13 +126,45 @@ class RouteGeometryService {
       if (mockRouteProvider != null) {
         return mockRouteProvider!(origin, destination, activeStopovers);
       }
-      throw Exception('Route unavailable. Please try again.');
     }
 
-    if (mockRouteProvider != null) {
-      return mockRouteProvider!(origin, destination, activeStopovers);
+    try {
+      final realResult = await RouteService.fetchRealRoadPolyline(
+        origin: origin,
+        destination: destination,
+        stopovers: activeStopovers,
+      );
+
+      final bounds = calculateBounds(realResult.points, origin, destination);
+      final distKm = realResult.distanceKm.toStringAsFixed(0);
+      final durMins = realResult.durationMinutes;
+      final durStr = durMins >= 60
+          ? '${durMins ~/ 60}h ${durMins % 60}m'
+          : '${durMins}m';
+      final wps = activeStopovers.isNotEmpty
+          ? activeStopovers.map((s) => s.name).toList()
+          : _suggestDefaultWaypoints(origin, destination);
+
+      final highway = _detectGujaratHighway(origin, destination);
+
+      return RouteGeometryResult(
+        route: RouteInfo(
+          encodedPolyline: realResult.encodedPolyline,
+          distanceMeters: realResult.distanceKm * 1000.0,
+          durationSeconds: realResult.durationMinutes * 60,
+        ),
+        bounds: bounds,
+        polylineCoordinates: realResult.points,
+        highwayName: highway,
+        keyWaypoints: wps,
+        telemetrySummary: 'via $highway · $distKm km · $durStr',
+      );
+    } catch (_) {
+      if (mockRouteProvider != null) {
+        return mockRouteProvider!(origin, destination, activeStopovers);
+      }
+      throw Exception('Route unavailable. Please try again.');
     }
-    throw Exception('Route unavailable. Please try again.');
   }
 
   static String _detectGujaratHighway(

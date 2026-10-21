@@ -288,21 +288,69 @@ function calculateRouteOverlap({
 }
 
 /**
- * Generate a sampled straight route between origin and destination
- * Used as a deterministic fallback when external routing service is offline
+ * Generate a sampled highway route between origin and destination.
+ * Incorporates Gulf of Khambhat highway bypass (NH47/NH48) so sea crossings
+ * (e.g. Rajkot to Surat) are strictly routed around the bay via Bagodara/Vadodara/Bharuch.
  */
-function generateFallbackRoute(origin, destination, numPoints = 20) {
+function generateFallbackRoute(origin, destination, numPoints = 25) {
   if (!origin || !destination) return [];
   if (numPoints <= 1) return [origin];
 
+  const oLat = origin.latitude;
+  const oLng = origin.longitude;
+  const dLat = destination.latitude;
+  const dLng = destination.longitude;
+
+  // Check if route crosses Gulf of Khambhat (Saurashtra <-> South Gujarat)
+  const isSaurashtraOrigin = oLng < 71.8 && oLat > 21.0 && oLat < 23.0;
+  const isSouthGujaratDest = dLng > 72.6 && dLat < 21.9;
+  const isSouthGujaratOrigin = oLng > 72.6 && oLat < 21.9;
+  const isSaurashtraDest = dLng < 71.8 && dLat > 21.0 && dLat < 23.0;
+
+  const requiresGulfBypass =
+      (isSaurashtraOrigin && isSouthGujaratDest) ||
+      (isSouthGujaratOrigin && isSaurashtraDest);
+
+  if (requiresGulfBypass) {
+    // NH47 -> NE1/NH48 Corridor Waypoints around Gulf of Khambhat
+    const bypassWaypoints = [
+      { latitude: 22.56, longitude: 71.80 }, // Limbdi
+      { latitude: 22.61, longitude: 72.16 }, // Bagodara
+      { latitude: 22.31, longitude: 73.18 }, // Vadodara
+      { latitude: 21.70, longitude: 72.99 }, // Bharuch
+    ];
+
+    const allLegs = isSaurashtraOrigin
+      ? [origin, ...bypassWaypoints, destination]
+      : [origin, ...bypassWaypoints.slice().reverse(), destination];
+
+    const result = [];
+    const ptsPerLeg = Math.max(5, Math.floor(numPoints / (allLegs.length - 1)));
+
+    for (let l = 0; l < allLegs.length - 1; l++) {
+      const p1 = allLegs[l];
+      const p2 = allLegs[l + 1];
+      const steps = l === allLegs.length - 2 ? ptsPerLeg + 2 : ptsPerLeg;
+      for (let i = 0; i < steps; i++) {
+        const frac = i / steps;
+        result.push({
+          latitude: p1.latitude + (p2.latitude - p1.latitude) * frac,
+          longitude: p1.longitude + (p2.longitude - p1.longitude) * frac,
+        });
+      }
+    }
+    result.push(destination);
+    return result;
+  }
+
   const points = [];
-  const dLat = (destination.latitude - origin.latitude) / (numPoints - 1);
-  const dLng = (destination.longitude - origin.longitude) / (numPoints - 1);
+  const dLatStep = (destination.latitude - origin.latitude) / (numPoints - 1);
+  const dLngStep = (destination.longitude - origin.longitude) / (numPoints - 1);
 
   for (let i = 0; i < numPoints; i++) {
     points.push({
-      latitude: origin.latitude + dLat * i,
-      longitude: origin.longitude + dLng * i,
+      latitude: origin.latitude + dLatStep * i,
+      longitude: origin.longitude + dLngStep * i,
     });
   }
 

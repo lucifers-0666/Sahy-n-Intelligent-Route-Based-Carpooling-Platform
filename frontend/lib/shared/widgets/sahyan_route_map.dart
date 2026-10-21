@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:sahyan/app/theme/app_theme.dart';
+import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 
 /// Helper to convert any LatLng-like coordinate object to latlong2.LatLng
@@ -82,6 +83,22 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   ll.LatLng? _displayDriverPos;
   double _displayHeading = 0.0;
 
+  List<ll.LatLng> _fetchedPolylinePoints = [];
+  bool _isFetchingRealRoute = false;
+
+  List<ll.LatLng> get _effectivePolylinePoints {
+    if (widget.polylinePoints.length > 4) {
+      return widget.polylinePoints.map(toLatLong).toList();
+    }
+    if (_fetchedPolylinePoints.isNotEmpty) {
+      return _fetchedPolylinePoints;
+    }
+    if (widget.polylinePoints.isNotEmpty) {
+      return widget.polylinePoints.map(toLatLong).toList();
+    }
+    return const [];
+  }
+
   /// Determine if running in a web or headless widget test environment
   bool get _isTestingEnvironment {
     if (kIsWeb) return true;
@@ -116,6 +133,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     );
 
     _interpolationController.addListener(_onInterpolationTick);
+
+    if (widget.polylinePoints.length <= 4) {
+      _fetchRoadRouteIfNeeded();
+    }
   }
 
   @override
@@ -124,6 +145,22 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
 
     if (_mapController != null && _isMapReady && widget.bounds != null) {
       _fitBounds();
+    }
+
+    final originChanged = widget.origin.latitude != oldWidget.origin.latitude ||
+        widget.origin.longitude != oldWidget.origin.longitude;
+    final destChanged = widget.destination.latitude != oldWidget.destination.latitude ||
+        widget.destination.longitude != oldWidget.destination.longitude;
+    final polyChanged = widget.polylinePoints != oldWidget.polylinePoints;
+
+    if (polyChanged && widget.polylinePoints.length > 4) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fitBounds();
+      });
+    } else if (originChanged ||
+        destChanged ||
+        (widget.polylinePoints.length <= 4 && _fetchedPolylinePoints.isEmpty)) {
+      _fetchRoadRouteIfNeeded();
     }
 
     // New driver position received — start interpolation
@@ -139,6 +176,32 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       );
 
       _interpolationController.forward(from: 0.0);
+    }
+  }
+
+  Future<void> _fetchRoadRouteIfNeeded() async {
+    if (_isFetchingRealRoute) return;
+    if (widget.origin.latitude == 0.0 && widget.origin.longitude == 0.0) return;
+    if (widget.destination.latitude == 0.0 && widget.destination.longitude == 0.0) return;
+
+    _isFetchingRealRoute = true;
+    try {
+      final res = await RouteService.fetchRealRoadPolyline(
+        origin: widget.origin,
+        destination: widget.destination,
+        stopovers: widget.stopovers,
+      );
+      if (mounted && res.points.isNotEmpty) {
+        setState(() {
+          _fetchedPolylinePoints = res.points;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _fitBounds();
+        });
+      }
+    } catch (_) {
+    } finally {
+      _isFetchingRealRoute = false;
     }
   }
 
@@ -205,32 +268,79 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   // ── Map builders ─────────────────────────────────────────────────────────
 
   void _fitBounds() {
-    if (widget.bounds == null || _mapController == null) return;
+    if (_mapController == null) return;
     try {
-      final sw = toLatLong(widget.bounds.southwest);
-      final ne = toLatLong(widget.bounds.northeast);
+      fmap.LatLngBounds? boundsToFit;
+
+      if (widget.bounds != null) {
+        final sw = toLatLong(widget.bounds.southwest);
+        final ne = toLatLong(widget.bounds.northeast);
+        boundsToFit = fmap.LatLngBounds(sw, ne);
+      } else if (_effectivePolylinePoints.isNotEmpty) {
+        double minLat = _effectivePolylinePoints.first.latitude;
+        double maxLat = _effectivePolylinePoints.first.latitude;
+        double minLng = _effectivePolylinePoints.first.longitude;
+        double maxLng = _effectivePolylinePoints.first.longitude;
+
+        for (final p in _effectivePolylinePoints) {
+          if (p.latitude < minLat) minLat = p.latitude;
+          if (p.latitude > maxLat) maxLat = p.latitude;
+          if (p.longitude < minLng) minLng = p.longitude;
+          if (p.longitude > maxLng) maxLng = p.longitude;
+        }
+        boundsToFit = fmap.LatLngBounds(
+          ll.LatLng(minLat, minLng),
+          ll.LatLng(maxLat, maxLng),
+        );
+      } else {
+        boundsToFit = fmap.LatLngBounds(
+          ll.LatLng(
+            math.min(widget.origin.latitude, widget.destination.latitude),
+            math.min(widget.origin.longitude, widget.destination.longitude),
+          ),
+          ll.LatLng(
+            math.max(widget.origin.latitude, widget.destination.latitude),
+            math.max(widget.origin.longitude, widget.destination.longitude),
+          ),
+        );
+      }
+
       _mapController!.fitCamera(
         fmap.CameraFit.bounds(
-          bounds: fmap.LatLngBounds(sw, ne),
-          padding: const EdgeInsets.all(48.0),
+          bounds: boundsToFit,
+          padding: const EdgeInsets.all(50.0),
         ),
       );
     } catch (_) {}
   }
 
   List<fmap.Polyline> _buildPolylines() {
-    if (widget.polylinePoints.isEmpty) return [];
-    final points = widget.polylinePoints.map(toLatLong).toList();
+    if (_effectivePolylinePoints.isEmpty) return [];
+    final points = _effectivePolylinePoints;
+    final isNight = Theme.of(context).brightness == Brightness.dark;
+    final primaryRoadColor = isNight
+        ? const Color(0xFF10B981) // Vibrant emerald in dark/night mode
+        : const Color(0xFF1B4D3E); // Deep Luxury Pine
+    final auraColor = isNight
+        ? const Color(0xFF059669).withValues(alpha: 0.35)
+        : const Color(0xFF10B981).withValues(alpha: 0.30);
+
     return [
+      // Outer subtle road casing / luminous aura
       fmap.Polyline(
         points: points,
-        color: SahyanColors.primaryMint.withValues(alpha: 0.35),
-        strokeWidth: 8,
+        color: auraColor,
+        strokeWidth: 9.0,
+        strokeCap: StrokeCap.round,
+        strokeJoin: StrokeJoin.round,
       ),
+      // Inner real road polyline
       fmap.Polyline(
         points: points,
-        color: SahyanColors.primaryDark,
-        strokeWidth: 4,
+        color: primaryRoadColor,
+        strokeWidth: 5.0,
+        strokeCap: StrokeCap.round,
+        strokeJoin: StrokeJoin.round,
       ),
     ];
   }
