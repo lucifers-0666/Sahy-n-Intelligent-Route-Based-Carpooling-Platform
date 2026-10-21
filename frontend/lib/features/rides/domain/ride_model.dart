@@ -82,6 +82,8 @@ class RideModel extends Equatable {
   final PickupPolicy pickupPolicy;
   final List<String> amenities;
   final String? notes;
+  final List<LocationModel> stopovers;
+  final List<String> breakDisclosures;
 
   const RideModel({
     required this.id,
@@ -108,6 +110,8 @@ class RideModel extends Equatable {
     this.pickupPolicy = PickupPolicy.nearby,
     required this.amenities,
     this.notes,
+    this.stopovers = const [],
+    this.breakDisclosures = const [],
   }) : _fallbackDistanceKm = routeDistanceKm,
        _fallbackDurationMins = durationMins;
 
@@ -287,6 +291,16 @@ class RideModel extends Equatable {
       pickupPolicy: pickupPolicy,
       amenities: List<String>.from(json['amenities'] ?? []),
       notes: json['notes'] as String?,
+      stopovers: (json['stopovers'] is List)
+          ? (json['stopovers'] as List)
+              .map((s) => LocationModel.fromJson(s as Map<String, dynamic>))
+              .toList()
+          : const [],
+      breakDisclosures: (json['breakDisclosures'] is List)
+          ? (json['breakDisclosures'] as List)
+              .map((b) => b.toString())
+              .toList()
+          : const [],
     );
   }
 
@@ -316,6 +330,8 @@ class RideModel extends Equatable {
       'pickupPolicy': pickupPolicy.name,
       'amenities': amenities,
       if (notes != null) 'notes': notes,
+      'stopovers': stopovers.map((s) => s.toJson()).toList(),
+      'breakDisclosures': breakDisclosures,
     };
   }
 
@@ -344,6 +360,8 @@ class RideModel extends Equatable {
     PickupPolicy? pickupPolicy,
     List<String>? amenities,
     String? notes,
+    List<LocationModel>? stopovers,
+    List<String>? breakDisclosures,
   }) {
     return RideModel(
       id: id ?? this.id,
@@ -370,6 +388,8 @@ class RideModel extends Equatable {
       pickupPolicy: pickupPolicy ?? this.pickupPolicy,
       amenities: amenities ?? this.amenities,
       notes: notes ?? this.notes,
+      stopovers: stopovers ?? this.stopovers,
+      breakDisclosures: breakDisclosures ?? this.breakDisclosures,
     );
   }
 
@@ -399,5 +419,7 @@ class RideModel extends Equatable {
     pickupPolicy,
     amenities,
     notes,
+    stopovers,
+    breakDisclosures,
   ];
 }

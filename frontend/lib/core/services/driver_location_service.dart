@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import '../location/data/providers/geolocator_provider.dart';
 import '../location/domain/gps_provider.dart';
 import '../location/domain/location_filter.dart';
@@ -24,14 +25,21 @@ class DriverLocationService {
 
   GpsProvider _provider = GeolocatorProvider();
   StreamSubscription<LocationPoint>? _positionSub;
+  StreamSubscription<ServiceStatus>? _serviceStatusSub;
+  final StreamController<bool> _gpsInterruptedController =
+      StreamController<bool>.broadcast();
+
   String? _activeRideId;
   bool _isStreaming = false;
+  bool _isGpsInterrupted = false;
 
   LocationPreprocessor _preprocessor = LocationPreprocessor();
   final DistanceTrackingService _distanceTracker = DistanceTrackingService();
   final LocationCacheService _cacheService = LocationCacheService.instance;
 
   bool get isStreaming => _isStreaming;
+  bool get isGpsInterrupted => _isGpsInterrupted;
+  Stream<bool> get gpsInterruptedStream => _gpsInterruptedController.stream;
   String? get activeRideId => _activeRideId;
   double get trackedDistanceMeters =>
       _distanceTracker.totalTrackedDistanceMeters;
@@ -94,6 +102,38 @@ class DriverLocationService {
 
     _activeRideId = rideId;
     _isStreaming = true;
+    _isGpsInterrupted = false;
+
+    // Strict Anti-Tamper Service Status Monitor
+    if (!kIsWeb) {
+      try {
+        await _serviceStatusSub?.cancel();
+        _serviceStatusSub = Geolocator.getServiceStatusStream().listen((status) {
+          if (status == ServiceStatus.disabled && _isStreaming) {
+            _isGpsInterrupted = true;
+            _gpsInterruptedController.add(true);
+            if (_activeRideId != null) {
+              SocketClient.instance.emitGpsInterrupted(
+                rideId: _activeRideId!,
+                reason:
+                    'Safety Alert: GPS is required during active shared trips. Re-enable location to resume',
+              );
+            }
+            debugPrint(
+              '[DriverLocationService] Anti-Tamper Alert: Location service disabled during active trip $_activeRideId',
+            );
+          } else if (status == ServiceStatus.enabled && _isStreaming) {
+            _isGpsInterrupted = false;
+            _gpsInterruptedController.add(false);
+            debugPrint(
+              '[DriverLocationService] Location service restored during active trip $_activeRideId',
+            );
+          }
+        });
+      } catch (e) {
+        debugPrint('[DriverLocationService] Failed to listen to service status: $e');
+      }
+    }
 
     try {
       _positionSub = _provider.positionStream.listen(
@@ -120,7 +160,10 @@ class DriverLocationService {
   Future<void> stopStreaming() async {
     await _positionSub?.cancel();
     _positionSub = null;
+    await _serviceStatusSub?.cancel();
+    _serviceStatusSub = null;
     _isStreaming = false;
+    _isGpsInterrupted = false;
     _preprocessor.reset();
     _distanceTracker.reset();
     debugPrint(

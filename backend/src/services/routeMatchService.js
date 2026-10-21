@@ -419,11 +419,13 @@ function evaluateRideMatch({
   }
   const destScore = calculateDestinationScore(destinationDistanceKm);
 
-  // 4. Measure Route Overlap & Direction Compatibility
+  // 4. Measure Route Overlap & Directional Index Constraint
   let isDirectionCompatible = true;
+  const iP = pickupMatch ? pickupMatch.segmentIndex : -1;
+  const iD = destMatch ? destMatch.segmentIndex : -1;
   if (pickupMatch && destMatch && driverPoints.length > 1) {
-    // Passenger pickup must occur before drop along the driver's one-way route
-    if (destMatch.fractionalProgress < pickupMatch.fractionalProgress - 0.05) {
+    // Directional index constraint: iP < iD along the driver's route
+    if (iD < iP || destMatch.fractionalProgress < pickupMatch.fractionalProgress - 0.02) {
       isDirectionCompatible = false;
     }
   }
@@ -459,7 +461,7 @@ function evaluateRideMatch({
   // 7. Measure Seat Availability
   const seatScore = calculateSeatScore(candidateRide.availableSeats, requestedSeats);
 
-  // 8. Measure Detour Cost
+  // 8. Measure Detour Cost & Cross-Track Perpendicular Detour: D_detour = crossTrack(P) + crossTrack(D)
   let driverRouteKm = 0;
   if (candidateRide.route && candidateRide.route.distanceMeters) {
     driverRouteKm = candidateRide.route.distanceMeters / 1000;
@@ -474,13 +476,19 @@ function evaluateRideMatch({
     );
   }
 
-  const additionalDistanceKm = pickupDistanceKm + destinationDistanceKm;
+  const detourDistanceKm = Number((pickupDistanceKm + destinationDistanceKm).toFixed(1));
   const detourPercentage =
     driverRouteKm > 0
-      ? Number(((additionalDistanceKm / driverRouteKm) * 100).toFixed(1))
+      ? Number(((detourDistanceKm / driverRouteKm) * 100).toFixed(1))
       : 0;
 
   const detourScore = calculateDetourScore(detourPercentage);
+
+  // Dynamic corridor match score formula: 100 - (D_detour * 2.5) - (Time Difference mins * 0.4)
+  const rawCorridorScore = Math.round(100 - (detourDistanceKm * 2.5) - (departureDifferenceMinutes * 0.4));
+  const corridorScore = isDirectionCompatible
+    ? Math.max(0, Math.min(100, rawCorridorScore))
+    : Math.min(15, Math.max(0, rawCorridorScore));
 
   // 9. Calculate Final Deterministic Weighted Score with Sanctions
   const rawWeightedScore =
@@ -495,13 +503,23 @@ function evaluateRideMatch({
 
   // Sanction 1: Opposite direction travel (reverse corridor)
   if (!isDirectionCompatible) {
-    finalScore = Math.min(finalScore, 20);
+    finalScore = Math.min(finalScore, 15);
   }
 
   // Sanction 2: Excessive detour (> 40% of planned route)
   if (detourPercentage > 40) {
     const penalty = Math.min(30, Math.round((detourPercentage - 40) * 0.75));
     finalScore = Math.max(0, finalScore - penalty);
+  }
+
+  // Corridor badges
+  let badge = '';
+  if (detourDistanceKm <= 2.5) {
+    badge = `Minimal Detour (${detourDistanceKm} km)`;
+  } else if (finalScore >= 95 || corridorScore >= 95) {
+    badge = `${Math.max(finalScore, corridorScore)}% Direct Corridor`;
+  } else {
+    badge = `${Math.max(finalScore, corridorScore)}% Corridor Match`;
   }
 
   const matchGrade = getMatchGrade(finalScore);
@@ -520,8 +538,14 @@ function evaluateRideMatch({
     routeOverlapPercentage,
     pickupDistanceKm,
     destinationDistanceKm,
+    detourDistanceKm,
+    crossTrackPickupKm: pickupDistanceKm,
+    crossTrackDropKm: destinationDistanceKm,
+    pickupSegmentIndex: iP,
+    destSegmentIndex: iD,
     departureDifferenceMinutes,
     detourPercentage,
+    corridorScore,
     isDirectionCompatible,
   };
 
@@ -534,6 +558,11 @@ function evaluateRideMatch({
   return {
     score: finalScore,
     grade: matchGrade,
+    corridorScore,
+    detourDistanceKm,
+    crossTrackPickupKm: pickupDistanceKm,
+    crossTrackDropKm: destinationDistanceKm,
+    badge,
     factors,
     metrics,
     reasons,
@@ -595,13 +624,19 @@ function evaluateAndRankCandidates({
       match,
       pickupDistanceKm: match.metrics.pickupDistanceKm,
       destinationDistanceKm: match.metrics.destinationDistanceKm,
+      detourDistanceKm: match.detourDistanceKm,
+      crossTrackPickupKm: match.crossTrackPickupKm,
+      crossTrackDropKm: match.crossTrackDropKm,
+      badge: match.badge,
+      corridorBadge: match.badge,
+      corridorScore: match.corridorScore,
       departureDifferenceMinutes: match.metrics.departureDifferenceMinutes,
       availableSeats: ride.availableSeats,
       matchPreview,
     };
   });
 
-  // Rank by match score descending, then departureDifferenceMinutes ascending
+  // Rank by match score descending, then departureDifferenceMinutes ascending, then detour distance
   evaluated.sort((a, b) => {
     if (b.match.score !== a.match.score) {
       return b.match.score - a.match.score;
@@ -609,7 +644,7 @@ function evaluateAndRankCandidates({
     if (a.departureDifferenceMinutes !== b.departureDifferenceMinutes) {
       return a.departureDifferenceMinutes - b.departureDifferenceMinutes;
     }
-    return a.pickupDistanceKm - b.pickupDistanceKm;
+    return (a.detourDistanceKm || a.pickupDistanceKm) - (b.detourDistanceKm || b.pickupDistanceKm);
   });
 
   return evaluated;

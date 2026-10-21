@@ -19,12 +19,14 @@ class RideCard extends StatelessWidget {
   final RideModel ride;
   final RideSearchResult? searchResult;
   final VoidCallback onTap;
+  final bool showRequestSeatButton;
 
   const RideCard({
     super.key,
     required this.ride,
     this.searchResult,
     required this.onTap,
+    this.showRequestSeatButton = false,
   });
 
   @override
@@ -386,6 +388,48 @@ class RideCard extends StatelessWidget {
             ),
           ],
 
+          if (ride.breakDisclosures.isNotEmpty || ride.stopovers.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.softMint.withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+                border: Border.all(
+                  color: AppColors.deepEmerald.withValues(alpha: 0.2),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.alt_route_rounded,
+                    size: 14,
+                    color: AppColors.deepEmerald,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      ride.breakDisclosures.isNotEmpty
+                          ? ride.breakDisclosures.join(' \u2022 ')
+                          : 'Via ${ride.stopovers.map((s) => s.city.isNotEmpty ? s.city : s.name).join(', ')}',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.deepEmerald,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
           const SizedBox(height: AppSpacing.md),
           const Divider(color: AppColors.border, height: 1),
           const SizedBox(height: AppSpacing.md),
@@ -505,6 +549,37 @@ class RideCard extends StatelessWidget {
               );
             },
           ),
+          if (showRequestSeatButton) ...[
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              height: 42,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.deepEmerald,
+                  foregroundColor: AppColors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                  ),
+                ),
+                onPressed: onTap,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Request Seat \u2192',
+                      style: AppTypography.button.copyWith(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

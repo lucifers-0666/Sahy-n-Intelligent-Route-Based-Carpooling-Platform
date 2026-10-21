@@ -174,6 +174,14 @@ const rideSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    stopovers: {
+      type: [locationSchema],
+      default: [],
+    },
+    breakDisclosures: {
+      type: [String],
+      default: [],
+    },
     notes: {
       type: String,
       trim: true,

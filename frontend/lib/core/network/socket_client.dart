@@ -77,6 +77,8 @@ class SocketClient {
   final Map<String, StreamController<DriverLocationPayload>>
   _locationControllers = {};
   final Map<String, StreamController<String>> _statusControllers = {};
+  final Map<String, StreamController<Map<String, dynamic>>>
+  _gpsInterruptedControllers = {};
   final _connectionStateController =
       StreamController<SocketConnectionState>.broadcast();
 
@@ -164,6 +166,19 @@ class SocketClient {
       }
     });
 
+    _socket!.on('driver_gps_interrupted', (data) {
+      try {
+        final map = data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
+        final rideId = map['rideId']?.toString() ?? '';
+        final ctrl = _gpsInterruptedControllers[rideId];
+        if (ctrl != null && !ctrl.isClosed) {
+          ctrl.add(map);
+        }
+      } catch (e) {
+        debugPrint('[SocketClient] Failed to parse driver_gps_interrupted event: $e');
+      }
+    });
+
     _socket!.connect();
   }
 
@@ -224,6 +239,20 @@ class SocketClient {
     });
   }
 
+  /// Broadcast driver GPS interruption to passengers and dispatch console
+  void emitGpsInterrupted({required String rideId, String? reason}) {
+    _ensureConnected();
+    if (_socket != null) {
+      _socket!.emit('driver_gps_interrupted', {
+        'rideId': rideId,
+        'reason': reason ??
+            'Safety Alert: GPS is required during active shared trips. Re-enable location to resume.',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+      debugPrint('[SocketClient] Emitted driver_gps_interrupted for ride: $rideId');
+    }
+  }
+
   /// Broadcast high-priority Emergency SOS incident directly to admin emergency console
   void emitSosIncident(Map<String, dynamic> payload) {
     _ensureConnected();
@@ -254,6 +283,16 @@ class SocketClient {
     return _statusControllers[rideId]!.stream;
   }
 
+  /// Listen for driver GPS interruption safety alerts
+  Stream<Map<String, dynamic>> onGpsInterrupted(String rideId) {
+    if (!_gpsInterruptedControllers.containsKey(rideId) ||
+        _gpsInterruptedControllers[rideId]!.isClosed) {
+      _gpsInterruptedControllers[rideId] =
+          StreamController<Map<String, dynamic>>.broadcast();
+    }
+    return _gpsInterruptedControllers[rideId]!.stream;
+  }
+
   // ── Cleanup ───────────────────────────────────────────────────────────────
 
   void disconnect() {
@@ -271,6 +310,11 @@ class SocketClient {
       if (!ctrl.isClosed) ctrl.close();
     }
     _statusControllers.clear();
+
+    for (final ctrl in _gpsInterruptedControllers.values) {
+      if (!ctrl.isClosed) ctrl.close();
+    }
+    _gpsInterruptedControllers.clear();
   }
 
   void _ensureConnected() {

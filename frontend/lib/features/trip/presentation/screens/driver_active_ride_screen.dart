@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,11 +33,64 @@ class _DriverActiveRideScreenState
   final Set<String> _verifiedPassengers = {'P1'};
   bool _isCompleting = false;
 
+  StreamSubscription<bool>? _gpsInterruptedSub;
+  bool _isShowingGpsAlert = false;
+
   @override
   void initState() {
     super.initState();
     _ride = widget.initialRide;
     _startGpsStream();
+    _listenToGpsInterruption();
+  }
+
+  void _listenToGpsInterruption() {
+    _gpsInterruptedSub = DriverLocationService.instance.gpsInterruptedStream
+        .listen((isInterrupted) {
+      if (!mounted) return;
+      if (isInterrupted && !_isShowingGpsAlert) {
+        _isShowingGpsAlert = true;
+        showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) {
+            return PopScope(
+              canPop: false,
+              child: AlertDialog(
+                backgroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadii.lg),
+                ),
+                icon: const Icon(
+                  Icons.location_off_rounded,
+                  color: AppColors.error,
+                  size: 48,
+                ),
+                title: Text(
+                  'Safety Alert',
+                  style: AppTypography.sectionHeader.copyWith(
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                content: Text(
+                  'Safety Alert: GPS is required during active shared trips. Re-enable location to resume.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.primaryText,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            );
+          },
+        ).then((_) {
+          _isShowingGpsAlert = false;
+        });
+      } else if (!isInterrupted && _isShowingGpsAlert) {
+        _isShowingGpsAlert = false;
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    });
   }
 
   /// Start GPS streaming if on a native platform with a valid ride ID.
@@ -74,6 +128,7 @@ class _DriverActiveRideScreenState
 
   @override
   void dispose() {
+    _gpsInterruptedSub?.cancel();
     _pinController.dispose();
     _stopGpsStream();
     super.dispose();

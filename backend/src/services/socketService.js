@@ -232,6 +232,26 @@ function initSocketService(io) {
       }
     });
 
+    // ── ANTI-TAMPER GPS INTERRUPTION ALERT ──────────────────────────────────
+    socket.on('driver_gps_interrupted', async (payload) => {
+      const meta = socketMeta.get(socket.id);
+      const rideId = (payload && payload.rideId) || (meta && meta.rideId);
+      if (!rideId) return;
+
+      const warningPayload = {
+        rideId,
+        driverId: socket.user ? socket.user._id.toString() : 'driver',
+        timestamp: (payload && payload.timestamp) || new Date().toISOString(),
+        reason: (payload && payload.reason) || 'Safety Alert: GPS was interrupted on the driver device during an active shared trip.',
+      };
+
+      console.warn(`[Socket.IO] Anti-tamper alert: driver_gps_interrupted broadcast for ride ${rideId}`);
+      // Instant broadcast to passenger room
+      io.to(`ride:${rideId}`).emit('driver_gps_interrupted', warningPayload);
+      // Instant broadcast to Admin Console
+      broadcastToAdmins('driver_gps_interrupted', warningPayload);
+    });
+
     // ── LEAVE RIDE ROOM ─────────────────────────────────────────────────────
     socket.on('leave_ride_room', ({ rideId }) => {
       const roomName = `ride:${rideId}`;

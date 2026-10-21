@@ -9,10 +9,24 @@ class GeolocatorProvider implements GpsProvider {
   StreamController<LocationPoint>? _streamController;
   StreamSubscription<Position>? _positionSubscription;
 
-  static const LocationSettings _defaultSettings = LocationSettings(
-    accuracy: LocationAccuracy.high,
-    distanceFilter: 5, // meters
-  );
+  static LocationSettings get _defaultSettings {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      return AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+        intervalDuration: const Duration(seconds: 2),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationTitle: 'Sahyān Live Telematics Active',
+          notificationText: 'Broadcasting Safety GPS to Passengers',
+          enableWakeLock: true,
+        ),
+      );
+    }
+    return const LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 5,
+    );
+  }
 
   @override
   Stream<LocationPoint> get positionStream {

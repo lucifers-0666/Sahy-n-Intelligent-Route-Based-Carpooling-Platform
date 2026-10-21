@@ -69,6 +69,8 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
   int _remainingMins = 195;
   DateTime? _lastPacketAt;
   StreamSubscription<DriverLocationPayload>? _locationSub;
+  StreamSubscription<Map<String, dynamic>>? _gpsInterruptedSub;
+  String? _driverGpsWarning;
 
   // ── Simulation fallback (web / no socket) ────────────────────────────────
   AnimationController? _simController;
@@ -202,6 +204,17 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
               }
             },
           );
+
+      _gpsInterruptedSub = socketClient
+          .onGpsInterrupted(rideId)
+          .listen((data) {
+            if (!mounted) return;
+            setState(() {
+              _driverGpsWarning =
+                  data['reason']?.toString() ??
+                  'Safety Warning: Driver GPS telemetry interrupted.';
+            });
+          });
 
       // Do not fabricate live activity or moving telemetry for real rides
       // Only start simulation preview if explicitly in a demo/preview ride
@@ -361,6 +374,7 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
   @override
   void dispose() {
     _locationSub?.cancel();
+    _gpsInterruptedSub?.cancel();
     _connectionSub?.cancel();
     _simController?.dispose();
 
@@ -447,6 +461,47 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                 vehicle: vehicle,
               ),
             ),
+
+            if (_driverGpsWarning != null)
+              Positioned(
+                top: 136,
+                left: 14,
+                right: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: SahyanColors.urgentCoral.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _driverGpsWarning!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
             // Bottom Contact Action Dock
             Positioned(
