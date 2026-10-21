@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sahyan/app/config/app_region.dart';
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/features/home/presentation/screens/home_screen.dart';
 import 'package:sahyan/features/rides/domain/ride_search_result.dart';
@@ -239,7 +240,7 @@ void main() {
         await tester.pump();
 
         expect(find.text('Where are you heading?'), findsOneWidget);
-        expect(find.text('Nagpur'), findsWidgets);
+        expect(find.text(AppRegion.fallbackCity), findsWidgets);
         expect(tester.takeException(), isNull);
       },
     );

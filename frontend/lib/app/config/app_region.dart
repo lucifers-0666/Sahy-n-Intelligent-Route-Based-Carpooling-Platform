@@ -3,7 +3,7 @@ abstract final class AppRegion {
   static const countryCode = 'IN';
   static const dialingCode = '+91';
   static const currencyCode = 'INR';
-  static const fallbackCity = 'Nagpur';
-  static const fallbackLatitude = 21.1458;
-  static const fallbackLongitude = 79.0882;
+  static const fallbackCity = 'Ahmedabad';
+  static const fallbackLatitude = 23.0225;
+  static const fallbackLongitude = 72.5714;
 }

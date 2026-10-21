@@ -9,6 +9,7 @@ import '../../../../core/location/data/providers/geolocator_provider.dart';
 import '../../../../core/location/domain/gps_provider.dart';
 import '../../../../shared/models/location_model.dart';
 import '../../../../shared/models/ride_model.dart';
+import '../../../../shared/models/user_model.dart';
 import '../../../../shared/widgets/bento/bento_widgets.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../bookings/domain/booking_model.dart';
@@ -123,6 +124,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = ref.read(authProvider).user;
+      final city = user?.city.trim();
+      if (city != null && city.isNotEmpty) {
+        if (_originController.text.isEmpty ||
+            _originController.text == 'Nagpur' ||
+            _originController.text == AppRegion.fallbackCity) {
+          setState(() {
+            _originController.text = city;
+            _originLocation = LocationModel.fromCoordinates(
+              name: city,
+              latitude: AppRegion.fallbackLatitude,
+              longitude: AppRegion.fallbackLongitude,
+            );
+          });
+        }
+      }
       _loadGrantedUserLocation();
     });
   }
@@ -318,9 +335,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   String _getTimeGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
+    if (hour >= 4 && hour < 12) return 'Good morning';
+    if (hour >= 12 && hour < 17) return 'Good afternoon';
     return 'Good evening';
+  }
+
+  String _getTimeSubtitle() {
+    final hour = DateTime.now().hour;
+    if (hour >= 4 && hour < 7) {
+      return 'Early morning start · Smooth Gujarat highways await';
+    }
+    if (hour >= 7 && hour < 12) {
+      return 'Ready for your morning corridor commute?';
+    }
+    if (hour >= 12 && hour < 17) {
+      return 'Midday travels made seamless, shared, and green';
+    }
+    if (hour >= 17 && hour < 21) {
+      return 'Heading back home? Find verified rides on your route';
+    }
+    return 'Late commute? Safe travels with verified co-passengers';
+  }
+
+  String _getActiveCity(UserModel? user) {
+    if (_originLocation.city.isNotEmpty && _originLocation.city != 'Nagpur') {
+      return _originLocation.city;
+    }
+    if (_originLocation.name.isNotEmpty &&
+        _originLocation.name != 'Current location' &&
+        _originLocation.name != 'Nagpur') {
+      if (_originLocation.name.contains(',')) {
+        return _originLocation.name.split(',').last.trim();
+      }
+      return _originLocation.name;
+    }
+    if (user != null && user.city.trim().isNotEmpty) {
+      return user.city.trim();
+    }
+    return AppRegion.fallbackCity;
   }
 
   @override
@@ -427,6 +479,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               maxLines: 1,
                             ),
                           ),
+                          const SizedBox(height: 2),
+                          // Contextual subtitle with warmth and uniqueness
+                          Text(
+                            _getTimeSubtitle(),
+                            style: const TextStyle(
+                              fontFamily: 'Plus Jakarta Sans',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.mutedText,
+                              letterSpacing: -0.1,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           const SizedBox(height: 6),
                           // Active Regional Transit Hub Pill
                           FittedBox(
@@ -470,9 +536,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                                         color: AppColors.deepEmerald,
                                       ),
                                       const SizedBox(width: 4),
-                                      const Text(
-                                        AppRegion.fallbackCity,
-                                        style: TextStyle(
+                                      Text(
+                                        _getActiveCity(user),
+                                        style: const TextStyle(
                                           fontFamily: 'Plus Jakarta Sans',
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,

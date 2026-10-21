@@ -22,15 +22,18 @@ class TravelDateTimeScreen extends StatefulWidget {
 class _TravelDateTimeScreenState extends State<TravelDateTimeScreen> {
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
+  late final DateTime _firstDate;
+  late final DateTime _lastDate;
 
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime(
-      widget.initialDate.year,
-      widget.initialDate.month,
-      widget.initialDate.day,
-    );
+    final now = DateTime.now();
+    final today = DateUtils.dateOnly(now);
+    final initialDateOnly = DateUtils.dateOnly(widget.initialDate);
+    _firstDate = initialDateOnly.isBefore(today) ? initialDateOnly : today;
+    _lastDate = _firstDate.add(const Duration(days: 90));
+    _selectedDate = initialDateOnly;
     _selectedTime = widget.initialTime;
   }
 
@@ -126,8 +129,6 @@ class _TravelDateTimeScreenState extends State<TravelDateTimeScreen> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final minDate = DateTime(now.year, now.month, now.day);
-    final maxDate = minDate.add(const Duration(days: 30));
     final formattedTime = _selectedTime.format(context);
     final dateSummary = _formatDateSummary(_selectedDate);
 
@@ -246,8 +247,8 @@ class _TravelDateTimeScreenState extends State<TravelDateTimeScreen> {
                         ),
                         child: CalendarDatePicker(
                           initialDate: _selectedDate,
-                          firstDate: minDate,
-                          lastDate: maxDate,
+                          firstDate: _firstDate,
+                          lastDate: _lastDate,
                           onDateChanged: (newDate) {
                             HapticFeedback.selectionClick();
                             setState(() {
