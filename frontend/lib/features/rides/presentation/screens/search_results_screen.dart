@@ -49,15 +49,14 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
       return loc;
     }
     final lower = text.toLowerCase();
-    if (lower.contains('kalawad') || (isOrigin && lower.contains('rajkot'))) {
+    if (lower.contains('kalawad') || lower.contains('rajkot')) {
       return LocationModel.fromCoordinates(
         name: text.isNotEmpty ? text : 'Kalawad Road, Rajkot',
         latitude: 22.2837,
         longitude: 70.7684,
       );
     }
-    if (lower.contains('sg highway') ||
-        (!isOrigin && lower.contains('ahmedabad'))) {
+    if (lower.contains('sg highway') || lower.contains('ahmedabad')) {
       return LocationModel.fromCoordinates(
         name: text.isNotEmpty ? text : 'SG Highway, Ahmedabad',
         latitude: 23.0300,
@@ -157,15 +156,15 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
     }
     if (isOrigin) {
       return LocationModel.fromCoordinates(
-        name: text.isNotEmpty ? text : 'Rajkot',
-        latitude: 22.3039,
-        longitude: 70.8022,
-      );
-    } else {
-      return LocationModel.fromCoordinates(
         name: text.isNotEmpty ? text : 'Ahmedabad',
         latitude: 23.0225,
         longitude: 72.5714,
+      );
+    } else {
+      return LocationModel.fromCoordinates(
+        name: text.isNotEmpty ? text : 'Rajkot',
+        latitude: 22.3039,
+        longitude: 70.8022,
       );
     }
   }

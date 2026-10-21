@@ -21,7 +21,7 @@ class ApiConfig {
   /// Master Map Provider Toggle:
   /// Set to true to use Google Maps (google_maps_flutter).
   /// Set to false to instantly roll back to OpenStreetMap (flutter_map).
-  static bool enableGoogleMaps = true;
+  static bool enableGoogleMaps = false;
 
   /// Local development port
   static const int port = 5000;
