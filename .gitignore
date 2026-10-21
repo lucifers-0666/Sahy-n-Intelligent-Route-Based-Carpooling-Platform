@@ -74,10 +74,13 @@ GoogleService-Info.plist
 # Android
 **/android/**/gradle-wrapper.jar
 **/android/.gradle
+**/android/.cxx/
+**/android/.kotlin/
 **/android/captures/
 **/android/gradlew
 **/android/gradlew.bat
 **/android/local.properties
+**/android/app/src/main/AndroidManifest.xml
 
 # iOS
 **/ios/Flutter/App.framework
