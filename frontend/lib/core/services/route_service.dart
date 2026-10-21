@@ -200,8 +200,8 @@ class RouteService {
       }
     } catch (_) {}
 
-    // 2. Google Directions API (if API Key provided via environment)
-    const googleApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+    // 2. Google Directions API (if API Key provided via ApiConfig or environment)
+    final googleApiKey = ApiConfig.googleMapsApiKey;
     if (googleApiKey.isNotEmpty) {
       try {
         final googleResult = await _fetchGoogleRoute(

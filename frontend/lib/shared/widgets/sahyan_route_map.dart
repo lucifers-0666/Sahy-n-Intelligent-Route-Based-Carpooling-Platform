@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' as fmap;
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:sahyan/app/theme/app_theme.dart';
+import 'package:sahyan/core/network/api_config.dart';
 import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 
@@ -42,6 +44,10 @@ class SahyanRouteMap extends StatefulWidget {
   /// Called when the user toggles the Follow / Free-pan button.
   final ValueChanged<bool>? onFollowToggle;
 
+  /// Optional override to choose between Google Maps (true) and OpenStreetMap (false).
+  /// If omitted, defaults to [ApiConfig.enableGoogleMaps].
+  final bool? useGoogleMaps;
+
   const SahyanRouteMap({
     super.key,
     required this.origin,
@@ -58,6 +64,7 @@ class SahyanRouteMap extends StatefulWidget {
     this.vehicleTypeCode,
     this.followVehicle = false,
     this.onFollowToggle,
+    this.useGoogleMaps,
   });
 
   @override
@@ -70,7 +77,15 @@ typedef SayanRouteMap = SahyanRouteMap;
 class _SahyanRouteMapState extends State<SahyanRouteMap>
     with SingleTickerProviderStateMixin {
   fmap.MapController? _mapController;
+  gmaps.GoogleMapController? _googleMapController;
   bool _isMapReady = false;
+  late bool _useGoogleMaps;
+
+  bool get _shouldRenderGoogleMaps {
+    if (_isTestingEnvironment) return false;
+    if (!Platform.isAndroid && !Platform.isIOS) return false;
+    return _useGoogleMaps;
+  }
 
   // ── Interpolation state ──────────────────────────────────────────────────
   late AnimationController _interpolationController;
@@ -113,6 +128,7 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   void initState() {
     super.initState();
 
+    _useGoogleMaps = widget.useGoogleMaps ?? ApiConfig.enableGoogleMaps;
     _mapController = fmap.MapController();
 
     if (widget.driverPosition != null) {
@@ -143,8 +159,16 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   void didUpdateWidget(covariant SahyanRouteMap oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    if (widget.useGoogleMaps != null &&
+        widget.useGoogleMaps != oldWidget.useGoogleMaps) {
+      _useGoogleMaps = widget.useGoogleMaps!;
+    }
+
     if (_mapController != null && _isMapReady && widget.bounds != null) {
       _fitBounds();
+    }
+    if (_googleMapController != null && widget.bounds != null) {
+      _fitGoogleBounds();
     }
 
     final originChanged = widget.origin.latitude != oldWidget.origin.latitude ||
@@ -155,7 +179,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
 
     if (polyChanged && widget.polylinePoints.length > 4) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _fitBounds();
+        if (mounted) {
+          _fitBounds();
+          _fitGoogleBounds();
+        }
       });
     } else if (originChanged ||
         destChanged ||
@@ -196,7 +223,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
           _fetchedPolylinePoints = res.points;
         });
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) _fitBounds();
+          if (mounted) {
+            _fitBounds();
+            _fitGoogleBounds();
+          }
         });
       }
     } catch (_) {
@@ -209,6 +239,7 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   void dispose() {
     _interpolationController.dispose();
     _mapController?.dispose();
+    _googleMapController?.dispose();
     super.dispose();
   }
 
@@ -230,10 +261,19 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     });
 
     // Camera follow
-    if (widget.followVehicle && _isMapReady && _mapController != null) {
-      try {
-        _mapController!.move(ll.LatLng(lat, lng), _mapController!.camera.zoom);
-      } catch (_) {}
+    if (widget.followVehicle) {
+      if (_isMapReady && _mapController != null) {
+        try {
+          _mapController!.move(ll.LatLng(lat, lng), _mapController!.camera.zoom);
+        } catch (_) {}
+      }
+      if (_googleMapController != null) {
+        try {
+          _googleMapController!.animateCamera(
+            gmaps.CameraUpdate.newLatLng(gmaps.LatLng(lat, lng)),
+          );
+        } catch (_) {}
+      }
     }
   }
 
@@ -480,175 +520,17 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
 
   // ── Build ────────────────────────────────────────────────────────────────
 
+  // ── Build ────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final content = ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: _isTestingEnvironment
           ? _buildVectorFallbackPreview()
-          : Stack(
-              children: [
-                fmap.FlutterMap(
-                  mapController: _mapController,
-                  options: fmap.MapOptions(
-                    initialCenter: _getInitialCenter(),
-                    initialZoom: 8.5,
-                    interactionOptions: fmap.InteractionOptions(
-                      flags: widget.interactive
-                          ? fmap.InteractiveFlag.all
-                          : fmap.InteractiveFlag.none,
-                    ),
-                    onMapReady: () {
-                      _isMapReady = true;
-                      _fitBounds();
-                      widget.onMapCreated?.call(_mapController);
-                    },
-                  ),
-                  children: [
-                    fmap.TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.sahyan.sahyan',
-                      maxZoom: 19,
-                    ),
-                    fmap.PolylineLayer(polylines: _buildPolylines()),
-                    fmap.MarkerLayer(markers: _buildMarkers()),
-                  ],
-                ),
-
-                // ── Live Route Corridor badge ──────────────────────────────
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: SahyanColors.surface.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: SahyanColors.border,
-                        width: 0.8,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.radar_rounded,
-                          size: 14,
-                          color: SahyanColors.primaryMint,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          'Live Route Corridor',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: SahyanColors.textMain,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // ── OpenStreetMap Attribution ──────────────────────────────
-                Positioned(
-                  bottom: 4,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: SahyanColors.surface.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'OpenStreetMap',
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: SahyanColors.textMuted,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // ── Follow / Free-pan toggle FAB ───────────────────────────
-                if (widget.driverPosition != null &&
-                    widget.onFollowToggle != null)
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    child: GestureDetector(
-                      onTap: () =>
-                          widget.onFollowToggle!(!widget.followVehicle),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: widget.followVehicle
-                              ? SahyanColors.primaryMint
-                              : SahyanColors.surface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: widget.followVehicle
-                                ? SahyanColors.primaryMint
-                                : SahyanColors.border,
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.12),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              widget.followVehicle
-                                  ? Icons.navigation_rounded
-                                  : Icons.pan_tool_rounded,
-                              size: 16,
-                              color: widget.followVehicle
-                                  ? Colors.white
-                                  : SahyanColors.textMain,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              widget.followVehicle ? 'Following' : 'Free Pan',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: widget.followVehicle
-                                    ? Colors.white
-                                    : SahyanColors.textMain,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+          : _shouldRenderGoogleMaps
+              ? _buildGoogleMap()
+              : _buildOpenStreetMap(),
     );
 
     if (widget.height != null) {
@@ -659,6 +541,389 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       );
     }
     return content;
+  }
+
+  void _fitGoogleBounds() {
+    if (_googleMapController == null) return;
+    try {
+      final points = _effectivePolylinePoints;
+      double minLat, maxLat, minLng, maxLng;
+      if (points.isNotEmpty) {
+        minLat = points.first.latitude;
+        maxLat = points.first.latitude;
+        minLng = points.first.longitude;
+        maxLng = points.first.longitude;
+        for (final p in points) {
+          if (p.latitude < minLat) minLat = p.latitude;
+          if (p.latitude > maxLat) maxLat = p.latitude;
+          if (p.longitude < minLng) minLng = p.longitude;
+          if (p.longitude > maxLng) maxLng = p.longitude;
+        }
+      } else {
+        minLat = math.min(widget.origin.latitude, widget.destination.latitude);
+        maxLat = math.max(widget.origin.latitude, widget.destination.latitude);
+        minLng = math.min(widget.origin.longitude, widget.destination.longitude);
+        maxLng = math.max(widget.origin.longitude, widget.destination.longitude);
+      }
+
+      if (minLat == maxLat && minLng == maxLng) {
+        _googleMapController!.animateCamera(
+          gmaps.CameraUpdate.newLatLngZoom(gmaps.LatLng(minLat, minLng), 14.0),
+        );
+        return;
+      }
+
+      final bounds = gmaps.LatLngBounds(
+        southwest: gmaps.LatLng(minLat, minLng),
+        northeast: gmaps.LatLng(maxLat, maxLng),
+      );
+
+      _googleMapController!.animateCamera(
+        gmaps.CameraUpdate.newLatLngBounds(bounds, 50.0),
+      );
+    } catch (_) {}
+  }
+
+  Set<gmaps.Marker> _buildGoogleMarkers() {
+    final markers = <gmaps.Marker>{};
+
+    markers.add(
+      gmaps.Marker(
+        markerId: const gmaps.MarkerId('origin'),
+        position: gmaps.LatLng(widget.origin.latitude, widget.origin.longitude),
+        infoWindow: gmaps.InfoWindow(
+          title: widget.origin.name,
+          snippet: 'Pickup Location',
+        ),
+        icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+          gmaps.BitmapDescriptor.hueGreen,
+        ),
+      ),
+    );
+
+    markers.add(
+      gmaps.Marker(
+        markerId: const gmaps.MarkerId('destination'),
+        position: gmaps.LatLng(widget.destination.latitude, widget.destination.longitude),
+        infoWindow: gmaps.InfoWindow(
+          title: widget.destination.name,
+          snippet: 'Drop-off Location',
+        ),
+        icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+          gmaps.BitmapDescriptor.hueRed,
+        ),
+      ),
+    );
+
+    for (int i = 0; i < widget.stopovers.length; i++) {
+      final stop = widget.stopovers[i];
+      markers.add(
+        gmaps.Marker(
+          markerId: gmaps.MarkerId('stopover_$i'),
+          position: gmaps.LatLng(stop.latitude, stop.longitude),
+          infoWindow: gmaps.InfoWindow(
+            title: stop.name,
+            snippet: 'Stopover ${i + 1}',
+          ),
+          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+            gmaps.BitmapDescriptor.hueAzure,
+          ),
+        ),
+      );
+    }
+
+    final driverPos = _displayDriverPos ??
+        (widget.driverPosition != null ? toLatLong(widget.driverPosition) : null);
+    if (driverPos != null) {
+      markers.add(
+        gmaps.Marker(
+          markerId: const gmaps.MarkerId('driver'),
+          position: gmaps.LatLng(driverPos.latitude, driverPos.longitude),
+          rotation: _displayHeading,
+          anchor: const Offset(0.5, 0.5),
+          flat: true,
+          infoWindow: const gmaps.InfoWindow(
+            title: 'Live Vehicle Location',
+          ),
+          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+            gmaps.BitmapDescriptor.hueOrange,
+          ),
+        ),
+      );
+    }
+
+    return markers;
+  }
+
+  Set<gmaps.Polyline> _buildGooglePolylines() {
+    final points = _effectivePolylinePoints;
+    if (points.isEmpty) return {};
+
+    final gPoints = points.map((p) => gmaps.LatLng(p.latitude, p.longitude)).toList();
+    final isNight = Theme.of(context).brightness == Brightness.dark;
+    final primaryRoadColor = isNight
+        ? const Color(0xFF10B981)
+        : const Color(0xFF1B4D3E);
+    final auraColor = isNight
+        ? const Color(0xFF059669).withValues(alpha: 0.35)
+        : const Color(0xFF10B981).withValues(alpha: 0.30);
+
+    return {
+      gmaps.Polyline(
+        polylineId: const gmaps.PolylineId('route_aura'),
+        points: gPoints,
+        color: auraColor,
+        width: 8,
+      ),
+      gmaps.Polyline(
+        polylineId: const gmaps.PolylineId('route_primary'),
+        points: gPoints,
+        color: primaryRoadColor,
+        width: 5,
+      ),
+    };
+  }
+
+  Widget _buildGoogleMap() {
+    final center = _getInitialCenter();
+    return Stack(
+      children: [
+        gmaps.GoogleMap(
+          initialCameraPosition: gmaps.CameraPosition(
+            target: gmaps.LatLng(center.latitude, center.longitude),
+            zoom: 8.5,
+          ),
+          onMapCreated: (controller) {
+            _googleMapController = controller;
+            _fitGoogleBounds();
+            widget.onMapCreated?.call(controller);
+          },
+          markers: _buildGoogleMarkers(),
+          polylines: _buildGooglePolylines(),
+          zoomControlsEnabled: widget.showControls,
+          compassEnabled: true,
+          myLocationButtonEnabled: false,
+          mapToolbarEnabled: false,
+        ),
+        _buildMapBadge(),
+        if (widget.driverPosition != null && widget.onFollowToggle != null)
+          _buildFollowToggleFab(),
+      ],
+    );
+  }
+
+  Widget _buildOpenStreetMap() {
+    return Stack(
+      children: [
+        fmap.FlutterMap(
+          mapController: _mapController,
+          options: fmap.MapOptions(
+            initialCenter: _getInitialCenter(),
+            initialZoom: 8.5,
+            interactionOptions: fmap.InteractionOptions(
+              flags: widget.interactive
+                  ? fmap.InteractiveFlag.all
+                  : fmap.InteractiveFlag.none,
+            ),
+            onMapReady: () {
+              _isMapReady = true;
+              _fitBounds();
+              widget.onMapCreated?.call(_mapController);
+            },
+          ),
+          children: [
+            fmap.TileLayer(
+              urlTemplate:
+                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.sahyan.sahyan',
+              maxZoom: 19,
+            ),
+            fmap.PolylineLayer(polylines: _buildPolylines()),
+            fmap.MarkerLayer(markers: _buildMarkers()),
+          ],
+        ),
+        _buildMapBadge(),
+        // ── OpenStreetMap Attribution ──────────────────────────────
+        Positioned(
+          bottom: 4,
+          right: 8,
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 6,
+              vertical: 2,
+            ),
+            decoration: BoxDecoration(
+              color: SahyanColors.surface.withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: const Text(
+              'OpenStreetMap',
+              style: TextStyle(
+                fontSize: 9,
+                color: SahyanColors.textMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ),
+        if (widget.driverPosition != null && widget.onFollowToggle != null)
+          _buildFollowToggleFab(),
+      ],
+    );
+  }
+
+  Widget _buildMapBadge() {
+    final isGoogle = _shouldRenderGoogleMaps;
+    return Positioned(
+      top: 12,
+      left: 12,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _useGoogleMaps = !_useGoogleMaps;
+            });
+            if (_useGoogleMaps) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _fitGoogleBounds();
+              });
+            } else {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _fitBounds();
+              });
+            }
+          },
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 5,
+            ),
+            decoration: BoxDecoration(
+              color: SahyanColors.surface.withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: SahyanColors.border,
+                width: 0.8,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isGoogle ? Icons.map_rounded : Icons.radar_rounded,
+                  size: 14,
+                  color: isGoogle
+                      ? const Color(0xFF1A73E8)
+                      : SahyanColors.primaryMint,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  isGoogle ? 'Google Maps' : 'OpenStreetMap',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: SahyanColors.textMain,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1.5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (isGoogle
+                            ? const Color(0xFF1A73E8)
+                            : SahyanColors.primaryMint)
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    isGoogle ? 'Switch to OSM' : 'Switch to Google',
+                    style: TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w600,
+                      color: isGoogle
+                          ? const Color(0xFF1557B0)
+                          : SahyanColors.primaryDark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFollowToggleFab() {
+    return Positioned(
+      bottom: 16,
+      left: 16,
+      child: GestureDetector(
+        onTap: () => widget.onFollowToggle!(!widget.followVehicle),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+          decoration: BoxDecoration(
+            color: widget.followVehicle
+                ? SahyanColors.primaryMint
+                : SahyanColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: widget.followVehicle
+                  ? SahyanColors.primaryMint
+                  : SahyanColors.border,
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.12),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.followVehicle
+                    ? Icons.navigation_rounded
+                    : Icons.pan_tool_rounded,
+                size: 16,
+                color: widget.followVehicle
+                    ? Colors.white
+                    : SahyanColors.textMain,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                widget.followVehicle ? 'Following' : 'Free Pan',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: widget.followVehicle
+                      ? Colors.white
+                      : SahyanColors.textMain,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ── Vector fallback for tests ────────────────────────────────────────────
