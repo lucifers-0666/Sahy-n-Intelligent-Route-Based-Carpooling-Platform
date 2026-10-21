@@ -38,10 +38,16 @@ class RouteInfo extends Equatable {
   }
 
   factory RouteInfo.fromJson(Map<String, dynamic> json) {
+    final dist = json['distanceMeters'];
+    final dur = json['durationSeconds'];
     return RouteInfo(
-      encodedPolyline: json['encodedPolyline'] as String? ?? '',
-      distanceMeters: (json['distanceMeters'] as num?)?.toDouble() ?? 0.0,
-      durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
+      encodedPolyline: json['encodedPolyline']?.toString() ?? '',
+      distanceMeters: dist is num
+          ? dist.toDouble()
+          : (double.tryParse(dist?.toString() ?? '') ?? 0.0),
+      durationSeconds: dur is num
+          ? dur.toInt()
+          : (int.tryParse(dur?.toString() ?? '') ?? 0),
     );
   }
 
@@ -142,6 +148,32 @@ class RideModel extends Equatable {
     }
   }
 
+  static double _parseRating(dynamic raw) {
+    if (raw == null) return 4.8;
+    if (raw is num) return raw.toDouble();
+    if (raw is Map) {
+      final avg = raw['average'] ?? raw['rating'] ?? raw['score'];
+      if (avg is num) return avg.toDouble();
+      if (avg is String) return double.tryParse(avg) ?? 4.8;
+    }
+    if (raw is String) return double.tryParse(raw) ?? 4.8;
+    return 4.8;
+  }
+
+  static int _parseInt(dynamic val, [int fallback = 0]) {
+    if (val == null) return fallback;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val) ?? fallback;
+    return fallback;
+  }
+
+  static double _parseDouble(dynamic val, [double fallback = 0.0]) {
+    if (val == null) return fallback;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? fallback;
+    return fallback;
+  }
+
   factory RideModel.fromJson(Map<String, dynamic> json) {
     // 1. Resolve Driver details
     String driverId = '';
@@ -150,26 +182,30 @@ class RideModel extends Equatable {
     String? driverPhoto;
     bool isDriverVerified = false;
 
-    if (json['driver'] is Map<String, dynamic>) {
-      final d = json['driver'] as Map<String, dynamic>;
-      driverId = d['id'] ?? d['_id'] ?? '';
-      driverName = d['name'] ?? d['fullName'] ?? 'Driver';
-      driverRating = (d['rating'] as num?)?.toDouble() ?? 4.8;
-      driverPhoto = d['profileImage'] ?? d['profilePhoto'];
-      isDriverVerified = d['isVerified'] ?? d['isPhoneVerified'] ?? false;
+    if (json['driver'] is Map) {
+      final d = json['driver'] as Map;
+      driverId = d['id']?.toString() ?? d['_id']?.toString() ?? '';
+      driverName = d['name']?.toString() ?? d['fullName']?.toString() ?? 'Driver';
+      driverRating = _parseRating(d['rating']);
+      driverPhoto = d['profileImage']?.toString() ?? d['profilePhoto']?.toString();
+      isDriverVerified = d['isVerified'] == true ||
+          d['isPhoneVerified'] == true ||
+          d['isIdentityVerified'] == true;
     } else {
-      driverId =
-          json['driverId'] ?? (json['driver'] is String ? json['driver'] : '');
-      driverName = json['driverName'] ?? 'Driver';
-      driverRating = (json['driverRating'] as num?)?.toDouble() ?? 4.8;
-      driverPhoto = json['driverPhoto'];
-      isDriverVerified = json['isDriverVerified'] ?? false;
+      driverId = json['driverId']?.toString() ??
+          (json['driver'] is String ? json['driver'] as String : '');
+      driverName = json['driverName']?.toString() ?? 'Driver';
+      driverRating = _parseRating(json['driverRating']);
+      driverPhoto = json['driverPhoto']?.toString();
+      isDriverVerified = json['isDriverVerified'] == true;
     }
 
     // 2. Resolve Vehicle
     VehicleModel vehicle;
-    if (json['vehicle'] is Map<String, dynamic>) {
-      vehicle = VehicleModel.fromJson(json['vehicle'] as Map<String, dynamic>);
+    if (json['vehicle'] is Map) {
+      vehicle = VehicleModel.fromJson(
+        Map<String, dynamic>.from(json['vehicle'] as Map),
+      );
     } else {
       vehicle = const VehicleModel(
         id: '',
@@ -187,8 +223,10 @@ class RideModel extends Equatable {
 
     // 3. Resolve Route
     RouteInfo? routeInfo;
-    if (json['route'] is Map<String, dynamic>) {
-      routeInfo = RouteInfo.fromJson(json['route'] as Map<String, dynamic>);
+    if (json['route'] is Map) {
+      routeInfo = RouteInfo.fromJson(
+        Map<String, dynamic>.from(json['route'] as Map),
+      );
     }
 
     // 4. Resolve Dates & Times
@@ -258,42 +296,53 @@ class RideModel extends Equatable {
         : PickupPolicy.nearby;
 
     return RideModel(
-      id: json['id'] ?? json['_id'] ?? '',
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
       driverId: driverId,
       driverName: driverName,
       driverRating: driverRating,
       driverPhoto: driverPhoto,
       isDriverVerified: isDriverVerified,
       vehicle: vehicle,
-      origin: LocationModel.fromJson(json['origin'] ?? {}),
-      destination: LocationModel.fromJson(json['destination'] ?? {}),
+      origin: LocationModel.fromJson(
+        json['origin'] is Map
+            ? Map<String, dynamic>.from(json['origin'] as Map)
+            : {},
+      ),
+      destination: LocationModel.fromJson(
+        json['destination'] is Map
+            ? Map<String, dynamic>.from(json['destination'] as Map)
+            : {},
+      ),
       route: routeInfo,
       dateTime: parsedDateTime,
       departureTime: depTimeStr,
       estimatedArrival: arrTimeStr,
-      availableSeats: (json['availableSeats'] as num?)?.toInt() ?? 1,
-      totalSeats: (json['totalSeats'] as num?)?.toInt() ?? vehicle.seatCapacity,
-      bookedSeats: (json['bookedSeats'] as num?)?.toInt() ?? 0,
-      contributionPerSeat:
-          (json['contributionPerSeat'] as num?)?.toDouble() ??
-          (json['pricePerSeat'] as num?)?.toDouble() ??
-          0.0,
-      matchPercentage: (json['matchPercentage'] as num?)?.toInt() ?? 100,
-      routeDistanceKm:
-          (json['routeDistanceKm'] as num?)?.toDouble() ??
-          routeInfo?.distanceKm ??
-          0.0,
-      durationMins:
-          (json['durationMins'] as num?)?.toInt() ??
-          routeInfo?.durationMinutes ??
-          0,
+      availableSeats: _parseInt(json['availableSeats'], 1),
+      totalSeats: _parseInt(json['totalSeats'], vehicle.seatCapacity),
+      bookedSeats: _parseInt(json['bookedSeats'], 0),
+      contributionPerSeat: _parseDouble(
+        json['contributionPerSeat'] ?? json['pricePerSeat'],
+        0.0,
+      ),
+      matchPercentage: _parseInt(json['matchPercentage'], 100),
+      routeDistanceKm: _parseDouble(
+        json['routeDistanceKm'],
+        routeInfo?.distanceKm ?? 0.0,
+      ),
+      durationMins: _parseInt(
+        json['durationMins'],
+        routeInfo?.durationMinutes ?? 0,
+      ),
       status: rideStatus,
       pickupPolicy: pickupPolicy,
-      amenities: List<String>.from(json['amenities'] ?? []),
+      amenities: (json['amenities'] is List)
+          ? (json['amenities'] as List).map((a) => a.toString()).toList()
+          : const [],
       notes: json['notes'] as String?,
       stopovers: (json['stopovers'] is List)
           ? (json['stopovers'] as List)
-              .map((s) => LocationModel.fromJson(s as Map<String, dynamic>))
+              .whereType<Map>()
+              .map((s) => LocationModel.fromJson(Map<String, dynamic>.from(s)))
               .toList()
           : const [],
       breakDisclosures: (json['breakDisclosures'] is List)

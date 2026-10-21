@@ -89,8 +89,11 @@ class RideRepositoryImpl implements RideRepository {
 
     final response = await apiClient.post('/rides', body: payload);
 
-    if (response is Map<String, dynamic> && response['ride'] != null) {
-      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    if (response is Map) {
+      final rawRide = response['ride'] ?? (response['data'] is Map ? (response['data'] as Map)['ride'] : null);
+      if (rawRide is Map) {
+        return RideModel.fromJson(Map<String, dynamic>.from(rawRide));
+      }
     }
 
     throw ApiException('Failed to create ride. Invalid server response.');
@@ -101,12 +104,14 @@ class RideRepositoryImpl implements RideRepository {
     final path = status != null ? '/rides/my?status=$status' : '/rides/my';
     final response = await apiClient.get(path);
 
-    if (response is Map<String, dynamic> && response['rides'] is List) {
-      final list = response['rides'] as List<dynamic>;
-      return list
-          .whereType<Map<String, dynamic>>()
-          .map((json) => RideModel.fromJson(json))
-          .toList();
+    if (response is Map) {
+      final rawList = response['rides'] ?? (response['data'] is Map ? (response['data'] as Map)['rides'] : null);
+      if (rawList is List) {
+        return rawList
+            .whereType<Map>()
+            .map((json) => RideModel.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+      }
     }
 
     return [];
@@ -116,8 +121,11 @@ class RideRepositoryImpl implements RideRepository {
   Future<RideModel> getRideById(String id) async {
     final response = await apiClient.get('/rides/$id');
 
-    if (response is Map<String, dynamic> && response['ride'] != null) {
-      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    if (response is Map) {
+      final rawRide = response['ride'] ?? (response['data'] is Map ? (response['data'] as Map)['ride'] : null);
+      if (rawRide is Map) {
+        return RideModel.fromJson(Map<String, dynamic>.from(rawRide));
+      }
     }
 
     throw ApiException('Ride not found.');
@@ -127,8 +135,11 @@ class RideRepositoryImpl implements RideRepository {
   Future<RideModel> cancelRide(String id) async {
     final response = await apiClient.patch('/rides/$id/cancel', body: {});
 
-    if (response is Map<String, dynamic> && response['ride'] != null) {
-      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    if (response is Map) {
+      final rawRide = response['ride'] ?? (response['data'] is Map ? (response['data'] as Map)['ride'] : null);
+      if (rawRide is Map) {
+        return RideModel.fromJson(Map<String, dynamic>.from(rawRide));
+      }
     }
 
     throw ApiException('Failed to cancel ride.');
@@ -141,8 +152,11 @@ class RideRepositoryImpl implements RideRepository {
       body: {},
     );
 
-    if (response is Map<String, dynamic> && response['ride'] != null) {
-      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    if (response is Map) {
+      final rawRide = response['ride'] ?? (response['data'] is Map ? (response['data'] as Map)['ride'] : null);
+      if (rawRide is Map) {
+        return RideModel.fromJson(Map<String, dynamic>.from(rawRide));
+      }
     }
 
     throw ApiException('Failed to start boarding.');
@@ -152,8 +166,11 @@ class RideRepositoryImpl implements RideRepository {
   Future<RideModel> startTrip(String id) async {
     final response = await apiClient.patch('/rides/$id/start', body: {});
 
-    if (response is Map<String, dynamic> && response['ride'] != null) {
-      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    if (response is Map) {
+      final rawRide = response['ride'] ?? (response['data'] is Map ? (response['data'] as Map)['ride'] : null);
+      if (rawRide is Map) {
+        return RideModel.fromJson(Map<String, dynamic>.from(rawRide));
+      }
     }
 
     throw ApiException('Failed to start trip.');
@@ -163,8 +180,11 @@ class RideRepositoryImpl implements RideRepository {
   Future<RideModel> completeTrip(String id) async {
     final response = await apiClient.patch('/rides/$id/complete', body: {});
 
-    if (response is Map<String, dynamic> && response['ride'] != null) {
-      return RideModel.fromJson(response['ride'] as Map<String, dynamic>);
+    if (response is Map) {
+      final rawRide = response['ride'] ?? (response['data'] is Map ? (response['data'] as Map)['ride'] : null);
+      if (rawRide is Map) {
+        return RideModel.fromJson(Map<String, dynamic>.from(rawRide));
+      }
     }
 
     throw ApiException('Failed to complete trip.');
@@ -278,12 +298,15 @@ class RideRepositoryImpl implements RideRepository {
         : '/rides/search';
     final response = await apiClient.get(path);
 
-    if (response is Map<String, dynamic> && response['results'] is List) {
-      final list = response['results'] as List<dynamic>;
-      return list
-          .whereType<Map<String, dynamic>>()
-          .map((json) => RideSearchResult.fromJson(json))
-          .toList();
+    if (response is Map) {
+      final rawResults = response['results'] ??
+          (response['data'] is Map ? (response['data'] as Map)['results'] : null);
+      if (rawResults is List) {
+        return rawResults
+            .whereType<Map>()
+            .map((json) => RideSearchResult.fromJson(Map<String, dynamic>.from(json)))
+            .toList();
+      }
     }
 
     return [];

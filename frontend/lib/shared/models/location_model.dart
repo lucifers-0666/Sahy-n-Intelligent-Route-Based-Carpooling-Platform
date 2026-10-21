@@ -33,6 +33,26 @@ class LocationModel extends Equatable {
     );
   }
 
+  static double _parseCoord(dynamic directVal, dynamic pointVal, int coordIndex) {
+    if (directVal is num) return directVal.toDouble();
+    if (directVal is String) {
+      final parsed = double.tryParse(directVal);
+      if (parsed != null) return parsed;
+    }
+    if (pointVal is Map && pointVal['coordinates'] is List) {
+      final coords = pointVal['coordinates'] as List;
+      if (coords.length > coordIndex) {
+        final val = coords[coordIndex];
+        if (val is num) return val.toDouble();
+        if (val is String) {
+          final parsed = double.tryParse(val);
+          if (parsed != null) return parsed;
+        }
+      }
+    }
+    return 0.0;
+  }
+
   factory LocationModel.fromJson(Map<String, dynamic> json) {
     final rawName = json['name'] as String?;
     final rawAddress = json['address'] as String? ?? '';
@@ -48,8 +68,8 @@ class LocationModel extends Equatable {
           : (computedName.contains(',')
                 ? computedName.split(',').last.trim()
                 : computedName),
-      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      latitude: _parseCoord(json['latitude'], json['point'], 1),
+      longitude: _parseCoord(json['longitude'], json['point'], 0),
       placeId: json['placeId'] as String?,
     );
   }

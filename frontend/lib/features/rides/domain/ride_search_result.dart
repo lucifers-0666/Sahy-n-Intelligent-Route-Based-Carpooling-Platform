@@ -18,15 +18,21 @@ class RouteMatchFactors extends Equatable {
     required this.seatAvailability,
   });
 
+  static int _parseInt(dynamic val, [int fallback = 0]) {
+    if (val == null) return fallback;
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val) ?? fallback;
+    return fallback;
+  }
+
   factory RouteMatchFactors.fromJson(Map<String, dynamic> json) {
     return RouteMatchFactors(
-      routeOverlap: (json['routeOverlap'] as num?)?.toInt() ?? 0,
-      pickupDeviation: (json['pickupDeviation'] as num?)?.toInt() ?? 0,
-      destinationDeviation:
-          (json['destinationDeviation'] as num?)?.toInt() ?? 0,
-      timeCompatibility: (json['timeCompatibility'] as num?)?.toInt() ?? 0,
-      driverReliability: (json['driverReliability'] as num?)?.toInt() ?? 0,
-      seatAvailability: (json['seatAvailability'] as num?)?.toInt() ?? 0,
+      routeOverlap: _parseInt(json['routeOverlap'], 0),
+      pickupDeviation: _parseInt(json['pickupDeviation'], 0),
+      destinationDeviation: _parseInt(json['destinationDeviation'], 0),
+      timeCompatibility: _parseInt(json['timeCompatibility'], 0),
+      driverReliability: _parseInt(json['driverReliability'], 0),
+      seatAvailability: _parseInt(json['seatAvailability'], 0),
     );
   }
 
@@ -65,15 +71,25 @@ class RouteMatchMetrics extends Equatable {
     required this.departureDifferenceMinutes,
   });
 
+  static double _parseDouble(dynamic val, [double fallback = 0.0]) {
+    if (val == null) return fallback;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? fallback;
+    return fallback;
+  }
+
   factory RouteMatchMetrics.fromJson(Map<String, dynamic> json) {
     return RouteMatchMetrics(
-      routeOverlapPercentage:
-          (json['routeOverlapPercentage'] as num?)?.toInt() ?? 0,
-      pickupDistanceKm: (json['pickupDistanceKm'] as num?)?.toDouble() ?? 0.0,
-      destinationDistanceKm:
-          (json['destinationDistanceKm'] as num?)?.toDouble() ?? 0.0,
-      departureDifferenceMinutes:
-          (json['departureDifferenceMinutes'] as num?)?.toInt() ?? 0,
+      routeOverlapPercentage: RouteMatchFactors._parseInt(
+        json['routeOverlapPercentage'],
+        0,
+      ),
+      pickupDistanceKm: _parseDouble(json['pickupDistanceKm'], 0.0),
+      destinationDistanceKm: _parseDouble(json['destinationDistanceKm'], 0.0),
+      departureDifferenceMinutes: RouteMatchFactors._parseInt(
+        json['departureDifferenceMinutes'],
+        0,
+      ),
     );
   }
 
@@ -111,8 +127,12 @@ class RouteMatchDetails extends Equatable {
   });
 
   factory RouteMatchDetails.fromJson(Map<String, dynamic> json) {
-    final rawFactors = json['factors'] as Map<String, dynamic>? ?? {};
-    final rawMetrics = json['metrics'] as Map<String, dynamic>? ?? {};
+    final rawFactors = json['factors'] is Map
+        ? Map<String, dynamic>.from(json['factors'] as Map)
+        : <String, dynamic>{};
+    final rawMetrics = json['metrics'] is Map
+        ? Map<String, dynamic>.from(json['metrics'] as Map)
+        : <String, dynamic>{};
     final rawReasons =
         (json['reasons'] as List<dynamic>?)
             ?.map((e) => e.toString())
@@ -120,8 +140,8 @@ class RouteMatchDetails extends Equatable {
         const [];
 
     return RouteMatchDetails(
-      score: (json['score'] as num?)?.toInt() ?? 0,
-      grade: json['grade'] as String? ?? 'Available Match',
+      score: RouteMatchFactors._parseInt(json['score'], 0),
+      grade: json['grade']?.toString() ?? 'Available Match',
       factors: RouteMatchFactors.fromJson(rawFactors),
       metrics: RouteMatchMetrics.fromJson(rawMetrics),
       reasons: rawReasons,
@@ -167,38 +187,48 @@ class RideSearchResult extends Equatable {
   bool get hasMatch => match != null;
 
   factory RideSearchResult.fromJson(Map<String, dynamic> json) {
-    final rawRide = json['ride'] is Map<String, dynamic>
-        ? json['ride'] as Map<String, dynamic>
+    final rawRide = json['ride'] is Map
+        ? Map<String, dynamic>.from(json['ride'] as Map)
         : json;
 
-    final rawMatch = json['match'] as Map<String, dynamic>?;
+    final rawMatch = json['match'] is Map
+        ? Map<String, dynamic>.from(json['match'] as Map)
+        : null;
     final parsedMatch = rawMatch != null
         ? RouteMatchDetails.fromJson(rawMatch)
         : null;
 
-    final pickupDist =
-        (json['pickupDistanceKm'] as num?)?.toDouble() ??
-        parsedMatch?.metrics.pickupDistanceKm ??
-        0.0;
-    final destDist =
-        (json['destinationDistanceKm'] as num?)?.toDouble() ??
-        parsedMatch?.metrics.destinationDistanceKm ??
-        0.0;
-    final depDiff =
-        (json['departureDifferenceMinutes'] as num?)?.toInt() ??
-        parsedMatch?.metrics.departureDifferenceMinutes ??
-        0;
+    final rawPickup =
+        json['pickupDistanceKm'] ?? parsedMatch?.metrics.pickupDistanceKm;
+    final pickupDist = rawPickup is num
+        ? rawPickup.toDouble()
+        : (double.tryParse(rawPickup?.toString() ?? '') ?? 0.0);
+
+    final rawDest =
+        json['destinationDistanceKm'] ?? parsedMatch?.metrics.destinationDistanceKm;
+    final destDist = rawDest is num
+        ? rawDest.toDouble()
+        : (double.tryParse(rawDest?.toString() ?? '') ?? 0.0);
+
+    final rawDepDiff =
+        json['departureDifferenceMinutes'] ??
+        parsedMatch?.metrics.departureDifferenceMinutes;
+    final depDiff = rawDepDiff is num
+        ? rawDepDiff.toInt()
+        : (int.tryParse(rawDepDiff?.toString() ?? '') ?? 0);
+
+    final rawSeats = json['availableSeats'] ?? rawRide['availableSeats'];
+    final seats = rawSeats is num
+        ? rawSeats.toInt()
+        : (int.tryParse(rawSeats?.toString() ?? '') ?? 1);
 
     return RideSearchResult(
       ride: RideModel.fromJson(rawRide),
       pickupDistanceKm: pickupDist,
       destinationDistanceKm: destDist,
       departureDifferenceMinutes: depDiff,
-      availableSeats:
-          (json['availableSeats'] as num?)?.toInt() ??
-          (rawRide['availableSeats'] as num?)?.toInt() ??
-          1,
-      matchPreview: json['matchPreview'] as String? ?? 'Available Route',
+      availableSeats: seats,
+      matchPreview: json['matchPreview']?.toString() ?? 'Available Route',
       match: parsedMatch,
     );
   }
