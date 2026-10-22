@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sahyan/core/services/map_provider_config.dart';
 import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/shared/models/location_model.dart';
+import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 
 void main() {
@@ -140,6 +141,36 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SahyanRouteMap), findsOneWidget);
+      expect(find.text('Rajkot'), findsOneWidget);
+      expect(find.text('Ahmedabad'), findsOneWidget);
+    });
+
+    testWidgets('FullScreenRouteMapSheet renders cleanly with origin and destination', (tester) async {
+      final origin = LocationModel.fromCoordinates(
+        name: 'Rajkot',
+        latitude: 22.3039,
+        longitude: 70.8022,
+      );
+      final destination = LocationModel.fromCoordinates(
+        name: 'Ahmedabad',
+        latitude: 23.0225,
+        longitude: 72.5714,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: FullScreenRouteMapSheet(
+            origin: origin,
+            destination: destination,
+            routeTitle: 'Rajkot to Ahmedabad',
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(find.byType(FullScreenRouteMapSheet), findsOneWidget);
+      expect(find.text('Highway Corridor Active'), findsOneWidget);
       expect(find.text('Rajkot'), findsOneWidget);
       expect(find.text('Ahmedabad'), findsOneWidget);
     });

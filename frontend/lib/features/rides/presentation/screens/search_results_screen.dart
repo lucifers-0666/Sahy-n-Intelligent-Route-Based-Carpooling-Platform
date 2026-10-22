@@ -33,11 +33,40 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
   String _selectedQuickFilter = 'All';
   String _selectedSort = 'Best Match';
   double _corridorRadius = 30.0;
+  List<ll.LatLng> _corridorPolylinePoints = [];
+  bool _isFetchingCorridorPolyline = false;
+  String _lastFetchedRouteKey = '';
 
   @override
   void initState() {
     super.initState();
     _corridorRadius = ref.read(rideSearchQueryProvider).maxPickupDistanceKm;
+  }
+
+  void _fetchCorridorPolylineIfNeeded(
+    LocationModel origin,
+    LocationModel destination,
+  ) {
+    final routeKey =
+        '${origin.latitude},${origin.longitude}->${destination.latitude},${destination.longitude}';
+    if (_lastFetchedRouteKey == routeKey || _isFetchingCorridorPolyline) return;
+    if (origin.latitude == 0.0 && origin.longitude == 0.0) return;
+    if (destination.latitude == 0.0 && destination.longitude == 0.0) return;
+
+    _lastFetchedRouteKey = routeKey;
+    _isFetchingCorridorPolyline = true;
+    RouteService.fetchRealRoadPolyline(
+      origin: origin,
+      destination: destination,
+    ).then((res) {
+      if (mounted && res.points.isNotEmpty) {
+        setState(() {
+          _corridorPolylinePoints = res.points;
+        });
+      }
+    }).catchError((_) {}).whenComplete(() {
+      _isFetchingCorridorPolyline = false;
+    });
   }
 
   LocationModel _resolveLocation(
@@ -556,19 +585,27 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
             }
           }
           if (polylinePoints.isEmpty) {
-            polylinePoints = [
-              ll.LatLng(effectiveOrigin.latitude, effectiveOrigin.longitude),
-              ll.LatLng(
-                (effectiveOrigin.latitude + effectiveDestination.latitude) / 2,
-                (effectiveOrigin.longitude +
-                        effectiveDestination.longitude) /
-                    2,
-              ),
-              ll.LatLng(
-                effectiveDestination.latitude,
-                effectiveDestination.longitude,
-              ),
-            ];
+            if (_corridorPolylinePoints.isNotEmpty) {
+              polylinePoints = _corridorPolylinePoints;
+            } else {
+              _fetchCorridorPolylineIfNeeded(
+                effectiveOrigin,
+                effectiveDestination,
+              );
+              polylinePoints = [
+                ll.LatLng(effectiveOrigin.latitude, effectiveOrigin.longitude),
+                ll.LatLng(
+                  (effectiveOrigin.latitude + effectiveDestination.latitude) / 2,
+                  (effectiveOrigin.longitude +
+                          effectiveDestination.longitude) /
+                      2,
+                ),
+                ll.LatLng(
+                  effectiveDestination.latitude,
+                  effectiveDestination.longitude,
+                ),
+              ];
+            }
           }
 
           final filteredResults = results.where((r) {

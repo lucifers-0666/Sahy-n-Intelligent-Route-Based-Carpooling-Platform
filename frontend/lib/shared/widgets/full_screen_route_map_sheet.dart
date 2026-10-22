@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/core/services/map_provider_config.dart';
+import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 
@@ -70,6 +71,26 @@ class FullScreenRouteMapSheet extends StatefulWidget {
 class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
   late final fmap.MapController _mapController;
   bool _isMapReady = false;
+  late MapProviderType _selectedProviderType;
+  List<ll.LatLng> _fetchedPolylinePoints = [];
+  bool _isFetchingRealRoute = false;
+
+  List<ll.LatLng> get _effectivePolylinePoints {
+    if (widget.polylinePoints.length > 4) {
+      return widget.polylinePoints.map(toLatLong).toList();
+    }
+    if (_fetchedPolylinePoints.isNotEmpty) {
+      return _fetchedPolylinePoints;
+    }
+    if (widget.polylinePoints.isNotEmpty) {
+      return widget.polylinePoints.map(toLatLong).toList();
+    }
+    return const [];
+  }
+
+  MapTileConfig get _activeTileConfig =>
+      MapProviderConfig.providers[_selectedProviderType] ??
+      MapProviderConfig.activeConfig;
 
   bool get _isTestingEnvironment {
     if (kIsWeb) return true;
@@ -83,13 +104,58 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
   @override
   void initState() {
     super.initState();
+    _selectedProviderType = MapProviderConfig.currentProvider;
     _mapController = fmap.MapController();
+    if (widget.polylinePoints.length <= 4) {
+      _fetchRoadRouteIfNeeded();
+    }
   }
 
   @override
-  void dispose() {
-    _mapController.dispose();
-    super.dispose();
+  void didUpdateWidget(covariant FullScreenRouteMapSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final originChanged =
+        widget.origin.latitude != oldWidget.origin.latitude ||
+        widget.origin.longitude != oldWidget.origin.longitude;
+    final destChanged =
+        widget.destination.latitude != oldWidget.destination.latitude ||
+        widget.destination.longitude != oldWidget.destination.longitude;
+    if (originChanged ||
+        destChanged ||
+        (widget.polylinePoints.length <= 4 && _fetchedPolylinePoints.isEmpty)) {
+      _fetchRoadRouteIfNeeded();
+    }
+  }
+
+  Future<void> _fetchRoadRouteIfNeeded() async {
+    if (_isFetchingRealRoute) return;
+    if (widget.origin.latitude == 0.0 && widget.origin.longitude == 0.0) return;
+    if (widget.destination.latitude == 0.0 &&
+        widget.destination.longitude == 0.0) {
+      return;
+    }
+
+    _isFetchingRealRoute = true;
+    try {
+      final res = await RouteService.fetchRealRoadPolyline(
+        origin: widget.origin,
+        destination: widget.destination,
+        stopovers: widget.stopovers,
+      );
+      if (mounted && res.points.isNotEmpty) {
+        setState(() {
+          _fetchedPolylinePoints = res.points;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _fitRouteBounds();
+          }
+        });
+      }
+    } catch (_) {
+    } finally {
+      _isFetchingRealRoute = false;
+    }
   }
 
   bool _isValidCoord(ll.LatLng coord) {
@@ -117,17 +183,15 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
           return;
         }
       }
-      if (widget.polylinePoints.isNotEmpty) {
-        final points = widget.polylinePoints.map(toLatLong).where(_isValidCoord).toList();
-        if (points.length >= 2) {
-          _mapController.fitCamera(
-            fmap.CameraFit.coordinates(
-              coordinates: points,
-              padding: const EdgeInsets.all(50.0),
-            ),
-          );
-          return;
-        }
+      final points = _effectivePolylinePoints.where(_isValidCoord).toList();
+      if (points.length >= 2) {
+        _mapController.fitCamera(
+          fmap.CameraFit.coordinates(
+            coordinates: points,
+            padding: const EdgeInsets.all(50.0),
+          ),
+        );
+        return;
       }
       final p1 = ll.LatLng(widget.origin.latitude, widget.origin.longitude);
       final p2 = ll.LatLng(
@@ -262,8 +326,8 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
   }
 
   List<fmap.Polyline> _buildPolylines() {
-    if (widget.polylinePoints.isEmpty) return [];
-    final points = widget.polylinePoints.map(toLatLong).toList();
+    final points = _effectivePolylinePoints;
+    if (points.isEmpty) return [];
     return [
       fmap.Polyline(
         points: points,
@@ -320,10 +384,12 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                     ),
                     children: [
                       fmap.TileLayer(
-                        urlTemplate: MapProviderConfig.activeConfig.urlTemplate,
-                        subdomains: MapProviderConfig.activeConfig.subdomains,
-                        userAgentPackageName: MapProviderConfig.activeConfig.userAgentPackageName,
-                        maxZoom: MapProviderConfig.activeConfig.maxZoom.toDouble(),
+                        key: ValueKey(_selectedProviderType),
+                        urlTemplate: _activeTileConfig.urlTemplate,
+                        subdomains: _activeTileConfig.subdomains,
+                        userAgentPackageName:
+                            _activeTileConfig.userAgentPackageName,
+                        maxZoom: _activeTileConfig.maxZoom.toDouble(),
                       ),
                       fmap.PolylineLayer(polylines: _buildPolylines()),
                       fmap.MarkerLayer(markers: _buildMarkers()),
@@ -418,6 +484,70 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Map Style Switcher
+                PopupMenuButton<MapProviderType>(
+                  tooltip: 'Map Layer',
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  offset: const Offset(-180, 0),
+                  onSelected: (type) {
+                    MapProviderConfig.setProvider(type);
+                    setState(() {
+                      _selectedProviderType = type;
+                    });
+                  },
+                  itemBuilder: (ctx) => [
+                    _buildPopupItem(
+                      MapProviderType.osmStandard,
+                      'OpenStreetMap',
+                      Icons.map_rounded,
+                    ),
+                    _buildPopupItem(
+                      MapProviderType.osmHot,
+                      'Sahyān High-Contrast',
+                      Icons.traffic_rounded,
+                    ),
+                    _buildPopupItem(
+                      MapProviderType.cartoVoyager,
+                      'Sahyān Road',
+                      Icons.navigation_rounded,
+                    ),
+                    _buildPopupItem(
+                      MapProviderType.cartoPositron,
+                      'Clean Light',
+                      Icons.wb_sunny_outlined,
+                    ),
+                    _buildPopupItem(
+                      MapProviderType.cartoDark,
+                      'Night Voyage',
+                      Icons.dark_mode_outlined,
+                    ),
+                  ],
+                  child: Material(
+                    color: SahyanColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(
+                        color: SahyanColors.border,
+                        width: 0.8,
+                      ),
+                    ),
+                    elevation: 3,
+                    shadowColor: const Color(0x1E14241C),
+                    child: const SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Icon(
+                        Icons.layers_rounded,
+                        size: 20,
+                        color: SahyanColors.primaryDark,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+
                 // Fit Route Bounds Button
                 Material(
                   color: SahyanColors.surface,
@@ -684,6 +814,45 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  PopupMenuItem<MapProviderType> _buildPopupItem(
+    MapProviderType type,
+    String label,
+    IconData icon,
+  ) {
+    final isSelected = _selectedProviderType == type;
+    return PopupMenuItem<MapProviderType>(
+      value: type,
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color:
+                isSelected ? SahyanColors.primaryDark : SahyanColors.textMuted,
+          ),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color:
+                  isSelected ? SahyanColors.primaryDark : SahyanColors.textMain,
+            ),
+          ),
+          if (isSelected) ...[
+            const Spacer(),
+            const Icon(
+              Icons.check_rounded,
+              size: 16,
+              color: SahyanColors.primaryDark,
+            ),
+          ],
         ],
       ),
     );
