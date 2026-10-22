@@ -21,7 +21,7 @@ double _haversineKm(double lat1, double lon1, double lat2, double lon2) {
   return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a));
 }
 
-// ── Stub widget for SayanRouteMap (avoids GoogleMap in tests) ─────────────
+// ── Test harness for SayanRouteMap telemetry verification ─────────────
 
 class _StubRouteMapHost extends StatelessWidget {
   final LatLng? driverPosition;

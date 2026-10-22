@@ -80,7 +80,6 @@ GoogleService-Info.plist
 **/android/gradlew
 **/android/gradlew.bat
 **/android/local.properties
-**/android/app/src/main/AndroidManifest.xml
 
 # iOS
 **/ios/Flutter/App.framework

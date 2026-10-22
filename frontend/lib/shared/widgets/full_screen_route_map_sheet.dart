@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' as fmap;
 import 'package:latlong2/latlong.dart' as ll;
 import 'package:sahyan/app/theme/app_theme.dart';
+import 'package:sahyan/core/services/map_provider_config.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 
@@ -319,10 +320,10 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                     ),
                     children: [
                       fmap.TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName: 'com.sahyan.sahyan',
-                        maxZoom: 19,
+                        urlTemplate: MapProviderConfig.activeConfig.urlTemplate,
+                        subdomains: MapProviderConfig.activeConfig.subdomains,
+                        userAgentPackageName: MapProviderConfig.activeConfig.userAgentPackageName,
+                        maxZoom: MapProviderConfig.activeConfig.maxZoom.toDouble(),
                       ),
                       fmap.PolylineLayer(polylines: _buildPolylines()),
                       fmap.MarkerLayer(markers: _buildMarkers()),

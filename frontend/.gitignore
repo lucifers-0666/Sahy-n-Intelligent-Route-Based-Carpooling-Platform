@@ -35,7 +35,6 @@
 **/android/gradlew
 **/android/gradlew.bat
 **/android/local.properties
-**/android/app/src/main/AndroidManifest.xml
 **/android/**/GeneratedPluginRegistrant.java
 **/android/**/GeneratedPluginRegistrant.kt
 

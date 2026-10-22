@@ -9,19 +9,9 @@ class ApiConfig {
   /// flutter run --dart-define=API_BASE_URL=https://api.sahyan.app/api/v1
   static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
 
-  /// Google Maps Platform Web / REST API Key for demo testing.
-  /// You can paste your API key here or supply via --dart-define=GOOGLE_MAPS_API_KEY=...
-  static const String _envGoogleMapsKey =
-      String.fromEnvironment('GOOGLE_MAPS_API_KEY');
-  static const String hardcodedGoogleMapsKey = '';
-
-  static String get googleMapsApiKey =>
-      _envGoogleMapsKey.isNotEmpty ? _envGoogleMapsKey : hardcodedGoogleMapsKey;
-
-  /// Master Map Provider Toggle:
-  /// Set to true to use Google Maps (google_maps_flutter).
-  /// Set to false to instantly roll back to OpenStreetMap (flutter_map).
-  static bool enableGoogleMaps = false;
+  /// Compile-time custom tile URL template override (optional):
+  /// e.g. flutter run --dart-define=CUSTOM_TILE_URL=https://...
+  static const String customTileUrl = String.fromEnvironment('CUSTOM_TILE_URL');
 
   /// Local development port
   static const int port = 5000;

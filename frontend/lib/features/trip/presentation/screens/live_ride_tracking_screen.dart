@@ -371,6 +371,44 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
     return _lastPacketAt != null && _locationAgeSeconds > 30;
   }
 
+  /// Calculates perpendicular distance from coordinate to polyline segment in km
+  double _distanceToSegmentKm(LatLng p, LatLng a, LatLng b) {
+    final x = p.longitude;
+    final y = p.latitude;
+    final x1 = a.longitude;
+    final y1 = a.latitude;
+    final x2 = b.longitude;
+    final y2 = b.latitude;
+
+    final dx = x2 - x1;
+    final dy = y2 - y1;
+    if (dx == 0 && dy == 0) {
+      return _haversineDistanceKm(y, x, y1, x1);
+    }
+
+    final t = ((x - x1) * dx + (y - y1) * dy) / (dx * dx + dy * dy);
+    final clampedT = t.clamp(0.0, 1.0);
+    final projLat = y1 + clampedT * dy;
+    final projLng = x1 + clampedT * dx;
+
+    return _haversineDistanceKm(y, x, projLat, projLng);
+  }
+
+  /// Detects whether the active vehicle has drifted off the designated highway route corridor (> 450m)
+  bool get _isOffRoute {
+    if (_driverPosition == null || _polylinePoints.length < 2) return false;
+    double minDistance = double.infinity;
+    for (int i = 0; i < _polylinePoints.length - 1; i++) {
+      final d = _distanceToSegmentKm(
+        _driverPosition!,
+        _polylinePoints[i],
+        _polylinePoints[i + 1],
+      );
+      if (d < minDistance) minDistance = d;
+    }
+    return minDistance > 0.45;
+  }
+
   @override
   void dispose() {
     _locationSub?.cancel();
@@ -496,6 +534,78 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (_isOffRoute)
+              Positioned(
+                top: 136,
+                left: 14,
+                right: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD97706).withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.alt_route_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Route Deviation: Vehicle has departed from scheduled route corridor.',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else if (_isStaleGps)
+              Positioned(
+                top: 136,
+                left: 14,
+                right: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.sync_problem_rounded,
+                        color: Color(0xFFFBBF24),
+                        size: 16,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'GPS Signal Delayed \u2022 Awaiting telematics update',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],

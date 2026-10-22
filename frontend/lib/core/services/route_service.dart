@@ -200,26 +200,7 @@ class RouteService {
       }
     } catch (_) {}
 
-    // 2. Google Directions API (if API Key provided via ApiConfig or environment)
-    final googleApiKey = ApiConfig.googleMapsApiKey;
-    if (googleApiKey.isNotEmpty) {
-      try {
-        final googleResult = await _fetchGoogleRoute(
-          oLat: oLat,
-          oLng: oLng,
-          dLat: dLat,
-          dLng: dLng,
-          stopovers: stopoverPoints,
-          apiKey: googleApiKey,
-        );
-        if (googleResult != null && googleResult.points.length > 2) {
-          _routeCache[cacheKey] = googleResult;
-          return googleResult;
-        }
-      } catch (_) {}
-    }
-
-    // 3. Backend Fallback Endpoint
+    // 2. Backend Routing Endpoint Fallback
     try {
       final backendResult = await _fetchBackendRoute(
         oLat: oLat,
@@ -310,62 +291,6 @@ class RouteService {
                     route['legs'][0]['summary'] != null
                 ? route['legs'][0]['summary'].toString()
                 : 'via $highway',
-          );
-        }
-      }
-    }
-    return null;
-  }
-
-  static Future<RealRoadRouteResult?> _fetchGoogleRoute({
-    required double oLat,
-    required double oLng,
-    required double dLat,
-    required double dLng,
-    required List<ll.LatLng> stopovers,
-    required String apiKey,
-  }) async {
-    final originStr = '$oLat,$oLng';
-    final destStr = '$dLat,$dLng';
-    String waypointsParam = '';
-    if (stopovers.isNotEmpty) {
-      final wpCoords = stopovers.map((s) => '${s.latitude},${s.longitude}');
-      waypointsParam = '&waypoints=${Uri.encodeComponent(wpCoords.join('|'))}';
-    }
-
-    final url =
-        'https://maps.googleapis.com/maps/api/directions/json'
-        '?origin=$originStr&destination=$destStr$waypointsParam&mode=driving&key=$apiKey';
-
-    final res = await http.get(Uri.parse(url)).timeout(const Duration(seconds: 10));
-    if (res.statusCode == 200) {
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
-      if (data['status'] == 'OK' &&
-          data['routes'] != null &&
-          (data['routes'] as List).isNotEmpty) {
-        final route = (data['routes'] as List)[0] as Map<String, dynamic>;
-        final overview = route['overview_polyline'] as Map<String, dynamic>?;
-        final encoded = overview?['points'] as String? ?? '';
-
-        if (encoded.isNotEmpty) {
-          final decoded = decodePolyline(encoded);
-          final points = decoded.map((p) => ll.LatLng(p.latitude, p.longitude)).toList();
-
-          double totalMeters = 0;
-          double totalSeconds = 0;
-          for (final leg in (route['legs'] as List? ?? [])) {
-            totalMeters += (leg['distance']?['value'] as num?)?.toDouble() ?? 0;
-            totalSeconds += (leg['duration']?['value'] as num?)?.toDouble() ?? 0;
-          }
-
-          final highway = _detectGujaratCorridor(oLat, oLng, dLat, dLng);
-          return RealRoadRouteResult(
-            points: points,
-            distanceKm: totalMeters / 1000.0,
-            durationMinutes: (totalSeconds / 60.0).round(),
-            encodedPolyline: encoded,
-            highwayCorridor: highway,
-            summary: route['summary'] ?? 'via $highway',
           );
         }
       }

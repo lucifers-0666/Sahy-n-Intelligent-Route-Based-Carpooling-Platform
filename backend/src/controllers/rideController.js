@@ -6,7 +6,7 @@ const Booking = require('../models/Booking');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const OsrmRouteProvider = require('../services/location/providers/osrmRouteProvider');
 const osrmRouteProvider = new OsrmRouteProvider();
-const googleMapsService = require('../services/googleMapsService');
+const routeCalculationService = require('../services/routeCalculationService');
 const nominatimService = require('../services/location/nominatimService');
 const routeMatchService = require('../services/routeMatchService');
 const { decodePolyline, generateFallbackRoute } = require('../utils/polylineUtils');
@@ -1170,7 +1170,7 @@ const calculateRoute = async (req, res, next) => {
       });
     }
 
-    const result = await googleMapsService.calculateRoute(
+    const result = await routeCalculationService.calculateRoute(
       { latitude: originLat, longitude: originLng, name: origin.name || '' },
       { latitude: destLat, longitude: destLng, name: destination.name || '' },
       { waypoints: req.body.waypoints || req.body.stopovers }
