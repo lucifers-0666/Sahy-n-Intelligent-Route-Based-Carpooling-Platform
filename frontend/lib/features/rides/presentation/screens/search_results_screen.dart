@@ -592,19 +592,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                 effectiveOrigin,
                 effectiveDestination,
               );
-              polylinePoints = [
-                ll.LatLng(effectiveOrigin.latitude, effectiveOrigin.longitude),
-                ll.LatLng(
-                  (effectiveOrigin.latitude + effectiveDestination.latitude) / 2,
-                  (effectiveOrigin.longitude +
-                          effectiveDestination.longitude) /
-                      2,
-                ),
-                ll.LatLng(
-                  effectiveDestination.latitude,
-                  effectiveDestination.longitude,
-                ),
-              ];
+              polylinePoints = const [];
             }
           }
 
@@ -667,6 +655,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                         stopovers: stopovers,
                         interactive: true,
                         showControls: false,
+                        vehicleTypeCode: results.isNotEmpty ? results.first.ride.vehicle.vehicleType : null,
                       ),
                     ),
                     Positioned(

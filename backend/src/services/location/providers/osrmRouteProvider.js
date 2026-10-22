@@ -68,18 +68,52 @@ class OsrmRouteProvider extends RouteProvider {
   }
 
   /**
+   * Snap geographic coordinates to the nearest driveable road segment using OSRM /nearest endpoint.
+   * @param {number} latitude
+   * @param {number} longitude
+   * @returns {Promise<{latitude: number, longitude: number}>}
+   */
+  async snapToNearestRoad(latitude, longitude) {
+    try {
+      const lat = Number(latitude);
+      const lon = Number(longitude);
+      if (isNaN(lat) || isNaN(lon) || (lat === 0 && lon === 0)) {
+        return { latitude, longitude };
+      }
+      const url = `${this.baseUrl}/nearest/v1/driving/${lon},${lat}`;
+      const response = await this._get(url);
+      if (
+        response.statusCode === 200 &&
+        response.body &&
+        response.body.code === 'Ok' &&
+        Array.isArray(response.body.waypoints) &&
+        response.body.waypoints.length > 0
+      ) {
+        const loc = response.body.waypoints[0].location;
+        if (Array.isArray(loc) && loc.length >= 2) {
+          return {
+            latitude: Number(loc[1]),
+            longitude: Number(loc[0]),
+          };
+        }
+      }
+    } catch (_) {}
+    return { latitude, longitude };
+  }
+
+  /**
    * Calculate driving route between origin and destination via OSRM
    * @param {Object} origin - { latitude, longitude, name }
    * @param {Object} destination - { latitude, longitude, name }
-   * @param {Object} options - { waypoints, stopovers }
+   * @param {Object} options - { waypoints, stopovers, snapToRoad }
    * @returns {Promise<Object>}
    */
   async calculateRoute(origin, destination, options = {}) {
     try {
-      const originLat = Number(origin.latitude);
-      const originLon = Number(origin.longitude);
-      const destLat = Number(destination.latitude);
-      const destLon = Number(destination.longitude);
+      let originLat = Number(origin.latitude);
+      let originLon = Number(origin.longitude);
+      let destLat = Number(destination.latitude);
+      let destLon = Number(destination.longitude);
 
       if (isNaN(originLat) || isNaN(originLon) || isNaN(destLat) || isNaN(destLon)) {
         return {
@@ -87,6 +121,19 @@ class OsrmRouteProvider extends RouteProvider {
           error: 'INVALID_COORDINATES',
           message: 'Origin and destination coordinates must be valid numbers.',
         };
+      }
+
+      // Automatically snap origin & destination to nearest road centerlines
+      if (options.snapToRoad !== false) {
+        try {
+          const snappedOrigin = await this.snapToNearestRoad(originLat, originLon);
+          originLat = snappedOrigin.latitude;
+          originLon = snappedOrigin.longitude;
+
+          const snappedDest = await this.snapToNearestRoad(destLat, destLon);
+          destLat = snappedDest.latitude;
+          destLon = snappedDest.longitude;
+        } catch (_) {}
       }
 
       // Semicolon-separated longitude,latitude pairs for OSRM format: lon,lat;lon,lat
@@ -106,7 +153,8 @@ class OsrmRouteProvider extends RouteProvider {
       coordSegments.push(`${destLon},${destLat}`);
 
       const coordString = coordSegments.join(';');
-      const url = `${this.baseUrl}/route/v1/driving/${coordString}?overview=full&geometries=polyline&steps=true&annotations=distance,duration`;
+      // Mandatory query high-resolution road graph with full turn-by-turn geojson coordinates
+      const url = `${this.baseUrl}/route/v1/driving/${coordString}?overview=full&geometries=geojson&steps=true&annotations=distance,duration`;
 
       const response = await this._get(url);
 
@@ -121,7 +169,22 @@ class OsrmRouteProvider extends RouteProvider {
       const primaryRoute = response.body.routes[0];
       const distanceMeters = Math.round(primaryRoute.distance || 0);
       const durationSeconds = Math.round(primaryRoute.duration || 0);
-      const encodedPolyline = primaryRoute.geometry || '';
+
+      // Parse high-density GeoJSON coordinates [lon, lat] -> { latitude, longitude }
+      const rawCoords = primaryRoute.geometry?.coordinates || [];
+      const coordinates = [];
+      for (const pt of rawCoords) {
+        if (Array.isArray(pt) && pt.length >= 2) {
+          coordinates.push({
+            latitude: Number(pt[1]),
+            longitude: Number(pt[0]),
+          });
+        }
+      }
+
+      // Encode high-density points to Google polyline format for maximum compatibility
+      const { encodePolyline } = require('../../../utils/polylineUtils');
+      const encodedPolyline = coordinates.length > 0 ? encodePolyline(coordinates) : '';
 
       const distanceKm = (distanceMeters / 1000).toFixed(1);
       const hours = Math.floor(durationSeconds / 3600);
@@ -143,6 +206,7 @@ class OsrmRouteProvider extends RouteProvider {
         distanceText: `${distanceKm} km`,
         durationText,
         encodedPolyline,
+        coordinates,
         startAddress: origin.name || 'Origin',
         endAddress: destination.name || 'Destination',
         summary,

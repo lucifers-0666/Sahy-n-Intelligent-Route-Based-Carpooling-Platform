@@ -449,3 +449,135 @@ test('Intelligent Route Match API - GET /api/v1/rides/search matches and ranking
     assert.strictEqual(data.success, false);
   });
 });
+
+test('Routing & Graph Algorithm Benchmark Suite', async (t) => {
+  // Gujarat Highway Network Graph:
+  // Ahmedabad (AMD) <-> Limbdi (LIM) <-> Rajkot (RAJ) <-> Jamnagar (JAM)
+  // AMD <-> Vadodara (BRC) <-> Surat (SUR)
+  const gujaratGraph = {
+    AMD: [
+      { node: 'LIM', weight: 95 },
+      { node: 'BRC', weight: 110 },
+      { node: 'GIFT', weight: 30 },
+    ],
+    LIM: [
+      { node: 'AMD', weight: 95 },
+      { node: 'RAJ', weight: 120 },
+    ],
+    RAJ: [
+      { node: 'LIM', weight: 120 },
+      { node: 'JAM', weight: 92 },
+      { node: 'AIIMS', weight: 18 },
+    ],
+    JAM: [
+      { node: 'RAJ', weight: 92 },
+    ],
+    BRC: [
+      { node: 'AMD', weight: 110 },
+      { node: 'SUR', weight: 150 },
+    ],
+    SUR: [
+      { node: 'BRC', weight: 150 },
+    ],
+    GIFT: [
+      { node: 'AMD', weight: 30 },
+    ],
+    AIIMS: [
+      { node: 'RAJ', weight: 18 },
+    ],
+  };
+
+  await t.test('A* (A-Star) computes optimal highway corridor path with admissible heuristic', () => {
+    // Euclidean heuristic from node to JAM
+    const heuristicsToJam = {
+      AMD: 280,
+      LIM: 190,
+      RAJ: 85,
+      JAM: 0,
+      BRC: 380,
+      SUR: 500,
+      GIFT: 300,
+      AIIMS: 90,
+    };
+
+    const result = routeMatchService.aStarShortestPath(
+      gujaratGraph,
+      'AMD',
+      'JAM',
+      (node) => heuristicsToJam[node] || 0
+    );
+
+    assert.deepStrictEqual(result.path, ['AMD', 'LIM', 'RAJ', 'JAM']);
+    assert.strictEqual(result.cost, 307); // 95 + 120 + 92
+  });
+
+  await t.test('Dijkstra algorithm evaluates lowest cost path across Gujarat highway vertices', () => {
+    const result = routeMatchService.dijkstraShortestPath(gujaratGraph, 'AMD', 'SUR');
+    assert.deepStrictEqual(result.path, ['AMD', 'BRC', 'SUR']);
+    assert.strictEqual(result.cost, 260); // 110 + 150
+  });
+
+  await t.test('Bellman-Ford algorithm verifies shortest path and detects absence of negative cycles', () => {
+    const nodes = ['AMD', 'LIM', 'RAJ', 'JAM', 'BRC', 'SUR', 'GIFT', 'AIIMS'];
+    const edges = [];
+    for (const [from, neighbors] of Object.entries(gujaratGraph)) {
+      for (const edge of neighbors) {
+        edges.push({ from, to: edge.node, weight: edge.weight });
+      }
+    }
+
+    const result = routeMatchService.bellmanFordShortestPath(nodes, edges, 'AMD');
+    assert.strictEqual(result.hasNegativeCycle, false);
+    assert.strictEqual(result.distances['JAM'], 307);
+    assert.strictEqual(result.distances['AIIMS'], 233); // 95 + 120 + 18
+  });
+
+  await t.test('Breadth-First Search (BFS) identifies fewest highway interchanges/hops', () => {
+    const result = routeMatchService.bfsFewestHops(gujaratGraph, 'AMD', 'AIIMS');
+    assert.deepStrictEqual(result.path, ['AMD', 'LIM', 'RAJ', 'AIIMS']);
+    assert.strictEqual(result.hops, 3);
+  });
+
+  await t.test('Cross-track perpendicular projection measures exact detour to polyline segment', () => {
+    const p1 = { latitude: 22.3000, longitude: 70.8000 };
+    const p2 = { latitude: 22.3000, longitude: 70.9000 };
+    // Passenger offset 0.05 deg north (~5.5 km perpendicular)
+    const passengerPoint = { latitude: 22.3500, longitude: 70.8500 };
+
+    const detourKm = routeMatchService.crossTrackPerpendicularDistanceKm(passengerPoint, p1, p2);
+    assert(detourKm > 4.5 && detourKm < 6.5, `Expected ~5.5 km, got ${detourKm}`);
+  });
+
+  await t.test('Strict monotonic sequence filter enforces pickup before dropoff index', () => {
+    assert.strictEqual(routeMatchService.isMonotonicSequence(2, 5), true);
+    assert.strictEqual(routeMatchService.isMonotonicSequence(5, 2), false);
+    assert.strictEqual(routeMatchService.isMonotonicSequence(3, 3), false);
+    assert.strictEqual(routeMatchService.isMonotonicSequence(-1, 2), false);
+  });
+
+  await t.test('Dynamic score matrix weighs detour, time divergence, and driver reliability', () => {
+    // 0 detour, 0 time divergence, 5-star rating -> 100
+    const perfectScore = routeMatchService.calculateDynamicScoreMatrix({
+      detourDistanceKm: 0,
+      departureDifferenceMinutes: 0,
+      driverRating: 5.0,
+    });
+    assert.strictEqual(perfectScore, 100);
+
+    // 8 km detour (-20), 30 mins (-12), 4.5 star rating (+4.5) -> ~73
+    const regularScore = routeMatchService.calculateDynamicScoreMatrix({
+      detourDistanceKm: 8,
+      departureDifferenceMinutes: 30,
+      driverRating: 4.5,
+    });
+    assert(regularScore >= 65 && regularScore <= 80, `Expected ~73, got ${regularScore}`);
+
+    // Excessive detour and divergence clamped to min 0
+    const poorScore = routeMatchService.calculateDynamicScoreMatrix({
+      detourDistanceKm: 50,
+      departureDifferenceMinutes: 300,
+      driverRating: 1.0,
+    });
+    assert.strictEqual(poorScore, 0);
+  });
+});

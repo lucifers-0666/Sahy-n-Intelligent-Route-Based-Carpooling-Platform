@@ -650,6 +650,301 @@ function evaluateAndRankCandidates({
   return evaluated;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SAHYĀN GEOSPATIAL & GRAPH ALGORITHMS SUITE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * 1. A* (A-Star) Pathfinding Algorithm with Heuristic & Informed Search
+ *
+ * Evaluates node costs: f(n) = g(n) + h(n)
+ * where g(n) is actual accumulated road distance and h(n) is informed heuristic
+ * (Haversine or Euclidean distance) to goal node.
+ *
+ * @param {Object} graph - Map of nodeId -> Array of { node: string, distanceKm: number, lat: number, lng: number }
+ * @param {string} startId - Origin node ID
+ * @param {string} goalId - Destination node ID
+ * @param {Function} [heuristicFn] - Custom heuristic function h(currNode, goalNode)
+ * @returns {{ path: Array<string>, totalDistanceKm: number, nodesExplored: number }}
+ */
+function aStarShortestPath(graph, startId, goalId, heuristicFn = null) {
+  const openSet = new Set([startId]);
+  const cameFrom = new Map();
+
+  const gScore = new Map();
+  gScore.set(startId, 0);
+
+  const defaultHeuristic = (n1, n2) => {
+    const nodeA = graph[n1]?._coords;
+    const nodeB = graph[n2]?._coords;
+    if (nodeA && nodeB) {
+      return calculateDistanceKm(nodeA.lat, nodeA.lng, nodeB.lat, nodeB.lng);
+    }
+    return 0;
+  };
+  const h = heuristicFn || defaultHeuristic;
+
+  const fScore = new Map();
+  fScore.set(startId, h(startId, goalId));
+
+  let nodesExplored = 0;
+
+  while (openSet.size > 0) {
+    nodesExplored++;
+    // Get node in openSet with lowest fScore
+    let current = null;
+    let lowestF = Infinity;
+    for (const node of openSet) {
+      const score = fScore.has(node) ? fScore.get(node) : Infinity;
+      if (score < lowestF) {
+        lowestF = score;
+        current = node;
+      }
+    }
+
+    if (current === goalId) {
+      // Reconstruct path
+      const path = [current];
+      while (cameFrom.has(current)) {
+        current = cameFrom.get(current);
+        path.unshift(current);
+      }
+      return {
+        path,
+        totalDistanceKm: Number((gScore.get(goalId) || 0).toFixed(2)),
+        cost: Number((gScore.get(goalId) || 0).toFixed(2)),
+        nodesExplored,
+      };
+    }
+
+    openSet.delete(current);
+    const neighbors = graph[current] || [];
+
+    for (const edge of neighbors) {
+      const neighbor = edge.node;
+      const edgeWeight = edge.distanceKm !== undefined ? edge.distanceKm : (edge.weight !== undefined ? edge.weight : 1);
+      const tentativeG = (gScore.get(current) || 0) + edgeWeight;
+
+      if (tentativeG < (gScore.has(neighbor) ? gScore.get(neighbor) : Infinity)) {
+        cameFrom.set(neighbor, current);
+        gScore.set(neighbor, tentativeG);
+        const f = tentativeG + h(neighbor, goalId);
+        fScore.set(neighbor, f);
+        openSet.add(neighbor);
+      }
+    }
+  }
+
+  return { path: [], totalDistanceKm: Infinity, cost: Infinity, nodesExplored };
+}
+
+/**
+ * 2. Dijkstra's Algorithm (Single-Source Shortest Path)
+ *
+ * Guarantees shortest path for non-negative edge weights across multi-hop carpool networks.
+ *
+ * @param {Object} graph - Adjacency list: nodeId -> Array of { node: string, distanceKm?: number, weight?: number }
+ * @param {string} startId - Source node
+ * @param {string} [targetId] - Optional destination node
+ * @returns {{ distances: Object, previous: Object, path?: Array<string>, cost?: number, totalDistanceKm?: number }}
+ */
+function dijkstraShortestPath(graph, startId, targetId = null) {
+  const distances = {};
+  const previous = {};
+  const unvisited = new Set(Object.keys(graph));
+
+  for (const node of Object.keys(graph)) {
+    distances[node] = node === startId ? 0 : Infinity;
+  }
+
+  while (unvisited.size > 0) {
+    let closestNode = null;
+    let smallestDist = Infinity;
+
+    for (const node of unvisited) {
+      if (distances[node] < smallestDist) {
+        smallestDist = distances[node];
+        closestNode = node;
+      }
+    }
+
+    if (closestNode === null || smallestDist === Infinity) break;
+    if (targetId && closestNode === targetId) break;
+
+    unvisited.delete(closestNode);
+    const edges = graph[closestNode] || [];
+
+    for (const edge of edges) {
+      if (!unvisited.has(edge.node)) continue;
+      const edgeWeight = edge.distanceKm !== undefined ? edge.distanceKm : (edge.weight !== undefined ? edge.weight : 1);
+      const alt = distances[closestNode] + edgeWeight;
+      if (alt < distances[edge.node]) {
+        distances[edge.node] = alt;
+        previous[edge.node] = closestNode;
+      }
+    }
+  }
+
+  let path = [];
+  if (targetId && distances[targetId] !== Infinity) {
+    let curr = targetId;
+    while (curr) {
+      path.unshift(curr);
+      curr = previous[curr];
+    }
+  }
+
+  const targetCost = targetId ? distances[targetId] : undefined;
+  return { distances, previous, path, cost: targetCost, totalDistanceKm: targetCost };
+}
+
+/**
+ * 3. Bellman-Ford Algorithm
+ *
+ * Calculates shortest paths from source to all vertices and detects negative cycles
+ * (critical for routes with dynamic incentive credits, toll penalties, or dynamic discounts).
+ *
+ * @param {Array<string>} nodes - List of node IDs
+ * @param {Array<{ from: string, to: string, weight: number }>} edges - Directed edge list
+ * @param {string} startId - Origin node ID
+ * @returns {{ distances: Object, hasNegativeCycle: boolean }}
+ */
+function bellmanFordShortestPath(nodes, edges, startId) {
+  const distances = {};
+  for (const node of nodes) {
+    distances[node] = Infinity;
+  }
+  distances[startId] = 0;
+
+  // Relax edges |V| - 1 times
+  for (let i = 0; i < nodes.length - 1; i++) {
+    for (const edge of edges) {
+      if (distances[edge.from] !== Infinity && distances[edge.from] + edge.weight < distances[edge.to]) {
+        distances[edge.to] = distances[edge.from] + edge.weight;
+      }
+    }
+  }
+
+  // Detect negative-weight cycles
+  let hasNegativeCycle = false;
+  for (const edge of edges) {
+    if (distances[edge.from] !== Infinity && distances[edge.from] + edge.weight < distances[edge.to]) {
+      hasNegativeCycle = true;
+      break;
+    }
+  }
+
+  return { distances, hasNegativeCycle };
+}
+
+/**
+ * 4. Breadth-First Search (BFS) for Transfer Optimization
+ *
+ * Identifies carpool connections with minimum transfer hops across hubs.
+ *
+ * @param {Object} graph - Adjacency map: nodeId -> Array of string neighbors
+ * @param {string} startId - Origin hub
+ * @param {string} goalId - Destination hub
+ * @returns {{ path: Array<string>, hops: number }}
+ */
+function bfsFewestHops(graph, startId, goalId) {
+  if (startId === goalId) return { path: [startId], hops: 0 };
+  const queue = [[startId]];
+  const visited = new Set([startId]);
+
+  while (queue.length > 0) {
+    const path = queue.shift();
+    const node = path[path.length - 1];
+    const neighbors = graph[node] || [];
+
+    for (const neighbor of neighbors) {
+      const neighborId = typeof neighbor === 'object' ? neighbor.node : neighbor;
+      if (!visited.has(neighborId)) {
+        visited.add(neighborId);
+        const newPath = [...path, neighborId];
+        if (neighborId === goalId) {
+          return { path: newPath, hops: newPath.length - 1 };
+        }
+        queue.push(newPath);
+      }
+    }
+  }
+
+  return { path: [], hops: -1 };
+}
+
+/**
+ * 5. Cross-Track Perpendicular Projection (Detour Calculation)
+ *
+ * Evaluates perpendicular distance from point P to polyline segment [W_i, W_{i+1}]:
+ * d(P, [W_i, W_{i+1}]) = |(P - W_i) x (W_{i+1} - W_i)| / |W_{i+1} - W_i|
+ *
+ * @param {{ latitude: number, longitude: number }} p - Point P (passenger pickup or drop)
+ * @param {{ latitude: number, longitude: number }} w1 - Segment start waypoint
+ * @param {{ latitude: number, longitude: number }} w2 - Segment end waypoint
+ * @returns {number} Distance in kilometers
+ */
+function crossTrackPerpendicularDistanceKm(p, w1, w2) {
+  const dLat = (w2.latitude - w1.latitude);
+  const dLng = (w2.longitude - w1.longitude);
+  const segLengthSq = dLat * dLat + dLng * dLng;
+
+  if (segLengthSq < 1e-12) {
+    return calculateDistanceKm(p.latitude, p.longitude, w1.latitude, w1.longitude);
+  }
+
+  // Projection scalar t along segment [0, 1]
+  const t = Math.max(
+    0,
+    Math.min(
+      1,
+      ((p.latitude - w1.latitude) * dLat + (p.longitude - w1.longitude) * dLng) / segLengthSq
+    )
+  );
+
+  const projLat = w1.latitude + t * dLat;
+  const projLng = w1.longitude + t * dLng;
+
+  return Number(calculateDistanceKm(p.latitude, p.longitude, projLat, projLng).toFixed(3));
+}
+
+/**
+ * 6. Strict Monotonic Sequence Filter
+ *
+ * Ensures driver visits passenger pickup before passenger dropoff along polyline index:
+ * i_pickup < i_drop
+ *
+ * @param {number} pickupIndex - Segment index where pickup occurs
+ * @param {number} dropIndex - Segment index where drop occurs
+ * @returns {boolean} True if order is strictly monotonic forward
+ */
+function isMonotonicSequence(pickupIndex, dropIndex) {
+  return pickupIndex >= 0 && dropIndex >= 0 && pickupIndex < dropIndex;
+}
+
+/**
+ * 7. Dynamic Score Matrix
+ *
+ * Formula: Score = 100 - (D_detour * 2.5) - (Delta_t_mins * 0.4) + (Driver Rating * 3)
+ * Clamped between [0, 100]
+ *
+ * @param {{ detourDistanceKm: number, departureDifferenceMinutes: number, driverRating: number }} params
+ * @returns {number} Score between 0 and 100
+ */
+function calculateDynamicScoreMatrix({
+  detourDistanceKm = 0,
+  departureDifferenceMinutes = 0,
+  driverRating = 5.0,
+}) {
+  const base = 100;
+  const detourPenalty = detourDistanceKm * 2.5;
+  const timePenalty = departureDifferenceMinutes * 0.4;
+  const ratingBonus = (driverRating - 3.0) * 3.0; // Bonus/penalty centered at 3.0 rating
+
+  const raw = base - detourPenalty - timePenalty + ratingBonus;
+  return Math.max(0, Math.min(100, Math.round(raw)));
+}
+
 module.exports = {
   WEIGHTS,
   ROUTE_OVERLAP_TOLERANCE_KM,
@@ -664,4 +959,12 @@ module.exports = {
   generateExplainableReasons,
   evaluateRideMatch,
   evaluateAndRankCandidates,
+  // Algorithm Suite
+  aStarShortestPath,
+  dijkstraShortestPath,
+  bellmanFordShortestPath,
+  bfsFewestHops,
+  crossTrackPerpendicularDistanceKm,
+  isMonotonicSequence,
+  calculateDynamicScoreMatrix,
 };

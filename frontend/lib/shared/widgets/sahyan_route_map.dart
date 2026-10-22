@@ -9,6 +9,7 @@ import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/core/services/map_provider_config.dart';
 import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/shared/models/location_model.dart';
+import 'package:sahyan/shared/widgets/sahyan_3d_vehicle_marker.dart';
 
 /// Helper to convert any LatLng-like coordinate object to latlong2.LatLng
 ll.LatLng toLatLong(dynamic point) {
@@ -47,6 +48,15 @@ class SahyanRouteMap extends StatefulWidget {
   /// Optional override map style (retained for backward compatibility).
   final dynamic useGoogleMaps;
 
+  /// Stop/Halt indicator state
+  final bool isVehicleStopped;
+
+  /// Current telemetry speed in km/h
+  final double liveSpeedKmh;
+
+  /// 3D perspective tilt angle in degrees (0.0 for 2D, ~42.0 for 3D)
+  final double tiltAngle;
+
   const SahyanRouteMap({
     super.key,
     required this.origin,
@@ -64,6 +74,9 @@ class SahyanRouteMap extends StatefulWidget {
     this.followVehicle = false,
     this.onFollowToggle,
     this.useGoogleMaps,
+    this.isVehicleStopped = false,
+    this.liveSpeedKmh = 0.0,
+    this.tiltAngle = 0.0,
   });
 
   @override
@@ -92,13 +105,14 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
 
   List<ll.LatLng> _fetchedPolylinePoints = [];
   bool _isFetchingRealRoute = false;
+  double _tiltDegrees = 0.0;
 
   List<ll.LatLng> get _effectivePolylinePoints {
-    if (widget.polylinePoints.length > 4) {
-      return widget.polylinePoints.map(toLatLong).toList();
-    }
     if (_fetchedPolylinePoints.isNotEmpty) {
       return _fetchedPolylinePoints;
+    }
+    if (widget.polylinePoints.length >= 50) {
+      return widget.polylinePoints.map(toLatLong).toList();
     }
     if (widget.polylinePoints.isNotEmpty) {
       return widget.polylinePoints.map(toLatLong).toList();
@@ -121,6 +135,7 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     super.initState();
     _selectedProviderType = MapProviderConfig.currentProvider;
     _mapController = fmap.MapController();
+    _tiltDegrees = widget.tiltAngle;
 
     if (widget.driverPosition != null) {
       final pos = toLatLong(widget.driverPosition);
@@ -141,7 +156,8 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
 
     _interpolationController.addListener(_onInterpolationTick);
 
-    if (widget.polylinePoints.length <= 4) {
+    // Mandatory fetch 1,000+ turn-by-turn road points if input points are rough (< 50)
+    if (widget.polylinePoints.length < 50) {
       _fetchRoadRouteIfNeeded();
     }
   }
@@ -149,6 +165,10 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   @override
   void didUpdateWidget(covariant SahyanRouteMap oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (widget.tiltAngle != oldWidget.tiltAngle) {
+      _tiltDegrees = widget.tiltAngle;
+    }
 
     if (_mapController != null && _isMapReady && widget.bounds != null) {
       _fitBounds();
@@ -162,7 +182,7 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
         widget.destination.longitude != oldWidget.destination.longitude;
     final polyChanged = widget.polylinePoints != oldWidget.polylinePoints;
 
-    if (polyChanged && widget.polylinePoints.length > 4) {
+    if (polyChanged && widget.polylinePoints.length >= 50) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _fitBounds();
@@ -170,7 +190,7 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       });
     } else if (originChanged ||
         destChanged ||
-        (widget.polylinePoints.length <= 4 && _fetchedPolylinePoints.isEmpty)) {
+        (widget.polylinePoints.length < 50 && _fetchedPolylinePoints.isEmpty)) {
       _fetchRoadRouteIfNeeded();
     }
 
@@ -238,7 +258,8 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
 
     final lat = from.latitude + (to.latitude - from.latitude) * t;
     final lng = from.longitude + (to.longitude - from.longitude) * t;
-    final heading = _prevHeading + (_currentHeading - _prevHeading) * t;
+    // Spherical linear interpolation between heading angles along the road
+    final heading = _slerpHeading(_prevHeading, _currentHeading, t);
 
     setState(() {
       _displayDriverPos = ll.LatLng(lat, lng);
@@ -256,32 +277,21 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     }
   }
 
+  /// Trigonometric Slerp interpolation between heading angles without wrapping jumps
+  double _slerpHeading(double fromDeg, double toDeg, double t) {
+    final fromRad = fromDeg * math.pi / 180.0;
+    final toRad = toDeg * math.pi / 180.0;
+    final cs = (1.0 - t) * math.cos(fromRad) + t * math.cos(toRad);
+    final sn = (1.0 - t) * math.sin(fromRad) + t * math.sin(toRad);
+    final rad = math.atan2(sn, cs);
+    return (rad * 180.0 / math.pi + 360.0) % 360.0;
+  }
+
   /// Returns the shortest angular delta so heading never wraps 359 to 1 as +358 degrees.
   double _shortestHeading(double from, double to) {
     double delta = (to - from + 360) % 360;
     if (delta > 180) delta -= 360;
     return from + delta;
-  }
-
-  Color _colorForVehicleType(String code) {
-    switch (code) {
-      case 'ev':
-      case 'electric_car':
-      case 'electric_scooter':
-        return const Color(0xFF10B981); // Emerald for EVs
-      case 'motorcycle':
-      case 'scooter':
-        return const Color(0xFFF59E0B); // Amber for two-wheelers
-      case 'auto_rickshaw':
-      case 'electric_auto_rickshaw':
-        return const Color(0xFF8B5CF6); // Purple for three-wheelers
-      case 'suv':
-      case 'muv':
-      case 'crossover':
-        return const Color(0xFF0F172A); // Deep blue for SUVs
-      default:
-        return AppColors.deepEmerald; // Default deep emerald
-    }
   }
 
   // ── Map builders ─────────────────────────────────────────────────────────
@@ -466,7 +476,7 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       );
     }
 
-    // Driver vehicle marker — uses interpolated position & heading
+    // Driver vehicle marker — uses 3D isometric vehicle engine with Slerp heading
     final driverPos =
         _displayDriverPos ??
         (widget.driverPosition != null
@@ -476,31 +486,15 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       markers.add(
         fmap.Marker(
           point: driverPos,
-          width: 52,
-          height: 52,
-          child: Transform.rotate(
-            angle: _displayHeading * math.pi / 180.0,
-            child: Container(
-              decoration: BoxDecoration(
-                color: _colorForVehicleType(widget.vehicleTypeCode ?? ''),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.navigation_rounded,
-                  size: 28,
-                  color: Colors.white,
-                ),
-              ),
-            ),
+          width: 60,
+          height: 60,
+          alignment: Alignment.center,
+          child: Sahyan3DVehicleMarker(
+            vehicleTypeCode: widget.vehicleTypeCode ?? 'sedan',
+            heading: _displayHeading,
+            isStopped: widget.isVehicleStopped,
+            speedKmh: widget.liveSpeedKmh,
+            size: 60.0,
           ),
         ),
       );
@@ -545,32 +539,39 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       color: tileConfig.backgroundColor,
       child: Stack(
         children: [
-          fmap.FlutterMap(
-            mapController: _mapController,
-            options: fmap.MapOptions(
-              initialCenter: _getInitialCenter(),
-              initialZoom: 8.5,
-              interactionOptions: fmap.InteractionOptions(
-                flags: widget.interactive
-                    ? fmap.InteractiveFlag.all
-                    : fmap.InteractiveFlag.none,
+          Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0012)
+              ..rotateX(_tiltDegrees * math.pi / 180.0),
+            child: fmap.FlutterMap(
+              mapController: _mapController,
+              options: fmap.MapOptions(
+                initialCenter: _getInitialCenter(),
+                initialZoom: 8.5,
+                interactionOptions: fmap.InteractionOptions(
+                  flags: widget.interactive
+                      ? fmap.InteractiveFlag.all
+                      : fmap.InteractiveFlag.none,
+                ),
+                onMapReady: () {
+                  _isMapReady = true;
+                  _fitBounds();
+                  widget.onMapCreated?.call(_mapController);
+                },
               ),
-              onMapReady: () {
-                _isMapReady = true;
-                _fitBounds();
-                widget.onMapCreated?.call(_mapController);
-              },
+              children: [
+                fmap.TileLayer(
+                  key: ValueKey('${tileConfig.type.name}_${tileConfig.urlTemplate}'),
+                  urlTemplate: tileConfig.urlTemplate,
+                  subdomains: tileConfig.subdomains,
+                  userAgentPackageName: tileConfig.userAgentPackageName,
+                  maxZoom: tileConfig.maxZoom.toDouble(),
+                ),
+                fmap.PolylineLayer(polylines: _buildPolylines()),
+                fmap.MarkerLayer(markers: _buildMarkers()),
+              ],
             ),
-            children: [
-              fmap.TileLayer(
-                urlTemplate: tileConfig.urlTemplate,
-                subdomains: tileConfig.subdomains,
-                userAgentPackageName: tileConfig.userAgentPackageName,
-                maxZoom: tileConfig.maxZoom.toDouble(),
-              ),
-              fmap.PolylineLayer(polylines: _buildPolylines()),
-              fmap.MarkerLayer(markers: _buildMarkers()),
-            ],
           ),
 
           // Map style selector badge
@@ -617,6 +618,16 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               MapProviderType.cartoPositron,
               'Clean Navigation',
               Icons.navigation_rounded,
+            ),
+            _buildPopupItem(
+              MapProviderType.satellite,
+              'Satellite Aerial',
+              Icons.satellite_alt_rounded,
+            ),
+            _buildPopupItem(
+              MapProviderType.cyclosm,
+              'Topographic Terrain',
+              Icons.terrain_rounded,
             ),
             _buildPopupItem(
               MapProviderType.osmStandard,
@@ -723,6 +734,16 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          _buildControlButton(
+            icon: _tiltDegrees > 0 ? Icons.view_in_ar_rounded : Icons.threed_rotation_rounded,
+            tooltip: _tiltDegrees > 0 ? 'Reset 2D View' : '3D Perspective Tilt (45°)',
+            onTap: () {
+              setState(() {
+                _tiltDegrees = _tiltDegrees > 0 ? 0.0 : 42.0;
+              });
+            },
+          ),
+          const SizedBox(height: 6),
           _buildControlButton(
             icon: Icons.add,
             tooltip: 'Zoom In',

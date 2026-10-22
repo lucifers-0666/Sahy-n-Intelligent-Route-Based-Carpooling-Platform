@@ -81,6 +81,12 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
 
   // ── UI state ─────────────────────────────────────────────────────────────
   bool _followVehicle = true;
+  bool _is3DTilt = false;
+
+  // ── Stop / Halt Detection Engine ──────────────────────────────────────────
+  DateTime? _haltStartedAt;
+  bool _isVehicleHalted = false;
+  bool _manualSimHalt = false;
 
   @override
   void initState() {
@@ -247,20 +253,37 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
       _destination.latitude,
       _destination.longitude,
     );
-    final speed = payload.speed > 0 ? payload.speed : 40.0;
-    final etaMins = ((remaining / speed) * 60).round().clamp(
+    final speed = payload.speed >= 0 ? payload.speed : 0.0;
+    final etaMins = ((remaining / (speed > 5.0 ? speed : 40.0)) * 60).round().clamp(
       1,
       _totalDurationMins,
     );
 
+    _updateHaltState(speed);
+
     setState(() {
       _driverPosition = newPos;
       _driverHeading = payload.heading;
-      _liveSpeedKmh = payload.speed;
+      _liveSpeedKmh = speed;
       _remainingKm = remaining;
       _remainingMins = etaMins;
       _lastPacketAt = DateTime.now();
     });
+  }
+
+  void _updateHaltState(double speed) {
+    final now = DateTime.now();
+    if (speed < 3.0 || _manualSimHalt) {
+      _haltStartedAt ??= now;
+      final elapsedSec = now.difference(_haltStartedAt!).inSeconds;
+      if (elapsedSec >= 20 || _manualSimHalt) {
+        _isVehicleHalted = true;
+      }
+    } else if (speed > 10.0) {
+      _haltStartedAt = null;
+      _isVehicleHalted = false;
+      _manualSimHalt = false;
+    }
   }
 
   void _startSimulationIfNoData() {
@@ -313,10 +336,16 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
       _totalDurationMins.toDouble(),
     )).toInt();
 
+    final simSpeed = _manualSimHalt
+        ? 0.0
+        : (42.0 + (math.sin(progress * math.pi * 4) * 8));
+
+    _updateHaltState(simSpeed);
+
     setState(() {
       _driverPosition = simPos;
       _driverHeading = headingDeg;
-      _liveSpeedKmh = 42.0 + (math.sin(progress * math.pi * 4) * 8);
+      _liveSpeedKmh = simSpeed;
       _remainingKm = remaining;
       _remainingMins = etaMins;
     });
@@ -473,6 +502,9 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                 vehicleTypeCode: widget.vehicleType.code,
                 followVehicle: _followVehicle,
                 onFollowToggle: (val) => setState(() => _followVehicle = val),
+                isVehicleStopped: _isVehicleHalted,
+                liveSpeedKmh: _liveSpeedKmh,
+                tiltAngle: _is3DTilt ? 42.0 : 0.0,
               ),
             ),
 
@@ -613,6 +645,70 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
                 ),
               ),
 
+            // Floating Telematics & Camera Controls (3D Tilt & Simulation Halt)
+            Positioned(
+              right: 16,
+              bottom: 110,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'tilt_btn',
+                    backgroundColor:
+                        _is3DTilt ? SahyanColors.primaryDark : SahyanColors.surface,
+                    foregroundColor:
+                        _is3DTilt ? SahyanColors.primaryMint : SahyanColors.primaryDark,
+                    elevation: 3,
+                    tooltip: _is3DTilt
+                        ? 'Reset to 2D Top View'
+                        : '3D Driving View (45° Tilt)',
+                    onPressed: () {
+                      setState(() {
+                        _is3DTilt = !_is3DTilt;
+                      });
+                    },
+                    child: Icon(
+                      _is3DTilt
+                          ? Icons.view_in_ar_rounded
+                          : Icons.threed_rotation_rounded,
+                      size: 20,
+                    ),
+                  ),
+                  if (_useSimulation) ...[
+                    const SizedBox(height: 8),
+                    FloatingActionButton.small(
+                      heroTag: 'halt_btn',
+                      backgroundColor: _isVehicleHalted
+                          ? const Color(0xFFF59E0B)
+                          : SahyanColors.surface,
+                      foregroundColor: _isVehicleHalted
+                          ? Colors.white
+                          : const Color(0xFFF59E0B),
+                      elevation: 3,
+                      tooltip: _isVehicleHalted
+                          ? 'Resume Transit Simulation'
+                          : 'Simulate Stop / Halt',
+                      onPressed: () {
+                        setState(() {
+                          _manualSimHalt = !_manualSimHalt;
+                          if (!_manualSimHalt) {
+                            _haltStartedAt = null;
+                            _isVehicleHalted = false;
+                          }
+                        });
+                      },
+                      child: Icon(
+                        _isVehicleHalted
+                            ? Icons.play_arrow_rounded
+                            : Icons.pause_rounded,
+                        size: 22,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
             // Bottom Contact Action Dock
             Positioned(
               bottom: 0,
@@ -733,46 +829,91 @@ class _LiveRideTrackingScreenState extends State<LiveRideTrackingScreen>
           ),
           const SizedBox(height: 10),
 
-          // ── Live ETA + speed banner ──────────────────────────────────────
+          // ── Live ETA + speed / stop telematics banner ──────────────────
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: SahyanColors.primaryDark,
+              color: _isVehicleHalted
+                  ? const Color(0xFF78350F) // Deep amber-brown for stop alert
+                  : SahyanColors.primaryDark,
               borderRadius: BorderRadius.circular(12),
+              border: _isVehicleHalted
+                  ? Border.all(color: const Color(0xFFF59E0B), width: 1.2)
+                  : null,
             ),
             child: Row(
               children: [
-                // Connection health dot
-                _buildConnectionHealthDot(),
+                // Stop/Halt pulsing badge or connection health dot
+                if (_isVehicleHalted)
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFF59E0B),
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                else
+                  _buildConnectionHealthDot(),
                 const SizedBox(width: 8),
 
                 Expanded(
                   child: Text(
-                    _driverPosition != null
-                        ? '${_remainingKm.toStringAsFixed(1)} km away \u2022 $_remainingMins mins'
-                        : 'Awaiting driver location update...',
+                    _isVehicleHalted
+                        ? 'Vehicle Halted · Limbdi Toll'
+                        : (_liveSpeedKmh > 15
+                            ? 'In Transit · ${_liveSpeedKmh.toStringAsFixed(0)} km/h · ETA $_remainingMins mins'
+                            : (_driverPosition != null
+                                ? '${_remainingKm.toStringAsFixed(1)} km away · $_remainingMins mins'
+                                : 'Awaiting driver location update...')),
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 13,
+                      fontSize: 12.5,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.2,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
 
-                // Live speed pill
-                if (_liveSpeedKmh > 0)
+                // Live speed or Stop indicator pill
+                if (_isVehicleHalted)
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 7,
-                      vertical: 2,
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'HALTED',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  )
+                else if (_liveSpeedKmh > 15)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
                     ),
                     decoration: BoxDecoration(
                       color: SahyanColors.primaryMint.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: SahyanColors.primaryMint.withValues(alpha: 0.6),
+                        width: 1.0,
+                      ),
                     ),
                     child: Text(
-                      '${_liveSpeedKmh.toStringAsFixed(0)} km/h',
+                      'In Transit · ${_liveSpeedKmh.toStringAsFixed(0)} km/h',
                       style: const TextStyle(
                         color: SahyanColors.primaryMint,
                         fontSize: 10,

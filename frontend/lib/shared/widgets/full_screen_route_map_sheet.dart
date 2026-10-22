@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart' as fmap;
@@ -6,7 +7,10 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/core/services/map_provider_config.dart';
 import 'package:sahyan/core/services/route_service.dart';
+import 'package:sahyan/features/trip/presentation/screens/live_ride_tracking_screen.dart';
+import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/shared/models/location_model.dart';
+import 'package:sahyan/shared/widgets/sahyan_3d_vehicle_marker.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 
 /// Full-screen expandable route map sheet inspired by Uber and Apple Maps navigation.
@@ -21,6 +25,7 @@ class FullScreenRouteMapSheet extends StatefulWidget {
   final String? routeTitle;
   final String? corridorHighway;
   final double? distanceKm;
+  final String? vehicleTypeCode;
 
   const FullScreenRouteMapSheet({
     super.key,
@@ -32,6 +37,7 @@ class FullScreenRouteMapSheet extends StatefulWidget {
     this.routeTitle,
     this.corridorHighway,
     this.distanceKm,
+    this.vehicleTypeCode,
   });
 
   /// Opens the full-screen interactive route map modal
@@ -45,6 +51,7 @@ class FullScreenRouteMapSheet extends StatefulWidget {
     String? routeTitle,
     String? corridorHighway,
     double? distanceKm,
+    String? vehicleTypeCode,
   }) {
     return Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute<void>(
@@ -58,6 +65,7 @@ class FullScreenRouteMapSheet extends StatefulWidget {
           routeTitle: routeTitle,
           corridorHighway: corridorHighway,
           distanceKm: distanceKm,
+          vehicleTypeCode: vehicleTypeCode,
         ),
       ),
     );
@@ -68,19 +76,27 @@ class FullScreenRouteMapSheet extends StatefulWidget {
       _FullScreenRouteMapSheetState();
 }
 
-class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
+class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
+    with TickerProviderStateMixin {
   late final fmap.MapController _mapController;
   bool _isMapReady = false;
   late MapProviderType _selectedProviderType;
   List<ll.LatLng> _fetchedPolylinePoints = [];
   bool _isFetchingRealRoute = false;
 
+  // 3D perspective and live vehicle animation state
+  bool _is3DTilt = false;
+  AnimationController? _vehicleAnimController;
+  ll.LatLng? _simVehiclePos;
+  double _simVehicleHeading = 0.0;
+  final bool _isVehicleStopped = false;
+
   List<ll.LatLng> get _effectivePolylinePoints {
-    if (widget.polylinePoints.length > 4) {
-      return widget.polylinePoints.map(toLatLong).toList();
-    }
     if (_fetchedPolylinePoints.isNotEmpty) {
       return _fetchedPolylinePoints;
+    }
+    if (widget.polylinePoints.length >= 50) {
+      return widget.polylinePoints.map(toLatLong).toList();
     }
     if (widget.polylinePoints.isNotEmpty) {
       return widget.polylinePoints.map(toLatLong).toList();
@@ -106,9 +122,53 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
     super.initState();
     _selectedProviderType = MapProviderConfig.currentProvider;
     _mapController = fmap.MapController();
-    if (widget.polylinePoints.length <= 4) {
+    _initVehicleAnimation();
+    if (widget.polylinePoints.length < 50) {
       _fetchRoadRouteIfNeeded();
     }
+  }
+
+  void _initVehicleAnimation() {
+    if (_isTestingEnvironment) return;
+    _vehicleAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 18),
+    )..addListener(_onVehicleAnimTick);
+    _vehicleAnimController?.repeat();
+  }
+
+  void _onVehicleAnimTick() {
+    final points = _effectivePolylinePoints;
+    if (points.length < 2) return;
+    final progress = _vehicleAnimController?.value ?? 0.0;
+    final floatIndex = progress * (points.length - 1);
+    final baseIndex = floatIndex.floor().clamp(0, points.length - 2);
+    final frac = floatIndex - baseIndex;
+
+    final p1 = points[baseIndex];
+    final p2 = points[baseIndex + 1];
+
+    final lat = p1.latitude + (p2.latitude - p1.latitude) * frac;
+    final lng = p1.longitude + (p2.longitude - p1.longitude) * frac;
+
+    final dLat = p2.latitude - p1.latitude;
+    final dLng = p2.longitude - p1.longitude;
+    final headingRad = math.atan2(dLng, dLat);
+    final headingDeg = (headingRad * 180.0 / math.pi + 360.0) % 360.0;
+
+    if (mounted) {
+      setState(() {
+        _simVehiclePos = ll.LatLng(lat, lng);
+        _simVehicleHeading = headingDeg;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _vehicleAnimController?.dispose();
+    _mapController.dispose();
+    super.dispose();
   }
 
   @override
@@ -128,6 +188,7 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
   }
 
   Future<void> _fetchRoadRouteIfNeeded() async {
+    if (_isTestingEnvironment) return;
     if (_isFetchingRealRoute) return;
     if (widget.origin.latitude == 0.0 && widget.origin.longitude == 0.0) return;
     if (widget.destination.latitude == 0.0 &&
@@ -322,6 +383,25 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
       );
     }
 
+    // 3D Moving Vehicle Marker with Isometric Heading
+    if (_simVehiclePos != null) {
+      markers.add(
+        fmap.Marker(
+          point: _simVehiclePos!,
+          width: 60,
+          height: 60,
+          alignment: Alignment.center,
+          child: Sahyan3DVehicleMarker(
+            vehicleTypeCode: widget.vehicleTypeCode ?? 'sedan',
+            heading: _simVehicleHeading,
+            isStopped: _isVehicleStopped,
+            speedKmh: _isVehicleStopped ? 0.0 : 68.0,
+            size: 60.0,
+          ),
+        ),
+      );
+    }
+
     return markers;
   }
 
@@ -348,13 +428,127 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
     return ll.LatLng(lat, lng);
   }
 
+  void _showCartoKeyDialog() {
+    final controller = TextEditingController(text: MapProviderConfig.cartoApiKey);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.key_rounded, color: SahyanColors.primaryDark, size: 22),
+            SizedBox(width: 8),
+            Text(
+              'CARTO Basemaps Key',
+              style: TextStyle(
+                fontFamily: 'Plus Jakarta Sans',
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: SahyanColors.primaryDark,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter your CARTO API Key to unlock commercial CARTO Voyager, Positron, and Dark vector basemaps.',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: SahyanColors.textMuted,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: controller,
+              decoration: InputDecoration(
+                hintText: 'Paste CARTO API Key',
+                filled: true,
+                fillColor: SahyanColors.canvas,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: SahyanColors.border),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: SahyanColors.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final key = controller.text.trim();
+              MapProviderConfig.setCartoApiKey(key);
+              Navigator.of(ctx).pop();
+              if (key.isNotEmpty) {
+                MapProviderConfig.setProvider(MapProviderType.cartoVoyager);
+                setState(() {
+                  _selectedProviderType = MapProviderType.cartoVoyager;
+                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('CARTO API Key activated. Switched to Sahyān Road.'),
+                    backgroundColor: SahyanColors.primaryDark,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: SahyanColors.primaryDark,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Apply Key'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDockButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    bool isActive = false,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Tooltip(
+          message: tooltip,
+          child: SizedBox(
+            width: 44,
+            height: 42,
+            child: Center(
+              child: Icon(
+                icon,
+                size: 20,
+                color: isActive ? SahyanColors.primaryMint : SahyanColors.primaryDark,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.canvasLight,
       body: Stack(
         children: [
-          // ─── 1. Full-Canvas FlutterMap ──────────────────────────────────────
+          // ─── 1. Full-Canvas FlutterMap with Optional 3D Perspective Tilt ─────
           Positioned.fill(
             child: _isTestingEnvironment
                 ? Container(
@@ -369,31 +563,37 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                       ),
                     ),
                   )
-                : fmap.FlutterMap(
-                    mapController: _mapController,
-                    options: fmap.MapOptions(
-                      initialCenter: _getInitialCenter(),
-                      initialZoom: 8.5,
-                      interactionOptions: const fmap.InteractionOptions(
-                        flags: fmap.InteractiveFlag.all,
+                : Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0012)
+                      ..rotateX(_is3DTilt ? 42.0 * math.pi / 180.0 : 0.0),
+                    child: fmap.FlutterMap(
+                      mapController: _mapController,
+                      options: fmap.MapOptions(
+                        initialCenter: _getInitialCenter(),
+                        initialZoom: 8.5,
+                        interactionOptions: const fmap.InteractionOptions(
+                          flags: fmap.InteractiveFlag.all,
+                        ),
+                        onMapReady: () {
+                          _isMapReady = true;
+                          _fitRouteBounds();
+                        },
                       ),
-                      onMapReady: () {
-                        _isMapReady = true;
-                        _fitRouteBounds();
-                      },
+                      children: [
+                        fmap.TileLayer(
+                          key: ValueKey(_selectedProviderType),
+                          urlTemplate: _activeTileConfig.urlTemplate,
+                          subdomains: _activeTileConfig.subdomains,
+                          userAgentPackageName:
+                              _activeTileConfig.userAgentPackageName,
+                          maxZoom: _activeTileConfig.maxZoom.toDouble(),
+                        ),
+                        fmap.PolylineLayer(polylines: _buildPolylines()),
+                        fmap.MarkerLayer(markers: _buildMarkers()),
+                      ],
                     ),
-                    children: [
-                      fmap.TileLayer(
-                        key: ValueKey(_selectedProviderType),
-                        urlTemplate: _activeTileConfig.urlTemplate,
-                        subdomains: _activeTileConfig.subdomains,
-                        userAgentPackageName:
-                            _activeTileConfig.userAgentPackageName,
-                        maxZoom: _activeTileConfig.maxZoom.toDouble(),
-                      ),
-                      fmap.PolylineLayer(polylines: _buildPolylines()),
-                      fmap.MarkerLayer(markers: _buildMarkers()),
-                    ],
                   ),
           ),
 
@@ -451,7 +651,7 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                       ),
                     ),
 
-                    // Close button
+                    // Close button (Dedicated space, clean circle)
                     Material(
                       color: SahyanColors.surface,
                       shape: const CircleBorder(),
@@ -477,67 +677,123 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
             ),
           ),
 
-          // ─── 3. Right Floating Controls (Fit Bounds + Zoom) ─────────────────
+          // ─── 3. Right Floating Unified Action Dock ──────────────────────────
           Positioned(
             right: 16,
-            top: 100,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Map Style Switcher
-                PopupMenuButton<MapProviderType>(
-                  tooltip: 'Map Layer',
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+            top: 96,
+            child: Container(
+              width: 44,
+              decoration: BoxDecoration(
+                color: SahyanColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: SahyanColors.border,
+                  width: 0.8,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1E14241C),
+                    blurRadius: 14,
+                    offset: Offset(0, 4),
                   ),
-                  offset: const Offset(-180, 0),
-                  onSelected: (type) {
-                    MapProviderConfig.setProvider(type);
-                    setState(() {
-                      _selectedProviderType = type;
-                    });
-                  },
-                  itemBuilder: (ctx) => [
-                    _buildPopupItem(
-                      MapProviderType.osmStandard,
-                      'OpenStreetMap',
-                      Icons.map_rounded,
-                    ),
-                    _buildPopupItem(
-                      MapProviderType.osmHot,
-                      'Sahyān High-Contrast',
-                      Icons.traffic_rounded,
-                    ),
-                    _buildPopupItem(
-                      MapProviderType.cartoVoyager,
-                      'Sahyān Road',
-                      Icons.navigation_rounded,
-                    ),
-                    _buildPopupItem(
-                      MapProviderType.cartoPositron,
-                      'Clean Light',
-                      Icons.wb_sunny_outlined,
-                    ),
-                    _buildPopupItem(
-                      MapProviderType.cartoDark,
-                      'Night Voyage',
-                      Icons.dark_mode_outlined,
-                    ),
-                  ],
-                  child: Material(
-                    color: SahyanColors.surface,
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 1. 3D Tilt Perspective Toggle
+                  _buildDockButton(
+                    icon: _is3DTilt
+                        ? Icons.view_in_ar_rounded
+                        : Icons.threed_rotation_rounded,
+                    tooltip: _is3DTilt ? 'Reset 2D View' : '3D Driving Tilt (45°)',
+                    isActive: _is3DTilt,
+                    onTap: () {
+                      setState(() {
+                        _is3DTilt = !_is3DTilt;
+                      });
+                    },
+                  ),
+                  const Divider(height: 1, thickness: 0.8, color: SahyanColors.border),
+
+                  // 2. Map Style Switcher
+                  PopupMenuButton<String>(
+                    tooltip: 'Map Layer & Styling',
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: const BorderSide(
-                        color: SahyanColors.border,
-                        width: 0.8,
-                      ),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    elevation: 3,
-                    shadowColor: const Color(0x1E14241C),
+                    offset: const Offset(-210, 0),
+                    onSelected: (choice) {
+                      if (choice == 'config_carto') {
+                        _showCartoKeyDialog();
+                      } else {
+                        final type = MapProviderType.values.firstWhere(
+                          (e) => e.name == choice,
+                        );
+                        MapProviderConfig.setProvider(type);
+                        setState(() {
+                          _selectedProviderType = type;
+                        });
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      _buildPopupItem(
+                        MapProviderType.osmStandard,
+                        'OpenStreetMap',
+                        Icons.map_rounded,
+                      ),
+                      _buildPopupItem(
+                        MapProviderType.osmHot,
+                        'Sahyān High-Contrast',
+                        Icons.traffic_rounded,
+                      ),
+                      _buildPopupItem(
+                        MapProviderType.satellite,
+                        'Satellite Aerial',
+                        Icons.satellite_alt_rounded,
+                      ),
+                      _buildPopupItem(
+                        MapProviderType.cyclosm,
+                        'Topographic Terrain',
+                        Icons.terrain_rounded,
+                      ),
+                      _buildPopupItem(
+                        MapProviderType.cartoVoyager,
+                        'Sahyān Road',
+                        Icons.navigation_rounded,
+                      ),
+                      _buildPopupItem(
+                        MapProviderType.cartoPositron,
+                        'Clean Light',
+                        Icons.wb_sunny_outlined,
+                      ),
+                      _buildPopupItem(
+                        MapProviderType.cartoDark,
+                        'Night Voyage',
+                        Icons.dark_mode_outlined,
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem<String>(
+                        value: 'config_carto',
+                        child: Row(
+                          children: [
+                            Icon(Icons.key_rounded, size: 18, color: SahyanColors.primaryDark),
+                            SizedBox(width: 10),
+                            Text(
+                              'Configure CARTO Key...',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: SahyanColors.primaryDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     child: const SizedBox(
                       width: 44,
-                      height: 44,
+                      height: 42,
                       child: Icon(
                         Icons.layers_rounded,
                         size: 20,
@@ -545,95 +801,32 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
+                  const Divider(height: 1, thickness: 0.8, color: SahyanColors.border),
 
-                // Fit Route Bounds Button
-                Material(
-                  color: SahyanColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(
-                      color: SahyanColors.border,
-                      width: 0.8,
-                    ),
-                  ),
-                  elevation: 3,
-                  shadowColor: const Color(0x1E14241C),
-                  child: InkWell(
+                  // 3. Fit Route Bounds Button
+                  _buildDockButton(
+                    icon: Icons.center_focus_strong_rounded,
+                    tooltip: 'Fit Route Bounds',
                     onTap: _fitRouteBounds,
-                    borderRadius: BorderRadius.circular(12),
-                    child: const Tooltip(
-                      message: 'Fit Route Bounds',
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: Icon(
-                          Icons.center_focus_strong_rounded,
-                          size: 20,
-                          color: SahyanColors.primaryDark,
-                        ),
-                      ),
-                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
+                  const Divider(height: 1, thickness: 0.8, color: SahyanColors.border),
 
-                // Zoom In
-                Material(
-                  color: SahyanColors.surface,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(12),
-                    ),
-                    side: BorderSide(color: SahyanColors.border, width: 0.8),
-                  ),
-                  elevation: 3,
-                  shadowColor: const Color(0x1E14241C),
-                  child: InkWell(
+                  // 4. Zoom In
+                  _buildDockButton(
+                    icon: Icons.add_rounded,
+                    tooltip: 'Zoom In',
                     onTap: _zoomIn,
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12),
-                    ),
-                    child: const SizedBox(
-                      width: 44,
-                      height: 40,
-                      child: Icon(
-                        Icons.add_rounded,
-                        size: 22,
-                        color: SahyanColors.textMain,
-                      ),
-                    ),
                   ),
-                ),
-                // Zoom Out
-                Material(
-                  color: SahyanColors.surface,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(
-                      bottom: Radius.circular(12),
-                    ),
-                    side: BorderSide(color: SahyanColors.border, width: 0.8),
-                  ),
-                  elevation: 3,
-                  shadowColor: const Color(0x1E14241C),
-                  child: InkWell(
+                  const Divider(height: 1, thickness: 0.8, color: SahyanColors.border),
+
+                  // 5. Zoom Out
+                  _buildDockButton(
+                    icon: Icons.remove_rounded,
+                    tooltip: 'Zoom Out',
                     onTap: _zoomOut,
-                    borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(12),
-                    ),
-                    child: const SizedBox(
-                      width: 44,
-                      height: 40,
-                      child: Icon(
-                        Icons.remove_rounded,
-                        size: 22,
-                        color: SahyanColors.textMain,
-                      ),
-                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -809,6 +1002,57 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
                         }).toList(),
                       ),
                     ],
+
+                    // ─── Prominent "Start Navigation" Button ────────────────
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (ctx) => LiveRideTrackingScreen(
+                                originName: widget.origin.name.isNotEmpty
+                                    ? widget.origin.name
+                                    : 'ISCON Cross Road, Ahmedabad',
+                                destinationName: widget.destination.name.isNotEmpty
+                                    ? widget.destination.name
+                                    : 'Kalawad Road, Rajkot',
+                                driverName: 'Rohit Patel',
+                                driverRating: 4.92,
+                                vehicleInfo: 'Honda City ZX · GJ03AB1234',
+                                vehicleType: VehicleType.sedan,
+                                rideId: 'demo-ahmedabad-rajkot-corridor',
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.navigation_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        label: const Text(
+                          'Start Navigation',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: SahyanColors.primaryDark,
+                          foregroundColor: Colors.white,
+                          elevation: 3,
+                          shadowColor: const Color(0x3314241C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -819,14 +1063,14 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
     );
   }
 
-  PopupMenuItem<MapProviderType> _buildPopupItem(
+  PopupMenuItem<String> _buildPopupItem(
     MapProviderType type,
     String label,
     IconData icon,
   ) {
     final isSelected = _selectedProviderType == type;
-    return PopupMenuItem<MapProviderType>(
-      value: type,
+    return PopupMenuItem<String>(
+      value: type.name,
       child: Row(
         children: [
           Icon(
@@ -858,3 +1102,4 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet> {
     );
   }
 }
+

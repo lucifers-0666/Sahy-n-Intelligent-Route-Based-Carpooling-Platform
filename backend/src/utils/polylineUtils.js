@@ -343,14 +343,56 @@ function generateFallbackRoute(origin, destination, numPoints = 25) {
     return result;
   }
 
+  // Check if route is Rajkot <-> Ahmedabad (NH47 Highway Corridor)
+  const isRajkotAmd =
+    ((oLng < 71.2 && oLat > 22.1 && oLat < 22.5) && (dLng > 72.3 && dLat > 22.8 && dLat < 23.3)) ||
+    ((dLng < 71.2 && dLat > 22.1 && dLat < 22.5) && (oLng > 72.3 && oLat > 22.8 && oLat < 23.3));
+
+  if (isRajkotAmd) {
+    const nh47Waypoints = [
+      { latitude: 22.2890, longitude: 70.7710 }, // 150ft Ring Rd
+      { latitude: 22.3120, longitude: 70.7850 }, // Madhapar Chowk
+      { latitude: 22.3039, longitude: 70.8350 }, // Greenland Chowkadi
+      { latitude: 22.3480, longitude: 70.9320 }, // Sanosara
+      { latitude: 22.3920, longitude: 71.0450 }, // Bamanbore
+      { latitude: 22.4220, longitude: 71.1950 }, // Chotila
+      { latitude: 22.5350, longitude: 71.4680 }, // Sayla
+      { latitude: 22.5620, longitude: 71.8050 }, // Limbdi
+      { latitude: 22.6050, longitude: 72.1550 }, // Bagodara
+      { latitude: 22.8250, longitude: 72.3650 }, // Bavla
+      { latitude: 22.9850, longitude: 72.4950 }, // Sarkhej
+    ];
+
+    const allLegs = oLng < 71.2
+      ? [origin, ...nh47Waypoints, destination]
+      : [origin, ...nh47Waypoints.slice().reverse(), destination];
+
+    const result = [];
+    const ptsPerLeg = Math.max(4, Math.floor(numPoints / (allLegs.length - 1)));
+    for (let l = 0; l < allLegs.length - 1; l++) {
+      const p1 = allLegs[l];
+      const p2 = allLegs[l + 1];
+      const steps = l === allLegs.length - 2 ? ptsPerLeg + 2 : ptsPerLeg;
+      for (let i = 0; i < steps; i++) {
+        const frac = i / steps;
+        result.push({
+          latitude: Number((p1.latitude + (p2.latitude - p1.latitude) * frac).toFixed(6)),
+          longitude: Number((p1.longitude + (p2.longitude - p1.longitude) * frac).toFixed(6)),
+        });
+      }
+    }
+    result.push(destination);
+    return result;
+  }
+
   const points = [];
   const dLatStep = (destination.latitude - origin.latitude) / (numPoints - 1);
   const dLngStep = (destination.longitude - origin.longitude) / (numPoints - 1);
 
   for (let i = 0; i < numPoints; i++) {
     points.push({
-      latitude: origin.latitude + dLatStep * i,
-      longitude: origin.longitude + dLngStep * i,
+      latitude: Number((origin.latitude + dLatStep * i).toFixed(6)),
+      longitude: Number((origin.longitude + dLngStep * i).toFixed(6)),
     });
   }
 

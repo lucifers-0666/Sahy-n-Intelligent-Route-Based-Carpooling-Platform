@@ -173,6 +173,26 @@ void main() {
       expect(find.text('Highway Corridor Active'), findsOneWidget);
       expect(find.text('Rajkot'), findsOneWidget);
       expect(find.text('Ahmedabad'), findsOneWidget);
+      expect(find.text('Start Navigation'), findsOneWidget);
+    });
+
+    test('CARTO API Key configuration updates runtime URLs and providers', () {
+      MapProviderConfig.setCartoApiKey('test_carto_key_9988');
+      expect(MapProviderConfig.cartoApiKey, equals('test_carto_key_9988'));
+      expect(MapProviderConfig.hasCartoKey, isTrue);
+
+      final voyagerConfig = MapProviderConfig.providers[MapProviderType.cartoVoyager]!;
+      expect(voyagerConfig.urlTemplate, contains('api_key=test_carto_key_9988'));
+
+      final satelliteConfig = MapProviderConfig.providers[MapProviderType.satellite]!;
+      expect(satelliteConfig.displayName, equals('Satellite Aerial'));
+
+      final topoConfig = MapProviderConfig.providers[MapProviderType.cyclosm]!;
+      expect(topoConfig.displayName, equals('Topographic Terrain'));
+
+      // Clean up test key
+      MapProviderConfig.setCartoApiKey('');
     });
   });
 }
+

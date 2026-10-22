@@ -1434,9 +1434,21 @@ const searchRides = async (req, res, next) => {
     const now = new Date(Date.now() - 30 * 60 * 1000); // 30 minute grace period for ongoing boarding
 
     if (requestedDateTime) {
-      const minBound = new Date(Math.max(now.getTime(), requestedDateTime.getTime() - windowMs));
-      const maxBound = new Date(requestedDateTime.getTime() + windowMs);
-      query.departureTime = { $gte: minBound, $lte: maxBound };
+      const isDateOnly = typeof departureDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(departureDate.trim());
+      if (isDateOnly) {
+        const startOfDay = new Date(requestedDateTime);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(requestedDateTime);
+        endOfDay.setHours(23, 59, 59, 999);
+        query.departureTime = {
+          $gte: new Date(Math.max(now.getTime(), startOfDay.getTime())),
+          $lte: endOfDay,
+        };
+      } else {
+        const minBound = new Date(Math.max(now.getTime(), requestedDateTime.getTime() - windowMs));
+        const maxBound = new Date(requestedDateTime.getTime() + windowMs);
+        query.departureTime = { $gte: minBound, $lte: maxBound };
+      }
     } else {
       query.departureTime = { $gte: now };
     }
@@ -1458,14 +1470,27 @@ const searchRides = async (req, res, next) => {
     }
 
     // 6. Execute query
-    const candidateRides = await Ride.find(query)
+    let candidateRides = await Ride.find(query)
       .populate('vehicle')
       .populate('driver', 'name email phone profileImage city rating isVerified isPhoneVerified isIdentityVerified')
       .sort({ departureTime: 1 })
       .limit(50)
       .lean();
 
-    // 7. Calculate passenger route ONCE (avoid N+1 Google Maps queries)
+    // If strict time window produced 0 results, relax time filter to find scheduled rides for origin/destination
+    if (candidateRides.length === 0 && query.departureTime && (query['origin.point'] || query['destination.point'])) {
+      const relaxedQuery = { ...query };
+      delete relaxedQuery.departureTime;
+      relaxedQuery.status = { $in: ['scheduled', 'boarding'] };
+      candidateRides = await Ride.find(relaxedQuery)
+        .populate('vehicle')
+        .populate('driver', 'name email phone profileImage city rating isVerified isPhoneVerified isIdentityVerified')
+        .sort({ departureTime: 1 })
+        .limit(25)
+        .lean();
+    }
+
+    // 7. Calculate passenger route ONCE
     let passengerPoints = [];
     if (
       originLat !== null &&
@@ -1476,14 +1501,13 @@ const searchRides = async (req, res, next) => {
       isValidCoordinate(destLat, destLng)
     ) {
       try {
-        let routeResult;
         const isTestEnv =
           process.env.NODE_ENV === 'test' ||
           process.execArgv.includes('--test') ||
           process.argv.some((arg) => typeof arg === 'string' && arg.includes('test'));
 
         if (!isTestEnv) {
-          const routeResult = await googleMapsService.calculateRoute(
+          const routeResult = await routeCalculationService.calculateRoute(
             { latitude: originLat, longitude: originLng },
             { latitude: destLat, longitude: destLng }
           );

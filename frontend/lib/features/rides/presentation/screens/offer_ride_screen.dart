@@ -977,6 +977,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                               .toList()
                         : const [],
                     stopovers: draft.stopovers,
+                    vehicleTypeCode: draft.selectedVehicle?.vehicleType,
                     bounds:
                         draft.route != null &&
                             draft.route!.encodedPolyline.isNotEmpty
@@ -1013,6 +1014,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                             polylinePoints: pts,
                             stopovers: draft.stopovers,
                             corridorHighway: 'Highway Corridor Active',
+                            vehicleTypeCode: draft.selectedVehicle?.vehicleType,
                             distanceKm: draft.route?.distanceMeters != null
                                 ? (draft.route!.distanceMeters / 1000.0)
                                 : null,
