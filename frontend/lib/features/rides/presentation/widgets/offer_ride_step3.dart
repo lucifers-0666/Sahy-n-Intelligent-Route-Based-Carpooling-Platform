@@ -17,7 +17,7 @@ class OfferRideStep3 extends ConsumerWidget {
   static const List<Map<String, dynamic>> allAmenities = [
     {'label': 'AC', 'icon': Icons.ac_unit_rounded},
     {'label': 'Music', 'icon': Icons.music_note_rounded},
-    {'label': 'Luggage Space', 'icon': Icons.luggage_rounded},
+    {'label': 'Luggage Space', 'icon': Icons.work_outline_rounded},
     {'label': 'No Smoking', 'icon': Icons.smoke_free_rounded},
     {'label': 'Pets Allowed', 'icon': Icons.pets_rounded},
   ];
@@ -36,7 +36,7 @@ class OfferRideStep3 extends ConsumerWidget {
         ),
         const SizedBox(height: 10),
 
-        // Amenities Card
+        // Amenities Card with Professional Tactile Capsules
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -60,38 +60,83 @@ class OfferRideStep3 extends ConsumerWidget {
               final icon = amenity['icon'] as IconData;
               final isSelected = draft.amenities.contains(label);
 
-              return FilterChip(
-                avatar: isSelected
-                    ? const Icon(Icons.check, size: 14, color: Color(0xFF1B4D3E))
-                    : Icon(icon, size: 14, color: const Color(0xFF5C6E64)),
-                label: Text(label),
-                selected: isSelected,
-                showCheckmark: false,
-                backgroundColor: const Color(0xFFF8FAF8),
-                selectedColor: const Color(0xFFE8F5EF),
-                side: BorderSide(
-                  color: isSelected ? const Color(0xFF2EC486) : const Color(0xFFE2E8E4),
-                  width: 0.8,
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () =>
+                      ref.read(offerRideProvider.notifier).toggleAmenity(label),
+                  borderRadius: BorderRadius.circular(16),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFFE8F5EF)
+                          : const Color(0xFFF9FAF9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF2EC486)
+                            : const Color(0xFFE2E8E4),
+                        width: isSelected ? 1.4 : 0.8,
+                      ),
+                      boxShadow: isSelected
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF2EC486)
+                                    .withValues(alpha: 0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.02),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSelected ? Icons.check_circle_rounded : icon,
+                          size: 15,
+                          color: isSelected
+                              ? const Color(0xFF1B4D3E)
+                              : const Color(0xFF5C6E64),
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            color: isSelected
+                                ? const Color(0xFF1B4D3E)
+                                : const Color(0xFF14241C),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                labelStyle: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                  color: isSelected ? const Color(0xFF1B4D3E) : const Color(0xFF14241C),
-                ),
-                onSelected: (_) => ref.read(offerRideProvider.notifier).toggleAmenity(label),
               );
             }).toList(),
           ),
         ),
         const SizedBox(height: 18),
 
-        // 2. Optional Journey Notes
+        // 2. Optional Journey Notes (Elevated Card)
         Container(
+          width: double.infinity,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFE2E8E4), width: 0.8),
             boxShadow: [
               BoxShadow(
@@ -101,31 +146,78 @@ class OfferRideStep3 extends ConsumerWidget {
               ),
             ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          child: TextFormField(
-            controller: notesController,
-            maxLines: 3,
-            style: const TextStyle(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF14241C),
-            ),
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              labelText: 'Journey Notes (Optional)',
-              labelStyle: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF5C6E64),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: const [
+                  Icon(
+                    Icons.edit_note_rounded,
+                    size: 18,
+                    color: Color(0xFF1B4D3E),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Journey Notes (Optional)',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF14241C),
+                    ),
+                  ),
+                ],
               ),
-              hintText: 'Add pickup landmark or travel instructions (e.g. Leaving from Iscon circle sharp at 11 PM)...',
-              hintStyle: TextStyle(
-                fontSize: 12.5,
-                color: Color(0xFF5C6E64),
-                height: 1.35,
+              const SizedBox(height: 8),
+              Theme(
+                data: Theme.of(context).copyWith(
+                  inputDecorationTheme: const InputDecorationTheme(
+                    filled: true,
+                    fillColor: Color(0xFFF6F8F6),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    contentPadding: EdgeInsets.all(12),
+                  ),
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF6F8F6),
+                    borderRadius: BorderRadius.circular(12),
+                    border:
+                        Border.all(color: const Color(0xFFE2E8E4), width: 0.8),
+                  ),
+                  child: TextFormField(
+                    controller: notesController,
+                    maxLines: 3,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF14241C),
+                      height: 1.35,
+                    ),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.all(10),
+                      hintText:
+                          'Add pickup landmark or travel instructions (e.g. Leaving from Iscon circle sharp at 11 PM)...',
+                      hintStyle: TextStyle(
+                        fontSize: 12.5,
+                        color: Color(0xFF8A9A90),
+                        height: 1.35,
+                      ),
+                    ),
+                    onChanged: (val) =>
+                        ref.read(offerRideProvider.notifier).setNotes(val),
+                  ),
+                ),
               ),
-            ),
-            onChanged: (val) => ref.read(offerRideProvider.notifier).setNotes(val),
+            ],
           ),
         ),
         const SizedBox(height: 22),
@@ -142,7 +234,8 @@ class OfferRideStep3 extends ConsumerWidget {
     );
   }
 
-  Widget _buildBoardingPassSummaryCard(BuildContext context, OfferRideState draft) {
+  Widget _buildBoardingPassSummaryCard(
+      BuildContext context, OfferRideState draft) {
     final originName = draft.origin?.name ?? 'Ahmedabad';
     final destinationName = draft.destination?.name ?? 'Rajkot';
     final distanceText = draft.route?.distanceMeters != null
@@ -172,24 +265,27 @@ class OfferRideStep3 extends ConsumerWidget {
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5EF),
-                    borderRadius: BorderRadius.circular(10),
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE8F5EF),
+                    shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.alt_route_rounded,
-                    color: Color(0xFF1B4D3E),
-                    size: 20,
+                  child: const Center(
+                    child: Icon(
+                      Icons.navigation_rounded,
+                      color: Color(0xFF1B4D3E),
+                      size: 20,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '$originName to $destinationName',
+                        '$originName \u2794 $destinationName',
                         style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w800,
@@ -225,20 +321,21 @@ class OfferRideStep3 extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildSummaryGridCell(
-                  label: 'Distance',
+                  label: 'DISTANCE',
                   value: distanceText,
                 ),
                 _buildSummaryGridCell(
-                  label: 'Est. Duration',
+                  label: 'DURATION',
                   value: durationText,
                 ),
                 _buildSummaryGridCell(
-                  label: 'Seats',
+                  label: 'SEATS',
                   value: '${draft.availableSeats}',
                 ),
                 _buildSummaryGridCell(
-                  label: 'Price',
-                  value: '\u20B9${draft.contributionPerSeat.toStringAsFixed(0)}',
+                  label: 'PRICE / SEAT',
+                  value:
+                      '\u20B9${draft.contributionPerSeat.toStringAsFixed(0)}',
                 ),
               ],
             ),
@@ -264,37 +361,76 @@ class OfferRideStep3 extends ConsumerWidget {
                     isStopped: false,
                   )
                 else
-                  VehicleIcon.illustration(type: VehicleType.sedan, width: 32, height: 18),
+                  VehicleIcon.illustration(
+                      type: VehicleType.sedan, width: 32, height: 18),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    vehicle != null
-                        ? '${vehicle.make} ${vehicle.model} (${vehicle.registrationNumber})'
-                        : 'Selected Vehicle',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF14241C),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        vehicle != null
+                            ? '${vehicle.make} ${vehicle.model}'
+                            : 'Selected Vehicle',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF14241C),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (vehicle != null) ...[
+                        const SizedBox(height: 2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEEF2EF),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            vehicle.registrationNumber,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1B4D3E),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFE8F5EF),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFE2E8E4), width: 0.8),
+                    border:
+                        Border.all(color: const Color(0xFF2EC486), width: 0.6),
                   ),
-                  child: Text(
-                    '${DateFormat('dd MMM').format(draft.departureDate)} ${draft.departureTime.format(context)}',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF1B4D3E),
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.schedule_rounded,
+                        size: 13,
+                        color: Color(0xFF1B4D3E),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${DateFormat('dd MMM').format(draft.departureDate)} ${draft.departureTime.format(context)}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF1B4D3E),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -305,51 +441,6 @@ class OfferRideStep3 extends ConsumerWidget {
     );
   }
 
-  Widget _buildPerforatedTicketDivider() {
-    return Row(
-      children: [
-        // Left notch
-        Container(
-          width: 8,
-          height: 16,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF6F8F6),
-            borderRadius: BorderRadius.horizontal(right: Radius.circular(8)),
-          ),
-        ),
-        // Dashed center line
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              const dashWidth = 5.0;
-              const dashSpace = 4.0;
-              final dashCount = (constraints.constrainWidth() / (dashWidth + dashSpace)).floor();
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(dashCount, (_) {
-                  return Container(
-                    width: dashWidth,
-                    height: 1,
-                    color: const Color(0xFFE2E8E4),
-                  );
-                }),
-              );
-            },
-          ),
-        ),
-        // Right notch
-        Container(
-          width: 8,
-          height: 16,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF6F8F6),
-            borderRadius: BorderRadius.horizontal(left: Radius.circular(8)),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSummaryGridCell({required String label, required String value}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,22 +448,75 @@ class OfferRideStep3 extends ConsumerWidget {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF5C6E64),
+            letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 3),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 14.5,
             fontWeight: FontWeight.w800,
             color: Color(0xFF14241C),
-            letterSpacing: -0.2,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPerforatedTicketDivider() {
+    return SizedBox(
+      height: 20,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Dashed Line Divider
+          Positioned(
+            left: 20,
+            right: 20,
+            child: Row(
+              children: List.generate(
+                32,
+                (i) => Expanded(
+                  child: Container(
+                    height: 1.2,
+                    color: i.isEven
+                        ? const Color(0xFFE2E8E4)
+                        : Colors.transparent,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Left Notch Cutout
+          Positioned(
+            left: -10,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF6F8F6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          // Right Notch Cutout
+          Positioned(
+            right: -10,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF6F8F6),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -383,18 +527,17 @@ class OfferRideStep3 extends ConsumerWidget {
         Text(
           title,
           style: const TextStyle(
-            fontSize: 15.5,
-            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
             color: Color(0xFF14241C),
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 1),
+        const SizedBox(height: 2),
         Text(
           subtitle,
           style: const TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w500,
             color: Color(0xFF5C6E64),
           ),
         ),

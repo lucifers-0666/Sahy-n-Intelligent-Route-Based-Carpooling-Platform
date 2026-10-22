@@ -52,9 +52,317 @@ class AppShell extends ConsumerWidget {
       return;
     }
 
+    if (index == 2) {
+      final user = authState.user;
+      final modeState = ref.read(userModeProvider);
+      final isDriver = user?.isDriverEligible ?? false;
+
+      // Show Mobility Action Sheet if in passenger mode or not yet driver-verified
+      if (!isDriver || modeState.isRiderMode) {
+        _showMobilityActionSheet(context, ref);
+        return;
+      }
+    }
+
     navigationShell.goBranch(
       index,
       initialLocation: index == navigationShell.currentIndex,
+    );
+  }
+
+  void _showMobilityActionSheet(BuildContext context, WidgetRef ref) {
+    final user = ref.read(authProvider).user;
+    final modeState = ref.read(userModeProvider);
+    final isDriverEligible = user?.isDriverEligible ?? false;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (bottomSheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(
+                      Icons.alt_route_rounded,
+                      color: AppColors.deepEmerald,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Choose Journey Mode',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primaryForest,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Take a ride as commuter or offer seats as verified host',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 12,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Option 1: Take a Ride (Passenger Mode)
+              InkWell(
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  ref
+                      .read(userModeProvider.notifier)
+                      .setOperationalMode(OperationalMode.rider);
+                  navigationShell.goBranch(0);
+                },
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: modeState.isRiderMode
+                        ? AppColors.primaryLight.withValues(alpha: 0.5)
+                        : AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: modeState.isRiderMode
+                          ? AppColors.softMint
+                          : AppColors.border,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.softMint.withValues(alpha: 0.25),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.person_search_rounded,
+                          color: AppColors.deepEmerald,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text(
+                                  'Take a Ride (Passenger)',
+                                  style: TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryForest,
+                                  ),
+                                ),
+                                if (modeState.isRiderMode) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryForest,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'ACTIVE',
+                                      style: TextStyle(
+                                        color: AppColors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Search Gujarat corridors, join verified drivers, and travel affordably.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Option 2: Offer a Ride (Driver / Host Mode)
+              InkWell(
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  if (isDriverEligible) {
+                    ref
+                        .read(userModeProvider.notifier)
+                        .setOperationalMode(OperationalMode.driver);
+                    navigationShell.goBranch(2);
+                  } else {
+                    context.push('/driver-onboarding');
+                  }
+                },
+                borderRadius: BorderRadius.circular(18),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: modeState.isDriverMode
+                        ? AppColors.primaryLight.withValues(alpha: 0.5)
+                        : AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: modeState.isDriverMode
+                          ? AppColors.softMint
+                          : AppColors.border,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryForest.withValues(
+                            alpha: 0.12,
+                          ),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.directions_car_rounded,
+                          color: AppColors.primaryForest,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text(
+                                  'Offer a Ride (Driver)',
+                                  style: TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.primaryForest,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isDriverEligible
+                                        ? AppColors.softMint.withValues(
+                                            alpha: 0.25,
+                                          )
+                                        : Colors.amber.shade100,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    isDriverEligible
+                                        ? 'VERIFIED'
+                                        : 'KYC NEEDED',
+                                    style: TextStyle(
+                                      color: isDriverEligible
+                                          ? AppColors.deepEmerald
+                                          : Colors.amber.shade900,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              isDriverEligible
+                                  ? 'Share vehicle seats on highway routes and recover fuel contribution.'
+                                  : 'Complete quick driver onboarding and vehicle verification to start publishing.',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

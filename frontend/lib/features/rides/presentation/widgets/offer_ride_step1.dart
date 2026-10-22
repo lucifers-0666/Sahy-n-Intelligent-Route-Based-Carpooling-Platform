@@ -11,6 +11,7 @@ import 'package:sahyan/features/vehicles/domain/vehicle_model.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/models/user_model.dart';
+import 'package:sahyan/shared/widgets/feedback/sahyan_five_section_skeleton.dart';
 import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/shared/widgets/sahyan_3d_vehicle_marker.dart';
@@ -66,12 +67,7 @@ class OfferRideStep1 extends ConsumerWidget {
           _buildDriverEligibilityGate(context, authState.user!)
         else
           vehiclesAsync.when(
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(color: Color(0xFF1B4D3E)),
-              ),
-            ),
+            loading: () => const SahyanFiveSectionSkeleton(),
             error: (err, _) => _buildVehicleErrorCard(ref),
             data: (vehicles) {
               if (vehicles.isEmpty) {
@@ -419,48 +415,84 @@ class OfferRideStep1 extends ConsumerWidget {
                 // Origin Input
                 InkWell(
                   onTap: onSelectOrigin,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF6F8F6),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFFE2E8E4), width: 0.8),
                     ),
                     child: Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
-                            controller: originController,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF14241C),
-                            ),
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                              border: InputBorder.none,
-                              labelText: 'Origin Location (From)',
-                              labelStyle: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF5C6E64),
-                                fontWeight: FontWeight.w500,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Origin Location (From)',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF5C6E64),
+                                  letterSpacing: 0.2,
+                                ),
                               ),
-                              hintText: 'Search pickup point or current GPS',
-                              hintStyle: TextStyle(fontSize: 12.5, color: Color(0xFF5C6E64)),
-                            ),
-                            onChanged: (val) {
-                              if (val.trim().isNotEmpty) {
-                                ref.read(offerRideProvider.notifier).setOrigin(
-                                      LocationModel.fromCoordinates(
-                                        name: val.trim(),
-                                        latitude: 23.2420,
-                                        longitude: 69.6669,
-                                      ),
-                                    );
-                              }
-                            },
+                              const SizedBox(height: 2),
+                              Theme(
+                                data: Theme.of(context).copyWith(
+                                  inputDecorationTheme: const InputDecorationTheme(
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                                child: TextFormField(
+                                  controller: originController,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF14241C),
+                                  ),
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                    hintText: 'Search pickup point or current GPS',
+                                    hintStyle: TextStyle(
+                                      fontSize: 12.5,
+                                      color: Color(0xFF8A9A90),
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                  onChanged: (val) {
+                                    if (val.trim().isNotEmpty) {
+                                      ref.read(offerRideProvider.notifier).setOrigin(
+                                            LocationModel.fromCoordinates(
+                                              name: val.trim(),
+                                              latitude: 23.2420,
+                                              longitude: 69.6669,
+                                            ),
+                                          );
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         IconButton(
@@ -566,48 +598,84 @@ class OfferRideStep1 extends ConsumerWidget {
                 // Destination Input
                 InkWell(
                   onTap: onSelectDestination,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF6F8F6),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFFE2E8E4), width: 0.8),
                     ),
                     child: Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
-                            controller: destinationController,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF14241C),
-                            ),
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
-                              border: InputBorder.none,
-                              labelText: 'Destination Location (To)',
-                              labelStyle: TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF5C6E64),
-                                fontWeight: FontWeight.w500,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Destination Location (To)',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF5C6E64),
+                                  letterSpacing: 0.2,
+                                ),
                               ),
-                              hintText: 'Search dropoff city or hub',
-                              hintStyle: TextStyle(fontSize: 12.5, color: Color(0xFF5C6E64)),
-                            ),
-                            onChanged: (val) {
-                              if (val.trim().isNotEmpty) {
-                                ref.read(offerRideProvider.notifier).setDestination(
-                                      LocationModel.fromCoordinates(
-                                        name: val.trim(),
-                                        latitude: 23.0225,
-                                        longitude: 72.5714,
-                                      ),
-                                    );
-                              }
-                            },
+                              const SizedBox(height: 2),
+                              Theme(
+                                data: Theme.of(context).copyWith(
+                                  inputDecorationTheme: const InputDecorationTheme(
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                  ),
+                                ),
+                                child: TextFormField(
+                                  controller: destinationController,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF14241C),
+                                  ),
+                                  decoration: const InputDecoration(
+                                    isDense: true,
+                                    filled: false,
+                                    fillColor: Colors.transparent,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    disabledBorder: InputBorder.none,
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                    hintText: 'Search dropoff city or hub',
+                                    hintStyle: TextStyle(
+                                      fontSize: 12.5,
+                                      color: Color(0xFF8A9A90),
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                  onChanged: (val) {
+                                    if (val.trim().isNotEmpty) {
+                                      ref.read(offerRideProvider.notifier).setDestination(
+                                            LocationModel.fromCoordinates(
+                                              name: val.trim(),
+                                              latitude: 23.0225,
+                                              longitude: 72.5714,
+                                            ),
+                                          );
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         IconButton(

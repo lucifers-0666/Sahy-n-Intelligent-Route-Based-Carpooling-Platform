@@ -307,28 +307,47 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               children: [
                 _buildStepIndicator(),
                 const SizedBox(height: 16),
-                if (_currentStep == 0)
-                  OfferRideStep1(
-                    originController: _originController,
-                    destinationController: _destinationController,
-                    onSelectOrigin: () => _openLocationSearch(isOrigin: true),
-                    onSelectDestination: () => _openLocationSearch(isOrigin: false),
-                    onAddStopover: _addStopoverLocation,
-                    onSelectCorridor: (originHub, destHub) {
-                      _selectHubAsOrigin(originHub);
-                      _selectHubAsDestination(destHub);
-                    },
-                  )
-                else if (_currentStep == 1)
-                  OfferRideStep2(
-                    contributionController: _contributionController,
-                    onPickDate: _pickDepartureDate,
-                    onPickTime: _pickDepartureTime,
-                  )
-                else
-                  OfferRideStep3(
-                    notesController: _notesController,
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.04, 0),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey<int>(_currentStep),
+                    child: _currentStep == 0
+                        ? OfferRideStep1(
+                            originController: _originController,
+                            destinationController: _destinationController,
+                            onSelectOrigin: () => _openLocationSearch(isOrigin: true),
+                            onSelectDestination: () => _openLocationSearch(isOrigin: false),
+                            onAddStopover: _addStopoverLocation,
+                            onSelectCorridor: (originHub, destHub) {
+                              _selectHubAsOrigin(originHub);
+                              _selectHubAsDestination(destHub);
+                            },
+                          )
+                        : _currentStep == 1
+                            ? OfferRideStep2(
+                                contributionController: _contributionController,
+                                onPickDate: _pickDepartureDate,
+                                onPickTime: _pickDepartureTime,
+                              )
+                            : OfferRideStep3(
+                                notesController: _notesController,
+                              ),
                   ),
+                ),
                 const SizedBox(height: 24),
                 _buildNavigationButtons(draft),
                 const SizedBox(height: 20),
@@ -397,11 +416,23 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 const SizedBox(height: 8),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: (_currentStep + 1) / 3,
-                    minHeight: 4,
-                    backgroundColor: const Color(0xFFE2E8E4),
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1B4D3E)),
+                  child: TweenAnimationBuilder<double>(
+                    tween: Tween<double>(
+                      begin: 0.0,
+                      end: (_currentStep + 1) / 3,
+                    ),
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, value, _) {
+                      return LinearProgressIndicator(
+                        value: value,
+                        minHeight: 4,
+                        backgroundColor: const Color(0xFFE2E8E4),
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF1B4D3E),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -454,11 +485,23 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               const SizedBox(height: 8),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: (_currentStep + 1) / 3,
-                  minHeight: 4,
-                  backgroundColor: const Color(0xFFE2E8E4),
-                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1B4D3E)),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween<double>(
+                    begin: 0.0,
+                    end: (_currentStep + 1) / 3,
+                  ),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  builder: (context, value, _) {
+                    return LinearProgressIndicator(
+                      value: value,
+                      minHeight: 4,
+                      backgroundColor: const Color(0xFFE2E8E4),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                        Color(0xFF1B4D3E),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 10),

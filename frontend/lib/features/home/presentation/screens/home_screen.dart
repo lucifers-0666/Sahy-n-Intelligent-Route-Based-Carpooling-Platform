@@ -17,6 +17,7 @@ import '../../../bookings/presentation/bookings_provider.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
 import '../../../rides/presentation/widgets/location_search_bottom_sheet.dart';
+import '../../../../app/providers/user_mode_provider.dart';
 import '../widgets/hero_search_card.dart';
 
 /// Single-Screen Hybrid UI/UX Redesigned Home Screen for Sahyān.
@@ -375,6 +376,148 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return AppRegion.fallbackCity;
   }
 
+  Widget _buildRoleSelectorPill(UserModel? user) {
+    final modeState = ref.watch(userModeProvider);
+    final isDriver = modeState.isDriverMode;
+    final isDriverEligible = user?.isDriverEligible ?? false;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border, width: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(4),
+      child: Row(
+        children: [
+          // Passenger Mode Segment
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  ref
+                      .read(userModeProvider.notifier)
+                      .setOperationalMode(OperationalMode.rider);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    color: !isDriver
+                        ? AppColors.primaryForest
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.person_search_rounded,
+                          size: 16,
+                          color: !isDriver
+                              ? AppColors.white
+                              : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Take a Ride',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 12.5,
+                            fontWeight: !isDriver
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            color: !isDriver
+                                ? AppColors.white
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Driver Mode Segment
+          Expanded(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  if (isDriverEligible) {
+                    ref
+                        .read(userModeProvider.notifier)
+                        .setOperationalMode(OperationalMode.driver);
+                    context.push('/offer-ride');
+                  } else {
+                    context.push('/driver-onboarding');
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  decoration: BoxDecoration(
+                    color: isDriver
+                        ? AppColors.primaryForest
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.directions_car_rounded,
+                          size: 16,
+                          color: isDriver
+                              ? AppColors.white
+                              : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          isDriverEligible ? 'Offer a Ride' : 'Become a Host',
+                          style: TextStyle(
+                            fontFamily: 'Plus Jakarta Sans',
+                            fontSize: 12.5,
+                            fontWeight: isDriver
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            color: isDriver
+                                ? AppColors.white
+                                : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
@@ -683,6 +826,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ],
                 ),
+              ),
+            ),
+
+            // ──────────────────────────────────────────────────────────────
+            // 1b. Role Mode Switcher Pill (Take a Ride / Offer a Ride)
+            // ──────────────────────────────────────────────────────────────
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              sliver: SliverToBoxAdapter(
+                child: _buildRoleSelectorPill(user),
               ),
             ),
 
