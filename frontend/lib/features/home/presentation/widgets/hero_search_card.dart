@@ -10,7 +10,7 @@ import '../../../../core/location/domain/gps_provider.dart';
 import '../../../../core/network/api_config.dart';
 import '../../../../shared/models/location_model.dart';
 import '../../../../shared/widgets/bento/bento_widgets.dart';
-import '../../../../shared/widgets/sahyan_route_input_field.dart';
+import '../../../../shared/widgets/journey_location_card.dart';
 import '../../../rides/presentation/widgets/location_search_bottom_sheet.dart';
 
 enum _ActiveLocationField { none, origin, destination }
@@ -567,17 +567,55 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
 
           const SizedBox(height: 16),
 
-          // B. Unified Connected Origin-to-Destination Selector (Option A Filled Containers)
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildPickupField(),
-              SahyanTransitRailDivider(
-                height: 32,
-                centerWidget: SahyanQuickSwapButton(onSwap: _handleSwap),
-              ),
-              _buildDestinationField(),
-            ],
+          // B. Unified Connected Journey Location Card
+          JourneyLocationCard(
+            pickupController: widget.originController,
+            destinationController: widget.destinationController,
+            pickupFocusNode: _originFocusNode,
+            destinationFocusNode: _destFocusNode,
+            pickupLabel: 'PICKUP LOCATION',
+            destinationLabel: 'DESTINATION HUB',
+            pickupPrefix: 'FROM',
+            destinationPrefix: 'TO',
+            pickupHint: 'Enter pickup hub or address...',
+            destinationHint: 'Where to? (Destination)...',
+            surfaceColor: const Color(0xFFF8FAF8),
+            borderColor: AppColors.border,
+            onSwap: _handleSwap,
+            onUseCurrentLocation: _handleGpsCurrentLocation,
+            isGpsLoading: _isGpsLocating,
+            onSelectPickupOnMap: widget.onTapPickup,
+            onSelectDestinationOnMap: widget.onTapDestination,
+            isPickupReadOnly:
+                !widget.enableInlineAutocomplete && widget.onTapPickup != null,
+            isDestinationReadOnly: !widget.enableInlineAutocomplete &&
+                widget.onTapDestination != null,
+            onTapPickup: () {
+              if (!widget.enableInlineAutocomplete &&
+                  widget.onTapPickup != null) {
+                widget.onTapPickup!();
+              }
+            },
+            onTapDestination: () {
+              if (!widget.enableInlineAutocomplete &&
+                  widget.onTapDestination != null) {
+                widget.onTapDestination!();
+              }
+            },
+            onPickupChanged: (val) =>
+                _onQueryChanged(val, _ActiveLocationField.origin),
+            onDestinationChanged: (val) =>
+                _onQueryChanged(val, _ActiveLocationField.destination),
+            onPickupClear: () {
+              widget.originController.clear();
+              _onQueryChanged('', _ActiveLocationField.origin);
+              setState(() {});
+            },
+            onDestinationClear: () {
+              widget.destinationController.clear();
+              _onQueryChanged('', _ActiveLocationField.destination);
+              setState(() {});
+            },
           ),
 
           // C. Connected Suggestions Dropdown Panel
@@ -828,155 +866,6 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPickupField() {
-    final hasText = widget.originController.text.trim().isNotEmpty;
-    return SahyanRouteInputField(
-      label: 'PICKUP LOCATION',
-      labelPrefix: 'FROM',
-      hintText: 'Enter pickup hub or address...',
-      controller: widget.originController,
-      focusNode: _originFocusNode,
-      type: RouteInputType.origin,
-      isGpsLoading: _isGpsLocating,
-      onGpsTap: _handleGpsCurrentLocation,
-      onTap: () {
-        if (!widget.enableInlineAutocomplete && widget.onTapPickup != null) {
-          widget.onTapPickup!();
-        }
-      },
-      readOnly: !widget.enableInlineAutocomplete && widget.onTapPickup != null,
-      onChanged: (val) => _onQueryChanged(val, _ActiveLocationField.origin),
-      trailingAction: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (hasText)
-            GestureDetector(
-              onTap: () {
-                widget.originController.clear();
-                _onQueryChanged('', _ActiveLocationField.origin);
-                setState(() {});
-              },
-              behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(
-                  Icons.cancel_rounded,
-                  size: 16,
-                  color: AppColors.mutedText,
-                ),
-              ),
-            ),
-          if (widget.onTapPickup != null) ...[
-            GestureDetector(
-              onTap: widget.onTapPickup,
-              behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(
-                  Icons.map_outlined,
-                  size: 16,
-                  color: AppColors.mutedText,
-                ),
-              ),
-            ),
-          ],
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _isGpsLocating ? null : _handleGpsCurrentLocation,
-              borderRadius: BorderRadius.circular(18),
-              splashColor: const Color(0xFFE8F5EF),
-              child: Padding(
-                padding: const EdgeInsets.all(4),
-                child: _isGpsLocating
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFF1B4D3E),
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.my_location_rounded,
-                        size: 20,
-                        color: Color(0xFF1B4D3E),
-                      ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDestinationField() {
-    final hasText = widget.destinationController.text.trim().isNotEmpty;
-    return SahyanRouteInputField(
-      label: 'DESTINATION HUB',
-      labelPrefix: 'TO',
-      hintText: 'Where to? (Destination)...',
-      controller: widget.destinationController,
-      focusNode: _destFocusNode,
-      type: RouteInputType.destination,
-      onTap: () {
-        if (!widget.enableInlineAutocomplete && widget.onTapDestination != null) {
-          widget.onTapDestination!();
-        }
-      },
-      readOnly: !widget.enableInlineAutocomplete && widget.onTapDestination != null,
-      onChanged: (val) => _onQueryChanged(val, _ActiveLocationField.destination),
-      onActionTap: widget.onTapDestination,
-      trailingAction: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (hasText)
-            GestureDetector(
-              onTap: () {
-                widget.destinationController.clear();
-                _onQueryChanged('', _ActiveLocationField.destination);
-                setState(() {});
-              },
-              behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(
-                  Icons.cancel_rounded,
-                  size: 16,
-                  color: AppColors.mutedText,
-                ),
-              ),
-            ),
-          if (widget.onTapDestination != null) ...[
-            GestureDetector(
-              onTap: widget.onTapDestination,
-              behavior: HitTestBehavior.opaque,
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: Icon(
-                  Icons.map_outlined,
-                  size: 16,
-                  color: AppColors.mutedText,
-                ),
-              ),
-            ),
-          ] else if (!hasText) ...[
-            const Padding(
-              padding: EdgeInsets.all(4),
-              child: Icon(
-                Icons.explore_outlined,
-                size: 20,
-                color: Color(0xFF2EC486),
-              ),
-            ),
-          ],
         ],
       ),
     );

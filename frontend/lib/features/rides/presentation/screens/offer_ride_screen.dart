@@ -618,11 +618,21 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                             );
                             return;
                           }
-                          if (draft.origin == null || draft.destination == null) {
+                          if (draft.origin == null || _originController.text.trim().isEmpty) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  'Please enter both origin and destination.',
+                                  'Please specify a valid pickup origin location.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+                          if (draft.destination == null || _destinationController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Please specify a valid destination location.',
                                 ),
                               ),
                             );

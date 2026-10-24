@@ -18,7 +18,7 @@ import 'package:sahyan/shared/widgets/feedback/sahyan_five_section_skeleton.dart
 import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/shared/widgets/sahyan_3d_vehicle_marker.dart';
-import 'package:sahyan/shared/widgets/sahyan_route_input_field.dart';
+import 'package:sahyan/shared/widgets/journey_location_card.dart';
 
 class OfferRideStep1 extends ConsumerStatefulWidget {
   final TextEditingController originController;
@@ -76,6 +76,14 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
     _originFocusNode.dispose();
     _destinationFocusNode.dispose();
     super.dispose();
+  }
+
+  void _handleSwap() {
+    HapticFeedback.mediumImpact();
+    final tempText = widget.originController.text;
+    widget.originController.text = widget.destinationController.text;
+    widget.destinationController.text = tempText;
+    ref.read(offerRideProvider.notifier).swapLocations();
   }
 
   Future<void> _handleGpsAutoFill() async {
@@ -215,11 +223,16 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
         _buildFrequentCorridorsScroll(ref),
         const SizedBox(height: 16),
 
-        // Integrated Route Mini-Map Card
-        if (draft.origin != null && draft.destination != null) ...[
+        // Integrated Route Mini-Map Card (Only when valid coordinates and real route geometry are available)
+        if (draft.isCalculatingRoute) ...[
           _buildRouteTelemetryPill(draft),
           const SizedBox(height: 10),
+        ] else if (draft.origin != null &&
+            draft.destination != null &&
+            draft.route != null &&
+            draft.route!.encodedPolyline.isNotEmpty) ...[
           _buildIntegratedMiniMapCard(context, draft),
+          const SizedBox(height: 10),
         ],
       ],
     );
@@ -439,7 +452,7 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
     );
   }
 
-  // --- 2. Unified Route Selection (Option A Filled Containers with Integrated Top Labels) ---
+  // --- 2. Unified Route Selection (JourneyLocationCard) ---
   Widget _buildTransitRouteRailCard(
     BuildContext context,
     WidgetRef ref,
@@ -448,16 +461,25 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // A. Origin Pickup Field (Option A Filled Container)
-        SahyanRouteInputField(
-          label: 'Origin Location (From)',
-          hintText: 'Search pickup point or current GPS',
-          controller: widget.originController,
-          focusNode: _originFocusNode,
-          type: RouteInputType.origin,
+        JourneyLocationCard(
+          pickupController: widget.originController,
+          destinationController: widget.destinationController,
+          pickupFocusNode: _originFocusNode,
+          destinationFocusNode: _destinationFocusNode,
+          pickupLabel: 'Origin Location (From)',
+          destinationLabel: 'Destination Location (To)',
+          pickupHint: 'Search pickup point or current GPS',
+          destinationHint: 'Search dropoff city or hub',
+          destinationTrailingIcon: Icons.flag_circle_outlined,
+          onSwap: _handleSwap,
+          onUseCurrentLocation: _handleGpsAutoFill,
           isGpsLoading: _isGpsLocating,
-          onGpsTap: _handleGpsAutoFill,
-          onChanged: (val) {
+          onSelectPickupOnMap: widget.onSelectOrigin,
+          onSelectDestinationOnMap: widget.onSelectDestination,
+          stopovers: draft.stopovers,
+          onRemoveStopover: (idx) =>
+              ref.read(offerRideProvider.notifier).removeStopover(idx),
+          onPickupChanged: (val) {
             if (val.trim().isNotEmpty) {
               ref.read(offerRideProvider.notifier).setOrigin(
                     LocationModel.fromCoordinates(
@@ -466,46 +488,11 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
                       longitude: 69.6669,
                     ),
                   );
+            } else {
+              ref.read(offerRideProvider.notifier).setOrigin(null);
             }
           },
-        ),
-
-        // B. Inline Stopover & Continuous Rail Divider Section
-        _buildStopoverAndRailSection(context, ref, draft),
-
-        // C. Destination Drop-off Field (Option A Filled Container)
-        SahyanRouteInputField(
-          label: 'Destination Location (To)',
-          hintText: 'Search dropoff city or hub',
-          controller: widget.destinationController,
-          focusNode: _destinationFocusNode,
-          type: RouteInputType.destination,
-          onActionTap: widget.onSelectDestination,
-          onClear: () {
-            ref.read(offerRideProvider.notifier).setDestination(null);
-          },
-          trailingAction: widget.destinationController.text.trim().isNotEmpty
-              ? null
-              : Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      widget.onSelectDestination();
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    splashColor: const Color(0xFFE8F5EF),
-                    child: const Padding(
-                      padding: EdgeInsets.all(6),
-                      child: Icon(
-                        Icons.flag_circle_outlined,
-                        size: 20,
-                        color: Color(0xFF2EC486),
-                      ),
-                    ),
-                  ),
-                ),
-          onChanged: (val) {
+          onDestinationChanged: (val) {
             if (val.trim().isNotEmpty) {
               ref.read(offerRideProvider.notifier).setDestination(
                     LocationModel.fromCoordinates(
@@ -514,124 +501,70 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
                       longitude: 72.5714,
                     ),
                   );
+            } else {
+              ref.read(offerRideProvider.notifier).setDestination(null);
             }
           },
+          onPickupClear: () {
+            ref.read(offerRideProvider.notifier).setOrigin(null);
+          },
+          onDestinationClear: () {
+            ref.read(offerRideProvider.notifier).setDestination(null);
+          },
         ),
+        const SizedBox(height: 10),
+        _buildAddStopoverButton(draft),
       ],
     );
   }
 
-  Widget _buildStopoverAndRailSection(
-    BuildContext context,
-    WidgetRef ref,
-    OfferRideState draft,
-  ) {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (int i = 0; i < draft.stopovers.length; i++) ...[
-            const SahyanTransitRailDivider(height: 16.0),
-            _buildStopoverRow(context, ref, draft.stopovers[i], i),
-          ],
-          SahyanTransitRailDivider(
-            height: 32.0,
-            centerWidget: SahyanStopoverActionPill(
-              onTap: _onTapAddStopover,
-              label: draft.stopovers.isEmpty
-                  ? 'Add Stopover / Toll'
-                  : 'Add Stopover (${draft.stopovers.length}/3)',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStopoverRow(
-    BuildContext context,
-    WidgetRef ref,
-    LocationModel stop,
-    int index,
-  ) {
+  Widget _buildAddStopoverButton(OfferRideState draft) {
+    final label = draft.stopovers.isEmpty
+        ? 'Add Stopover / Toll'
+        : 'Add Stopover / Toll (${draft.stopovers.length}/3)';
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      width: double.infinity,
+      height: 48,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFFE5A93C).withValues(alpha: 0.6),
-          width: 0.8,
-        ),
+        color: const Color(0xFFE8F5EF),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFDCE7E1), width: 0.8),
       ),
-      child: Row(
-        children: [
-          const SizedBox(
-            width: 32,
-            child: Center(
-              child: Icon(
-                Icons.fiber_manual_record_rounded,
-                color: Color(0xFFE5A93C),
-                size: 14,
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _onTapAddStopover,
+          borderRadius: BorderRadius.circular(24),
+          splashColor: const Color(0xFF2EC486).withValues(alpha: 0.15),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'STOPOVER ${index + 1} (VIA)',
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF92400E),
-                    letterSpacing: 1.0,
-                  ),
+                const Icon(
+                  Icons.add_circle_outline_rounded,
+                  color: Color(0xFF0B5D4B),
+                  size: 20,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  stop.name,
-                  style: const TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF14241C),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0B5D4B),
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 36),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  ref.read(offerRideProvider.notifier).removeStopover(index);
-                },
-                borderRadius: BorderRadius.circular(18),
-                child: const Padding(
-                  padding: EdgeInsets.all(6),
-                  child: Icon(
-                    Icons.close_rounded,
-                    size: 18,
-                    color: Color(0xFF5C6E64),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -795,23 +728,20 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
 
   // --- 4. Integrated Route Mini-Map Card ---
   Widget _buildIntegratedMiniMapCard(BuildContext context, OfferRideState draft) {
+    final route = draft.route!;
     final corridor = RouteGeometryService.getHighwayCorridor(
       draft.origin!,
       draft.destination!,
     );
-    final distanceKm = draft.route != null
-        ? (draft.route!.distanceMeters / 1000).toStringAsFixed(0)
-        : '216';
-    final durationSec = draft.route?.durationSeconds ?? 12300;
+    final distanceKm = (route.distanceMeters / 1000).toStringAsFixed(0);
+    final durationSec = route.durationSeconds;
     final hours = durationSec ~/ 3600;
     final minutes = (durationSec % 3600) ~/ 60;
     final durationText = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
 
-    final pts = draft.route != null && draft.route!.encodedPolyline.isNotEmpty
-        ? RouteService.decodePolyline(draft.route!.encodedPolyline)
-            .map((pt) => LatLng(pt.latitude, pt.longitude))
-            .toList()
-        : const <LatLng>[];
+    final pts = RouteService.decodePolyline(route.encodedPolyline)
+        .map((pt) => LatLng(pt.latitude, pt.longitude))
+        .toList();
 
     return Container(
       decoration: BoxDecoration(

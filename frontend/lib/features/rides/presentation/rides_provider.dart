@@ -380,6 +380,19 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
     }
   }
 
+  void swapLocations() {
+    final oldOrigin = state.origin;
+    final oldDestination = state.destination;
+    state = state.copyWith(
+      origin: oldDestination,
+      destination: oldOrigin,
+      clearError: true,
+    );
+    if (state.origin != null && state.destination != null) {
+      calculateRoute();
+    }
+  }
+
   void removeStopover(int index) {
     if (index >= 0 && index < state.stopovers.length) {
       final current = List<LocationModel>.from(state.stopovers);
