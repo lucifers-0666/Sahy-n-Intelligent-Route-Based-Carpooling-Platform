@@ -539,6 +539,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                         fontWeight: FontWeight.w500,
                         color: BookingsHubColors.textMuted,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -794,6 +796,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               fontWeight: FontWeight.w800,
               color: BookingsHubColors.textPrimary,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
 
@@ -806,6 +810,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               fontWeight: FontWeight.w600,
               color: BookingsHubColors.textMuted,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 6),
 
@@ -818,6 +824,8 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
               fontWeight: FontWeight.w500,
               color: BookingsHubColors.textSubtle,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
 
           // Action Button: Rate Trip & Driver (for completed bookings)
