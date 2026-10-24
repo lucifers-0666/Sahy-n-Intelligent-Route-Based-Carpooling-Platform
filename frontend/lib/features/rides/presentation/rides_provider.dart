@@ -357,16 +357,16 @@ class OfferRideNotifier extends StateNotifier<OfferRideState> {
     );
   }
 
-  void setOrigin(LocationModel origin) {
+  void setOrigin(LocationModel? origin) {
     state = state.copyWith(origin: origin, clearError: true);
-    if (state.destination != null) {
+    if (origin != null && state.destination != null) {
       calculateRoute();
     }
   }
 
-  void setDestination(LocationModel destination) {
+  void setDestination(LocationModel? destination) {
     state = state.copyWith(destination: destination, clearError: true);
-    if (state.origin != null) {
+    if (state.origin != null && destination != null) {
       calculateRoute();
     }
   }

@@ -18,6 +18,7 @@ import 'package:sahyan/shared/widgets/feedback/sahyan_five_section_skeleton.dart
 import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/shared/widgets/sahyan_3d_vehicle_marker.dart';
+import 'package:sahyan/shared/widgets/sahyan_route_input_field.dart';
 
 class OfferRideStep1 extends ConsumerStatefulWidget {
   final TextEditingController originController;
@@ -438,191 +439,85 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
     );
   }
 
-  // --- 2. Unified Route Selection Card (Integrated Rail & Dedicated Icons) ---
+  // --- 2. Unified Route Selection (Option A Filled Containers with Integrated Top Labels) ---
   Widget _buildTransitRouteRailCard(
     BuildContext context,
     WidgetRef ref,
     OfferRideState draft,
   ) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: const Color(0xFFE2E8E4), width: 0.8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // A. Origin Pickup Row
-          _buildOriginRow(context, ref, draft),
-
-          // B. Inline Stopover & Continuous Rail Divider Section
-          _buildStopoverAndRailSection(context, ref, draft),
-
-          // C. Destination Drop-off Row
-          _buildDestinationRow(context, ref, draft),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOriginRow(
-    BuildContext context,
-    WidgetRef ref,
-    OfferRideState draft,
-  ) {
-    final isFocused = _originFocusNode.hasFocus;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAF8),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isFocused ? const Color(0xFF2EC486) : const Color(0xFFE2E8E4),
-          width: isFocused ? 1.2 : 0.8,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // A. Origin Pickup Field (Option A Filled Container)
+        SahyanRouteInputField(
+          label: 'Origin Location (From)',
+          hintText: 'Search pickup point or current GPS',
+          controller: widget.originController,
+          focusNode: _originFocusNode,
+          type: RouteInputType.origin,
+          isGpsLoading: _isGpsLocating,
+          onGpsTap: _handleGpsAutoFill,
+          onChanged: (val) {
+            if (val.trim().isNotEmpty) {
+              ref.read(offerRideProvider.notifier).setOrigin(
+                    LocationModel.fromCoordinates(
+                      name: val.trim(),
+                      latitude: 23.2420,
+                      longitude: 69.6669,
+                    ),
+                  );
+            }
+          },
         ),
-      ),
-      child: Row(
-        children: [
-          // Left Transit Node: 28x28dp, #E8F5EF soft mint circle with solid Pine #1B4D3E dot
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE8F5EF),
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1B4D3E),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF1B4D3E).withValues(alpha: 0.3),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
 
-          // Text & Placeholder
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Origin Location (From)',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF5C6E64),
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    inputDecorationTheme: const InputDecorationTheme(
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  child: TextFormField(
-                    controller: widget.originController,
-                    focusNode: _originFocusNode,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF14241C),
-                    ),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      hintText: 'Search pickup point or current GPS',
-                      hintStyle: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF8A9A90),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onChanged: (val) {
-                      if (val.trim().isNotEmpty) {
-                        ref.read(offerRideProvider.notifier).setOrigin(
-                              LocationModel.fromCoordinates(
-                                name: val.trim(),
-                                latitude: 23.2420,
-                                longitude: 69.6669,
-                              ),
-                            );
-                      }
+        // B. Inline Stopover & Continuous Rail Divider Section
+        _buildStopoverAndRailSection(context, ref, draft),
+
+        // C. Destination Drop-off Field (Option A Filled Container)
+        SahyanRouteInputField(
+          label: 'Destination Location (To)',
+          hintText: 'Search dropoff city or hub',
+          controller: widget.destinationController,
+          focusNode: _destinationFocusNode,
+          type: RouteInputType.destination,
+          onActionTap: widget.onSelectDestination,
+          onClear: () {
+            ref.read(offerRideProvider.notifier).setDestination(null);
+          },
+          trailingAction: widget.destinationController.text.trim().isNotEmpty
+              ? null
+              : Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      widget.onSelectDestination();
                     },
+                    borderRadius: BorderRadius.circular(20),
+                    splashColor: const Color(0xFFE8F5EF),
+                    child: const Padding(
+                      padding: EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.flag_circle_outlined,
+                        size: 20,
+                        color: Color(0xFF2EC486),
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Right Action Indicator: Icons.my_location_rounded (Pine #1B4D3E, 20dp) with subtle splash
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _handleGpsAutoFill,
-              borderRadius: BorderRadius.circular(20),
-              splashColor: const Color(0xFFE8F5EF),
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: _isGpsLocating
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1B4D3E)),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.my_location_rounded,
-                        size: 20,
-                        color: Color(0xFF1B4D3E),
-                      ),
-              ),
-            ),
-          ),
-        ],
-      ),
+          onChanged: (val) {
+            if (val.trim().isNotEmpty) {
+              ref.read(offerRideProvider.notifier).setDestination(
+                    LocationModel.fromCoordinates(
+                      name: val.trim(),
+                      latitude: 23.0225,
+                      longitude: 72.5714,
+                    ),
+                  );
+            }
+          },
+        ),
+      ],
     );
   }
 
@@ -638,117 +533,18 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (int i = 0; i < draft.stopovers.length; i++) ...[
-            _buildRailDivider(
-              rightChild: const Divider(
-                color: Color(0xFFE2E8E4),
-                thickness: 0.8,
-                height: 1,
-              ),
-              height: 16.0,
-            ),
+            const SahyanTransitRailDivider(height: 16.0),
             _buildStopoverRow(context, ref, draft.stopovers[i], i),
           ],
-          _buildRailDivider(
-            rightChild: Row(
-              children: [
-                const Expanded(
-                  child: Divider(
-                    color: Color(0xFFE2E8E4),
-                    thickness: 0.8,
-                    height: 1,
-                  ),
-                ),
-                Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                  child: InkWell(
-                    onTap: _onTapAddStopover,
-                    borderRadius: BorderRadius.circular(999),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: const Color(0xFFE2E8E4),
-                          width: 0.8,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 4,
-                            offset: const Offset(0, 1),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.add_circle_outline_rounded,
-                            size: 14,
-                            color: Color(0xFF1B4D3E),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            draft.stopovers.isEmpty
-                                ? 'Add Stopover / Toll'
-                                : 'Add Stopover (${draft.stopovers.length}/3)',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF1B4D3E),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const Expanded(
-                  child: Divider(
-                    color: Color(0xFFE2E8E4),
-                    thickness: 0.8,
-                    height: 1,
-                  ),
-                ),
-              ],
-            ),
+          SahyanTransitRailDivider(
             height: 32.0,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRailDivider({
-    required Widget rightChild,
-    double height = 32.0,
-  }) {
-    return SizedBox(
-      height: height,
-      child: Row(
-        children: [
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 28,
-            child: Center(
-              child: CustomPaint(
-                size: Size(2.0, height),
-                painter: const _DashedVerticalRailPainter(
-                  color: Color(0xFF2EC486),
-                  strokeWidth: 2.0,
-                  dashHeight: 3.5,
-                  dashGap: 2.5,
-                ),
-              ),
+            centerWidget: SahyanStopoverActionPill(
+              onTap: _onTapAddStopover,
+              label: draft.stopovers.isEmpty
+                  ? 'Add Stopover / Toll'
+                  : 'Add Stopover (${draft.stopovers.length}/3)',
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(child: rightChild),
         ],
       ),
     );
@@ -761,26 +557,20 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
     int index,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBEB),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFFE5A93C).withValues(alpha: 0.5),
+          color: const Color(0xFFE5A93C).withValues(alpha: 0.6),
           width: 0.8,
         ),
       ),
       child: Row(
         children: [
-          // Left Transit Node: 28x28dp, Amber circle #FEF3C7 with milestone icon
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFEF3C7),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
+          const SizedBox(
+            width: 32,
+            child: Center(
               child: Icon(
                 Icons.fiber_manual_record_rounded,
                 color: Color(0xFFE5A93C),
@@ -788,28 +578,28 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
-
-          // Text & Placeholder
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Stopover ${index + 1} (Via)',
+                  'STOPOVER ${index + 1} (VIA)',
                   style: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
                     color: Color(0xFF92400E),
-                    letterSpacing: 0.8,
+                    letterSpacing: 1.0,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   stop.name,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF14241C),
                   ),
@@ -820,158 +610,23 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
             ),
           ),
           const SizedBox(width: 8),
-
-          // Remove Stopover Action
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                ref.read(offerRideProvider.notifier).removeStopover(index);
-              },
-              borderRadius: BorderRadius.circular(20),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(
-                  Icons.close_rounded,
-                  size: 18,
-                  color: Color(0xFF5C6E64),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDestinationRow(
-    BuildContext context,
-    WidgetRef ref,
-    OfferRideState draft,
-  ) {
-    final isFocused = _destinationFocusNode.hasFocus;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAF8),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isFocused ? const Color(0xFF2EC486) : const Color(0xFFE2E8E4),
-          width: isFocused ? 1.2 : 0.8,
-        ),
-      ),
-      child: Row(
-        children: [
-          // Left Transit Node: 28x28dp, #E8F5EF soft mint circle with Mint #2EC486 pin
-          Container(
-            width: 28,
-            height: 28,
-            decoration: const BoxDecoration(
-              color: Color(0xFFE8F5EF),
-              shape: BoxShape.circle,
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.location_on_rounded,
-                color: Color(0xFF2EC486),
-                size: 18,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Text & Placeholder
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Destination Location (To)',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 36),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  ref.read(offerRideProvider.notifier).removeStopover(index);
+                },
+                borderRadius: BorderRadius.circular(18),
+                child: const Padding(
+                  padding: EdgeInsets.all(6),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 18,
                     color: Color(0xFF5C6E64),
-                    letterSpacing: 0.8,
                   ),
-                ),
-                const SizedBox(height: 2),
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    inputDecorationTheme: const InputDecorationTheme(
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  child: TextFormField(
-                    controller: widget.destinationController,
-                    focusNode: _destinationFocusNode,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF14241C),
-                    ),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      hintText: 'Search dropoff city or hub',
-                      hintStyle: TextStyle(
-                        fontSize: 13,
-                        color: Color(0xFF8A9A90),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onChanged: (val) {
-                      if (val.trim().isNotEmpty) {
-                        ref.read(offerRideProvider.notifier).setDestination(
-                              LocationModel.fromCoordinates(
-                                name: val.trim(),
-                                latitude: 23.0225,
-                                longitude: 72.5714,
-                              ),
-                            );
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // Right Action Indicator: Destination flag or explore icon (Mint #2EC486, 20dp)
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                widget.onSelectDestination();
-              },
-              borderRadius: BorderRadius.circular(20),
-              splashColor: const Color(0xFFE8F5EF),
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(
-                  Icons.flag_circle_outlined,
-                  size: 20,
-                  color: Color(0xFF2EC486),
                 ),
               ),
             ),
@@ -980,6 +635,7 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
       ),
     );
   }
+
 
   // --- 3. Frequent Corridor Quick Chips (Horizontal Scroll Only) ---
   Widget _buildFrequentCorridorsScroll(WidgetRef ref) {
@@ -1517,45 +1173,5 @@ class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
         ],
       ),
     );
-  }
-}
-
-/// Custom painter for the continuous dashed vertical transit rail connecting Origin to Destination.
-class _DashedVerticalRailPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double dashHeight;
-  final double dashGap;
-
-  const _DashedVerticalRailPainter({
-    required this.color,
-    this.strokeWidth = 2.0,
-    this.dashHeight = 3.5,
-    this.dashGap = 2.5,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final x = size.width / 2;
-    double y = 0.0;
-    while (y < size.height) {
-      final endY = (y + dashHeight).clamp(0.0, size.height);
-      canvas.drawLine(Offset(x, y), Offset(x, endY), paint);
-      y += dashHeight + dashGap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedVerticalRailPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.dashHeight != dashHeight ||
-        oldDelegate.dashGap != dashGap;
   }
 }

@@ -10,6 +10,7 @@ import '../../../../core/location/domain/gps_provider.dart';
 import '../../../../core/network/api_config.dart';
 import '../../../../shared/models/location_model.dart';
 import '../../../../shared/widgets/bento/bento_widgets.dart';
+import '../../../../shared/widgets/sahyan_route_input_field.dart';
 import '../../../rides/presentation/widgets/location_search_bottom_sheet.dart';
 
 enum _ActiveLocationField { none, origin, destination }
@@ -73,14 +74,10 @@ class HeroSearchCard extends StatefulWidget {
 }
 
 class _HeroSearchCardState extends State<HeroSearchCard> {
-  double _swapTurns = 0.0;
-  bool _isSwapPressed = false;
   bool _isSearchPressed = false;
 
   late final FocusNode _originFocusNode;
   late final FocusNode _destFocusNode;
-  bool _isOriginFocused = false;
-  bool _isDestFocused = false;
   _ActiveLocationField _activeField = _ActiveLocationField.none;
 
   List<LocationModel> _suggestions = [];
@@ -172,36 +169,24 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
   void _handleOriginFocusChange() {
     if (_originFocusNode.hasFocus) {
       setState(() {
-        _isOriginFocused = true;
-        _isDestFocused = false;
         _activeField = _ActiveLocationField.origin;
       });
       _onQueryChanged(
         widget.originController.text,
         _ActiveLocationField.origin,
       );
-    } else {
-      setState(() {
-        _isOriginFocused = false;
-      });
     }
   }
 
   void _handleDestFocusChange() {
     if (_destFocusNode.hasFocus) {
       setState(() {
-        _isDestFocused = true;
-        _isOriginFocused = false;
         _activeField = _ActiveLocationField.destination;
       });
       _onQueryChanged(
         widget.destinationController.text,
         _ActiveLocationField.destination,
       );
-    } else {
-      setState(() {
-        _isDestFocused = false;
-      });
     }
   }
 
@@ -227,9 +212,6 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
 
   void _handleSwap() {
     HapticFeedback.mediumImpact();
-    setState(() {
-      _swapTurns += 0.5;
-    });
     widget.onSwap();
     if (_activeField != _ActiveLocationField.none) {
       final active = _activeField;
@@ -470,7 +452,6 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
   Widget build(BuildContext context) {
     final formattedTime = widget.selectedTime.format(context);
     final formattedDate = _formatDate(widget.selectedDate);
-    final isAnyFocused = _isOriginFocused || _isDestFocused;
 
     return BentoContainer(
       padding: const EdgeInsets.all(20),
@@ -586,137 +567,17 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
 
           const SizedBox(height: 16),
 
-          // B. Unified Connected Origin-to-Destination Selector
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: isAnyFocused
-                    ? AppColors.deepEmerald
-                    : AppColors.border,
-                width: isAnyFocused ? 1.4 : 0.8,
+          // B. Unified Connected Origin-to-Destination Selector (Option A Filled Containers)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildPickupField(),
+              SahyanTransitRailDivider(
+                height: 32,
+                centerWidget: SahyanQuickSwapButton(onSwap: _handleSwap),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primaryText.withValues(
-                    alpha: isAnyFocused ? 0.06 : 0.03,
-                  ),
-                  blurRadius: isAnyFocused ? 14 : 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.centerRight,
-              children: [
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Left Transit Visual Track (Origin Beacon, Track Line, Destination Pin)
-                      SizedBox(
-                        width: 48,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const SizedBox(height: 12),
-                            // Origin Node (28x28dp, #E8F5EF circle with Pine dot)
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE8F5EF),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1B4D3E),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF1B4D3E).withValues(alpha: 0.3),
-                                        blurRadius: 4,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            // Vertical Track (2dp dashed connector in #2EC486)
-                            Expanded(
-                              child: CustomPaint(
-                                painter: const _DashedVerticalTrackPainter(
-                                  color: Color(0xFF2EC486),
-                                  strokeWidth: 2.0,
-                                  dashHeight: 3.5,
-                                  dashGap: 2.5,
-                                ),
-                                size: const Size(2, double.infinity),
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            // Destination Node (28x28dp, #E8F5EF circle with Mint pin)
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE8F5EF),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Center(
-                                child: Icon(
-                                  Icons.location_on_rounded,
-                                  size: 18,
-                                  color: Color(0xFF2EC486),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                          ],
-                        ),
-                      ),
-
-                      // Right Inputs Column (Pickup, Hairline Divider, Destination)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 50),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // 1. Pickup Origin Row
-                              _buildPickupRow(),
-
-                              // Hairline Divider
-                              const Divider(
-                                height: 1,
-                                thickness: 0.8,
-                                color: AppColors.border,
-                              ),
-
-                              // 2. Dropoff Destination Row
-                              _buildDestinationRow(),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Floating Swap Button (38x38dp, Tactile Animated Rotation)
-                Positioned(
-                  right: 12,
-                  child: _buildSwapButton(),
-                ),
-              ],
-            ),
+              _buildDestinationField(),
+            ],
           ),
 
           // C. Connected Suggestions Dropdown Panel
@@ -972,323 +833,151 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
     );
   }
 
-  Widget _buildPickupRow() {
-    return _buildLocationRow(
-      isPickup: true,
+  Widget _buildPickupField() {
+    final hasText = widget.originController.text.trim().isNotEmpty;
+    return SahyanRouteInputField(
+      label: 'PICKUP LOCATION',
       labelPrefix: 'FROM',
-      labelText: 'PICKUP LOCATION',
       hintText: 'Enter pickup hub or address...',
       controller: widget.originController,
       focusNode: _originFocusNode,
-      isFocused: _isOriginFocused,
-      onTapAction: widget.onTapPickup,
-      field: _ActiveLocationField.origin,
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(16),
-        topRight: Radius.circular(16),
-      ),
-    );
-  }
-
-  Widget _buildDestinationRow() {
-    return _buildLocationRow(
-      isPickup: false,
-      labelPrefix: 'TO',
-      labelText: 'DESTINATION HUB',
-      hintText: 'Where to? (Destination)...',
-      controller: widget.destinationController,
-      focusNode: _destFocusNode,
-      isFocused: _isDestFocused,
-      onTapAction: widget.onTapDestination,
-      field: _ActiveLocationField.destination,
-      borderRadius: const BorderRadius.only(
-        bottomLeft: Radius.circular(16),
-        bottomRight: Radius.circular(16),
-      ),
-    );
-  }
-
-  Widget _buildLocationRow({
-    required bool isPickup,
-    required String labelPrefix,
-    required String labelText,
-    required String hintText,
-    required TextEditingController controller,
-    required FocusNode focusNode,
-    required bool isFocused,
-    required VoidCallback? onTapAction,
-    required _ActiveLocationField field,
-    required BorderRadius borderRadius,
-  }) {
-    final hasText = controller.text.isNotEmpty;
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 62),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-      decoration: BoxDecoration(
-        color: isFocused
-            ? AppColors.primaryLight.withValues(alpha: 0.35)
-            : Colors.transparent,
-        borderRadius: borderRadius,
-      ),
-      alignment: Alignment.centerLeft,
-      child: Column(
+      type: RouteInputType.origin,
+      isGpsLoading: _isGpsLocating,
+      onGpsTap: _handleGpsCurrentLocation,
+      onTap: () {
+        if (!widget.enableInlineAutocomplete && widget.onTapPickup != null) {
+          widget.onTapPickup!();
+        }
+      },
+      readOnly: !widget.enableInlineAutocomplete && widget.onTapPickup != null,
+      onChanged: (val) => _onQueryChanged(val, _ActiveLocationField.origin),
+      trailingAction: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Upper Label
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  labelPrefix,
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.8,
-                    color: isFocused
-                        ? AppColors.deepEmerald
-                        : AppColors.mutedText,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  labelText,
-                  style: TextStyle(
-                    fontFamily: 'Plus Jakarta Sans',
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.5,
-                    color: isFocused
-                        ? AppColors.deepEmerald
-                        : AppColors.mutedText.withValues(alpha: 0.6),
-                  ),
-                ),
-                if (isFocused) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 4,
-                    height: 4,
-                    decoration: const BoxDecoration(
-                      color: AppColors.deepEmerald,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 3),
-
-          // Lower Editable Input Line with Trailing Actions
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Theme(
-                  data: Theme.of(context).copyWith(
-                    inputDecorationTheme: const InputDecorationTheme(
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                  child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    onTap: () {
-                      if (!widget.enableInlineAutocomplete &&
-                          onTapAction != null) {
-                        onTapAction();
-                      }
-                    },
-                    readOnly: !widget.enableInlineAutocomplete &&
-                        onTapAction != null,
-                    textAlignVertical: TextAlignVertical.center,
-                    cursorColor: AppColors.deepEmerald,
-                    cursorWidth: 2.0,
-                    cursorHeight: 18.0,
-                    maxLines: 1,
-                    style: const TextStyle(
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryText,
-                      letterSpacing: -0.2,
-                      height: 1.25,
-                    ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      filled: false,
-                      fillColor: Colors.transparent,
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
-                      disabledBorder: InputBorder.none,
-                      errorBorder: InputBorder.none,
-                      focusedErrorBorder: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                      hintText: hintText,
-                      hintStyle: const TextStyle(
-                        fontFamily: 'Plus Jakarta Sans',
-                        color: AppColors.mutedText,
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.2,
-                        height: 1.25,
-                      ),
-                    ),
-                    onChanged: (val) => _onQueryChanged(val, field),
-                  ),
+          if (hasText)
+            GestureDetector(
+              onTap: () {
+                widget.originController.clear();
+                _onQueryChanged('', _ActiveLocationField.origin);
+                setState(() {});
+              },
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.cancel_rounded,
+                  size: 16,
+                  color: AppColors.mutedText,
                 ),
               ),
-              if (hasText)
-                GestureDetector(
-                  onTap: () {
-                    controller.clear();
-                    _onQueryChanged('', field);
-                    setState(() {});
-                  },
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.cancel_rounded,
-                      size: 16,
-                      color: AppColors.mutedText,
-                    ),
-                  ),
+            ),
+          if (widget.onTapPickup != null) ...[
+            GestureDetector(
+              onTap: widget.onTapPickup,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.map_outlined,
+                  size: 16,
+                  color: AppColors.mutedText,
                 ),
-              const SizedBox(width: 2),
-              if (onTapAction != null) ...[
-                GestureDetector(
-                  onTap: onTapAction,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.map_outlined,
-                      size: 16,
-                      color: AppColors.mutedText,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 2),
-              ],
-              // Dedicated Contextual Action Icon
-              if (isPickup)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: _isGpsLocating ? null : _handleGpsCurrentLocation,
-                    borderRadius: BorderRadius.circular(20),
-                    splashColor: const Color(0xFFE8F5EF),
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: _isGpsLocating
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF1B4D3E),
-                                ),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.my_location_rounded,
-                              size: 20,
-                              color: Color(0xFF1B4D3E),
-                            ),
-                    ),
-                  ),
-                )
-              else
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      if (onTapAction != null) {
-                        onTapAction();
-                      } else {
-                        focusNode.requestFocus();
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(20),
-                    splashColor: const Color(0xFFE8F5EF),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.flag_circle_outlined,
+              ),
+            ),
+          ],
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _isGpsLocating ? null : _handleGpsCurrentLocation,
+              borderRadius: BorderRadius.circular(18),
+              splashColor: const Color(0xFFE8F5EF),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: _isGpsLocating
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color(0xFF1B4D3E),
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.my_location_rounded,
                         size: 20,
-                        color: Color(0xFF2EC486),
+                        color: Color(0xFF1B4D3E),
                       ),
-                    ),
-                  ),
-                ),
-            ],
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSwapButton() {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _isSwapPressed = true),
-      onTapUp: (_) => setState(() => _isSwapPressed = false),
-      onTapCancel: () => setState(() => _isSwapPressed = false),
-      child: AnimatedScale(
-        scale: _isSwapPressed ? 0.90 : 1.0,
-        duration: const Duration(milliseconds: 100),
-        child: Material(
-          color: Colors.white,
-          shape: const CircleBorder(
-            side: BorderSide(
-              color: AppColors.border,
-              width: 0.9,
-            ),
-          ),
-          elevation: 2.5,
-          shadowColor: AppColors.primaryText.withValues(alpha: 0.10),
-          child: InkWell(
-            onTap: _handleSwap,
-            customBorder: const CircleBorder(),
-            child: SizedBox(
-              width: 38,
-              height: 38,
-              child: Center(
-                child: AnimatedRotation(
-                  turns: _swapTurns,
-                  duration: const Duration(milliseconds: 320),
-                  curve: Curves.easeOutCubic,
-                  child: const Icon(
-                    Icons.swap_vert_rounded,
-                    size: 20,
-                    color: AppColors.deepEmerald,
-                  ),
+  Widget _buildDestinationField() {
+    final hasText = widget.destinationController.text.trim().isNotEmpty;
+    return SahyanRouteInputField(
+      label: 'DESTINATION HUB',
+      labelPrefix: 'TO',
+      hintText: 'Where to? (Destination)...',
+      controller: widget.destinationController,
+      focusNode: _destFocusNode,
+      type: RouteInputType.destination,
+      onTap: () {
+        if (!widget.enableInlineAutocomplete && widget.onTapDestination != null) {
+          widget.onTapDestination!();
+        }
+      },
+      readOnly: !widget.enableInlineAutocomplete && widget.onTapDestination != null,
+      onChanged: (val) => _onQueryChanged(val, _ActiveLocationField.destination),
+      onActionTap: widget.onTapDestination,
+      trailingAction: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasText)
+            GestureDetector(
+              onTap: () {
+                widget.destinationController.clear();
+                _onQueryChanged('', _ActiveLocationField.destination);
+                setState(() {});
+              },
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.cancel_rounded,
+                  size: 16,
+                  color: AppColors.mutedText,
                 ),
               ),
             ),
-          ),
-        ),
+          if (widget.onTapDestination != null) ...[
+            GestureDetector(
+              onTap: widget.onTapDestination,
+              behavior: HitTestBehavior.opaque,
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(
+                  Icons.map_outlined,
+                  size: 16,
+                  color: AppColors.mutedText,
+                ),
+              ),
+            ),
+          ] else if (!hasText) ...[
+            const Padding(
+              padding: EdgeInsets.all(4),
+              child: Icon(
+                Icons.explore_outlined,
+                size: 20,
+                color: Color(0xFF2EC486),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -1674,45 +1363,5 @@ class _SummarySelectionRow extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Custom painter for the dashed vertical transit line connecting Origin to Destination.
-class _DashedVerticalTrackPainter extends CustomPainter {
-  final Color color;
-  final double strokeWidth;
-  final double dashHeight;
-  final double dashGap;
-
-  const _DashedVerticalTrackPainter({
-    required this.color,
-    this.strokeWidth = 2.0,
-    this.dashHeight = 3.5,
-    this.dashGap = 2.5,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = strokeWidth
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final x = size.width / 2;
-    double y = 0.0;
-    while (y < size.height) {
-      final endY = (y + dashHeight).clamp(0.0, size.height);
-      canvas.drawLine(Offset(x, y), Offset(x, endY), paint);
-      y += dashHeight + dashGap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DashedVerticalTrackPainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.strokeWidth != strokeWidth ||
-        oldDelegate.dashHeight != dashHeight ||
-        oldDelegate.dashGap != dashGap;
   }
 }
