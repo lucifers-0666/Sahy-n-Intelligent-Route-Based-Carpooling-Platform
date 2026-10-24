@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
+import 'package:sahyan/features/rides/presentation/rides_provider.dart';
 import 'package:sahyan/features/trip/presentation/widgets/rate_trip_sheet.dart';
 import 'package:sahyan/features/trip/presentation/widgets/sos_action_bottom_sheet.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
@@ -259,6 +260,27 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                                       '/live-tracking',
                                       extra: b,
                                     ),
+                                    onViewDetails: () {
+                                      if (b.ride != null) {
+                                        ref
+                                            .read(selectedRideProvider.notifier)
+                                            .state = b.ride;
+                                      }
+                                      final targetId = b.rideId.isNotEmpty
+                                          ? b.rideId
+                                          : (b.ride?.id ?? '');
+                                      if (targetId.isNotEmpty) {
+                                        context.push(
+                                          '/rides/$targetId',
+                                          extra: b.ride,
+                                        );
+                                      } else if (b.ride != null) {
+                                        context.push(
+                                          '/ride-details',
+                                          extra: b.ride,
+                                        );
+                                      }
+                                    },
                                     onCall: () {
                                       final name = b.ride?.driverName.isNotEmpty == true
                                           ? b.ride!.driverName
@@ -667,8 +689,29 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                   height: 40,
                   child: ElevatedButton(
                     onPressed: () {
-                      if (booking.rideId.isNotEmpty) {
-                        context.push('/rides/${booking.rideId}');
+                      if (booking.ride != null) {
+                        ref.read(selectedRideProvider.notifier).state =
+                            booking.ride;
+                      }
+                      final targetId = booking.rideId.isNotEmpty
+                          ? booking.rideId
+                          : (booking.ride?.id ?? '');
+                      if (targetId.isNotEmpty) {
+                        context.push(
+                          '/rides/$targetId',
+                          extra: booking.ride,
+                        );
+                      } else if (booking.ride != null) {
+                        context.push(
+                          '/ride-details',
+                          extra: booking.ride,
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Ride details are not available'),
+                          ),
+                        );
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -730,7 +773,6 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: BookingsHubColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -743,9 +785,29 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () {
+            if (booking.ride != null) {
+              ref.read(selectedRideProvider.notifier).state = booking.ride;
+            }
+            final targetId = booking.rideId.isNotEmpty
+                ? booking.rideId
+                : (booking.ride?.id ?? '');
+            if (targetId.isNotEmpty) {
+              context.push('/rides/$targetId', extra: booking.ride);
+            } else if (booking.ride != null) {
+              context.push('/ride-details', extra: booking.ride);
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
           // Header Row: Date & Status Tag
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -871,7 +933,10 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
           ],
         ],
       ),
-    );
+    ),
+  ),
+),
+);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -1373,6 +1438,7 @@ class DigitalBoardingPass extends StatelessWidget {
   final VoidCallback? onChat;
   final VoidCallback? onShare;
   final VoidCallback? onSos;
+  final VoidCallback? onViewDetails;
 
   const DigitalBoardingPass({
     super.key,
@@ -1382,6 +1448,7 @@ class DigitalBoardingPass extends StatelessWidget {
     this.onChat,
     this.onShare,
     this.onSos,
+    this.onViewDetails,
   });
 
   @override
@@ -1663,132 +1730,139 @@ class DigitalBoardingPass extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 // 2. Route & Time Matrix
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: BookingsHubColors.inputBg,
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: onViewDetails,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: BookingsHubColors.border, width: 0.8),
-                  ),
-                  child: Row(
-                    children: [
-                      // Left Column: Pickup Time & Location
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              departureTime,
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: BookingsHubColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              pickupName,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: BookingsHubColors.textMuted,
-                                height: 1.25,
-                              ),
-                            ),
-                          ],
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: BookingsHubColors.inputBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: BookingsHubColors.border, width: 0.8),
                       ),
-                      const SizedBox(width: 4),
-
-                      // Center Column: Distance & Non-stop corridor indicator
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                      child: Row(
+                        children: [
+                          // Left Column: Pickup Time & Location
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 4,
-                                  height: 4,
-                                  decoration: const BoxDecoration(
-                                    color: BookingsHubColors.pinePrimary,
-                                    shape: BoxShape.circle,
+                                Text(
+                                  departureTime,
+                                  style: const TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: BookingsHubColors.textPrimary,
                                   ),
                                 ),
-                                const Expanded(
-                                  child: Divider(
-                                    color: BookingsHubColors.mintAccent,
-                                    thickness: 1.2,
-                                    height: 1,
+                                const SizedBox(height: 3),
+                                Text(
+                                  pickupName,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: BookingsHubColors.textMuted,
+                                    height: 1.25,
                                   ),
-                                ),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 14,
-                                  color: BookingsHubColors.mintAccent,
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 4),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                distanceDurationText,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  fontFamily: 'Plus Jakarta Sans',
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: BookingsHubColors.mintAccent,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 4),
+                          ),
+                          const SizedBox(width: 4),
 
-                      // Right Column: Drop Time & Location
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              arrivalTime,
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                                color: BookingsHubColors.textPrimary,
-                              ),
+                          // Center Column: Distance & Non-stop corridor indicator
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 4,
+                                      decoration: const BoxDecoration(
+                                        color: BookingsHubColors.pinePrimary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const Expanded(
+                                      child: Divider(
+                                        color: BookingsHubColors.mintAccent,
+                                        thickness: 1.2,
+                                        height: 1,
+                                      ),
+                                    ),
+                                    const Icon(
+                                      Icons.arrow_forward_rounded,
+                                      size: 14,
+                                      color: BookingsHubColors.mintAccent,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    distanceDurationText,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontFamily: 'Plus Jakarta Sans',
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: BookingsHubColors.mintAccent,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              dropName,
-                              textAlign: TextAlign.right,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'Plus Jakarta Sans',
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: BookingsHubColors.textMuted,
-                                height: 1.25,
-                              ),
+                          ),
+                          const SizedBox(width: 4),
+
+                          // Right Column: Drop Time & Location
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  arrivalTime,
+                                  style: const TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: BookingsHubColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  dropName,
+                                  textAlign: TextAlign.right,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: 'Plus Jakarta Sans',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: BookingsHubColors.textMuted,
+                                    height: 1.25,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ],

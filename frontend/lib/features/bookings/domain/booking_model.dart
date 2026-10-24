@@ -93,26 +93,40 @@ class BookingModel extends Equatable {
     // 1. Resolve ride reference / populated object
     String resolvedRideId = '';
     RideModel? resolvedRide;
-    if (json['ride'] is Map<String, dynamic>) {
-      resolvedRide = RideModel.fromJson(json['ride'] as Map<String, dynamic>);
-      resolvedRideId = resolvedRide.id;
+    if (json['ride'] is Map) {
+      resolvedRide = RideModel.fromJson(Map<String, dynamic>.from(json['ride'] as Map));
+      resolvedRideId = resolvedRide.id.isNotEmpty
+          ? resolvedRide.id
+          : ((json['ride'] as Map)['_id']?.toString() ??
+              (json['ride'] as Map)['id']?.toString() ??
+              '');
     } else if (json['ride'] is String) {
       resolvedRideId = json['ride'] as String;
-    } else if (json['rideId'] != null) {
+    }
+
+    if (resolvedRideId.isEmpty && json['rideId'] != null) {
       resolvedRideId = json['rideId'].toString();
-    } else if (json['rideDetails'] is Map<String, dynamic>) {
+    }
+
+    if (resolvedRide == null && json['rideDetails'] is Map) {
       resolvedRide = RideModel.fromJson(
-        json['rideDetails'] as Map<String, dynamic>,
+        Map<String, dynamic>.from(json['rideDetails'] as Map),
       );
+      if (resolvedRideId.isEmpty) {
+        resolvedRideId = resolvedRide.id;
+      }
+    }
+
+    if (resolvedRideId.isEmpty && resolvedRide != null) {
       resolvedRideId = resolvedRide.id;
     }
 
     // 2. Resolve passenger reference / populated object
     String resolvedPassengerId = '';
     UserModel? resolvedPassenger;
-    if (json['passenger'] is Map<String, dynamic>) {
+    if (json['passenger'] is Map) {
       resolvedPassenger = UserModel.fromJson(
-        json['passenger'] as Map<String, dynamic>,
+        Map<String, dynamic>.from(json['passenger'] as Map),
       );
       resolvedPassengerId = resolvedPassenger.id;
     } else if (json['passenger'] is String) {
@@ -132,13 +146,13 @@ class BookingModel extends Equatable {
 
     // 4. Resolve pickup & drop
     LocationModel resolvedPickup;
-    if (json['pickup'] is Map<String, dynamic>) {
+    if (json['pickup'] is Map) {
       resolvedPickup = LocationModel.fromJson(
-        json['pickup'] as Map<String, dynamic>,
+        Map<String, dynamic>.from(json['pickup'] as Map),
       );
-    } else if (json['pickupLocation'] is Map<String, dynamic>) {
+    } else if (json['pickupLocation'] is Map) {
       resolvedPickup = LocationModel.fromJson(
-        json['pickupLocation'] as Map<String, dynamic>,
+        Map<String, dynamic>.from(json['pickupLocation'] as Map),
       );
     } else if (resolvedRide != null) {
       resolvedPickup = resolvedRide.origin;
@@ -151,13 +165,13 @@ class BookingModel extends Equatable {
     }
 
     LocationModel resolvedDrop;
-    if (json['drop'] is Map<String, dynamic>) {
+    if (json['drop'] is Map) {
       resolvedDrop = LocationModel.fromJson(
-        json['drop'] as Map<String, dynamic>,
+        Map<String, dynamic>.from(json['drop'] as Map),
       );
-    } else if (json['dropLocation'] is Map<String, dynamic>) {
+    } else if (json['dropLocation'] is Map) {
       resolvedDrop = LocationModel.fromJson(
-        json['dropLocation'] as Map<String, dynamic>,
+        Map<String, dynamic>.from(json['dropLocation'] as Map),
       );
     } else if (resolvedRide != null) {
       resolvedDrop = resolvedRide.destination;

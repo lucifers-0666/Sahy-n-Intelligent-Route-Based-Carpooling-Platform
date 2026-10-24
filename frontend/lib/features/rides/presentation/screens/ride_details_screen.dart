@@ -24,21 +24,106 @@ import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
+import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
 import '../rides_provider.dart';
 
 class RideDetailsScreen extends ConsumerWidget {
-  const RideDetailsScreen({super.key});
+  final String? rideId;
+  final RideModel? initialRide;
+
+  const RideDetailsScreen({
+    super.key,
+    this.rideId,
+    this.initialRide,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ride = ref.watch(selectedRideProvider);
-    final searchResult = ref.watch(selectedSearchResultProvider);
+    // 1. Prioritize initialRide if provided directly
+    RideModel? ride = initialRide;
+
+    // 2. Check selectedRideProvider if available and matches
+    if (ride == null) {
+      final selectedRide = ref.watch(selectedRideProvider);
+      if (selectedRide != null &&
+          (rideId == null || rideId!.isEmpty || selectedRide.id == rideId)) {
+        ride = selectedRide;
+      }
+    }
+
+    // 3. If still null and rideId is provided, fetch via rideByIdProvider
+    if (ride == null && rideId != null && rideId!.isNotEmpty) {
+      final rideAsync = ref.watch(rideByIdProvider(rideId!));
+      return rideAsync.when(
+        data: (fetchedRide) => _buildScaffold(context, ref, fetchedRide),
+        loading: () => const Scaffold(
+          backgroundColor: AppColors.lightSurface,
+          appBar: SahyanAppBar(title: 'Ride Overview'),
+          body: Center(
+            child: CircularProgressIndicator(
+              color: AppColors.deepEmerald,
+            ),
+          ),
+        ),
+        error: (err, stack) => Scaffold(
+          backgroundColor: AppColors.lightSurface,
+          appBar: const SahyanAppBar(title: 'Ride Overview'),
+          body: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Unable to load ride details',
+                    style: TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    err.toString(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: 12,
+                      color: AppColors.mutedText,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => ref.refresh(rideByIdProvider(rideId!)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.deepEmerald,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     if (ride == null) {
-      return Scaffold(
+      return const Scaffold(
         backgroundColor: AppColors.lightSurface,
-        appBar: const SahyanAppBar(title: 'Ride Overview'),
-        body: const Center(
+        appBar: SahyanAppBar(title: 'Ride Overview'),
+        body: Center(
           child: Text(
             'No ride selected',
             style: TextStyle(color: AppColors.mutedText),
@@ -47,6 +132,11 @@ class RideDetailsScreen extends ConsumerWidget {
       );
     }
 
+    return _buildScaffold(context, ref, ride);
+  }
+
+  Widget _buildScaffold(BuildContext context, WidgetRef ref, RideModel ride) {
+    final searchResult = ref.watch(selectedSearchResultProvider);
     final departureFormatted = DateFormat(
       'EEE, dd MMM yyyy',
     ).format(ride.dateTime);
@@ -144,24 +234,31 @@ class RideDetailsScreen extends ConsumerWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.alt_route_rounded,
-                                color: AppColors.softMint,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '$corridor · $distanceKm km · $durationText',
-                                style: const TextStyle(
-                                  color: AppColors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.alt_route_rounded,
+                                  color: AppColors.softMint,
+                                  size: 16,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    '$corridor · $distanceKm km · $durationText',
+                                    style: const TextStyle(
+                                      color: AppColors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8,
@@ -322,11 +419,15 @@ class RideDetailsScreen extends ConsumerWidget {
                           children: [
                             RatingDisplay(rating: ride.driverRating),
                             const SizedBox(width: 8),
-                            Text(
-                              'Verified Community Driver',
-                              style: AppTypography.caption.copyWith(
-                                color: AppColors.mutedText,
-                                fontWeight: FontWeight.w500,
+                            Flexible(
+                              child: Text(
+                                'Verified Community Driver',
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.mutedText,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
@@ -456,12 +557,15 @@ class RideDetailsScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Estimated Distance',
-                          style: AppTypography.secondary.copyWith(
-                            color: AppColors.mutedText,
+                        Expanded(
+                          child: Text(
+                            'Estimated Distance',
+                            style: AppTypography.secondary.copyWith(
+                              color: AppColors.mutedText,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           ride.route!.formattedDistance,
                           style: AppTypography.bodyMedium.copyWith(
@@ -475,12 +579,15 @@ class RideDetailsScreen extends ConsumerWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Estimated Travel Time',
-                          style: AppTypography.secondary.copyWith(
-                            color: AppColors.mutedText,
+                        Expanded(
+                          child: Text(
+                            'Estimated Travel Time',
+                            style: AppTypography.secondary.copyWith(
+                              color: AppColors.mutedText,
+                            ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Text(
                           ride.route!.formattedDuration,
                           style: AppTypography.bodyMedium.copyWith(
@@ -729,11 +836,13 @@ class RideDetailsScreen extends ConsumerWidget {
                         color: AppColors.deepEmerald,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'Contribution Breakdown',
-                        style: AppTypography.sectionHeader.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryText,
+                      Expanded(
+                        child: Text(
+                          'Contribution Breakdown',
+                          style: AppTypography.sectionHeader.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryText,
+                          ),
                         ),
                       ),
                     ],
@@ -742,12 +851,15 @@ class RideDetailsScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Shared Fuel & Vehicle Contribution',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.mutedText,
+                      Expanded(
+                        child: Text(
+                          'Shared Fuel & Vehicle Contribution',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.mutedText,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         '\u20B9${ride.contributionPerSeat.toStringAsFixed(0)}',
                         style: AppTypography.bodyMedium.copyWith(
@@ -761,12 +873,15 @@ class RideDetailsScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Platform Safety & Facilitation Fee',
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.mutedText,
+                      Expanded(
+                        child: Text(
+                          'Platform Safety & Facilitation Fee',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.mutedText,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         '\u20B90 (Waived)',
                         style: AppTypography.bodyMedium.copyWith(
@@ -782,13 +897,16 @@ class RideDetailsScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Total Contribution per Seat',
-                        style: AppTypography.bodyLarge.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryText,
+                      Expanded(
+                        child: Text(
+                          'Total Contribution per Seat',
+                          style: AppTypography.bodyLarge.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryText,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         '\u20B9${ride.contributionPerSeat.toStringAsFixed(0)}',
                         style: AppTypography.bodyLarge.copyWith(
@@ -826,11 +944,13 @@ class RideDetailsScreen extends ConsumerWidget {
                         color: AppColors.deepEmerald,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'Trust, Safety & Policies',
-                        style: AppTypography.sectionHeader.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryText,
+                      Expanded(
+                        child: Text(
+                          'Trust, Safety & Policies',
+                          style: AppTypography.sectionHeader.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryText,
+                          ),
                         ),
                       ),
                     ],
@@ -958,6 +1078,74 @@ class RideDetailsScreen extends ConsumerWidget {
     }
     if (ride.availableSeats <= 0) {
       return const PrimaryButton(text: 'Ride Full', isDisabled: true);
+    }
+
+    final bookingsAsync = ref.watch(bookingsNotifierProvider);
+    final userBookings = bookingsAsync.value ?? [];
+    final matchingBooking = userBookings.where((b) {
+      return (b.rideId.isNotEmpty && b.rideId == ride.id) ||
+          (b.ride != null && b.ride!.id == ride.id);
+    }).firstOrNull;
+
+    if (matchingBooking != null) {
+      if (matchingBooking.isPending) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBEB),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFFDE68A)),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.hourglass_top_rounded, size: 18, color: Color(0xFFD97706)),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Request Under Review (Pending Driver Approval)',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFFD97706),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+      if (matchingBooking.isAccepted) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(
+            color: AppColors.softMint,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.deepEmerald.withValues(alpha: 0.3)),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.check_circle_rounded, size: 18, color: AppColors.deepEmerald),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Seat Confirmed · Active Booking',
+                  style: TextStyle(
+                    fontFamily: 'Plus Jakarta Sans',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.deepEmerald,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
     }
 
     final isGuest = ref.watch(userModeProvider).isGuest;

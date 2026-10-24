@@ -122,9 +122,12 @@ class RideRepositoryImpl implements RideRepository {
     final response = await apiClient.get('/rides/$id');
 
     if (response is Map) {
-      final rawRide = response['ride'] ?? (response['data'] is Map ? (response['data'] as Map)['ride'] : null);
-      if (rawRide is Map) {
-        return RideModel.fromJson(Map<String, dynamic>.from(rawRide));
+      final dynamic raw = response['ride'] ??
+          (response['data'] is Map
+              ? ((response['data'] as Map)['ride'] ?? response['data'])
+              : null);
+      if (raw is Map) {
+        return RideModel.fromJson(Map<String, dynamic>.from(raw));
       }
     }
 

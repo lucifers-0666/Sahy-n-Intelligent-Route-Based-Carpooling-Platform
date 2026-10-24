@@ -22,6 +22,7 @@ import 'package:sahyan/features/bookings/presentation/screens/booking_details_sc
 import 'package:sahyan/features/bookings/presentation/screens/driver_rides_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/driver_request_details_screen.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
+import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/features/profile/presentation/screens/profile_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/driver_onboarding_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/edit_profile_screen.dart';
@@ -235,7 +236,30 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/ride-details',
-      builder: (context, state) => const RideDetailsScreen(),
+      builder: (context, state) {
+        final extra = state.extra;
+        final RideModel? ride = extra is RideModel
+            ? extra
+            : (extra is BookingModel ? extra.ride : null);
+        final String? rideId = extra is BookingModel ? extra.rideId : null;
+        return RideDetailsScreen(rideId: rideId, initialRide: ride);
+      },
+    ),
+    GoRoute(
+      path: '/rides/:id',
+      builder: (context, state) {
+        final rideId = state.pathParameters['id'] ?? '';
+        final extra = state.extra;
+        final RideModel? ride = extra is RideModel
+            ? extra
+            : (extra is BookingModel ? extra.ride : null);
+        return RideDetailsScreen(
+          rideId: rideId.isNotEmpty
+              ? rideId
+              : (extra is BookingModel ? extra.rideId : null),
+          initialRide: ride,
+        );
+      },
     ),
     GoRoute(
       path: '/seat-selection',

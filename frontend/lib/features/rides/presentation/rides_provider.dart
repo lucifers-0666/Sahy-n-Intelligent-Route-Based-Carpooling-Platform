@@ -19,6 +19,13 @@ final rideApiRepositoryProvider = Provider<RideRepository>((ref) {
 // Backward compatibility alias
 final ridesRepositoryProvider = rideApiRepositoryProvider;
 
+// Single ride by ID Provider
+final rideByIdProvider =
+    FutureProvider.family<RideModel, String>((ref, id) async {
+  final repo = ref.watch(rideApiRepositoryProvider);
+  return repo.getRideById(id);
+});
+
 // Live intercity corridors Provider
 final corridorsProvider = FutureProvider<List<Map<String, dynamic>>>((
   ref,
