@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:sahyan/core/location/data/providers/geolocator_provider.dart';
+import 'package:sahyan/core/location/domain/gps_provider.dart';
 import 'package:sahyan/core/services/route_service.dart';
 import 'package:sahyan/core/widgets/vehicles/vehicle_icon.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
@@ -16,7 +19,7 @@ import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
 import 'package:sahyan/shared/widgets/sahyan_3d_vehicle_marker.dart';
 
-class OfferRideStep1 extends ConsumerWidget {
+class OfferRideStep1 extends ConsumerStatefulWidget {
   final TextEditingController originController;
   final TextEditingController destinationController;
   final VoidCallback onSelectOrigin;
@@ -45,7 +48,119 @@ class OfferRideStep1 extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OfferRideStep1> createState() => _OfferRideStep1State();
+}
+
+class _OfferRideStep1State extends ConsumerState<OfferRideStep1> {
+  final FocusNode _originFocusNode = FocusNode();
+  final FocusNode _destinationFocusNode = FocusNode();
+
+  bool _isGpsLocating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _originFocusNode.addListener(_onFocusChange);
+    _destinationFocusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _originFocusNode.removeListener(_onFocusChange);
+    _destinationFocusNode.removeListener(_onFocusChange);
+    _originFocusNode.dispose();
+    _destinationFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleGpsAutoFill() async {
+    HapticFeedback.lightImpact();
+    setState(() => _isGpsLocating = true);
+    final gps = GeolocatorProvider();
+    try {
+      final serviceEnabled = await gps.isServiceEnabled();
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Device location services are disabled.'),
+            backgroundColor: Color(0xFFD32F2F),
+          ),
+        );
+        return;
+      }
+      var perm = await gps.checkPermission();
+      if (perm != LocationPermissionStatus.granted) {
+        perm = await gps.requestPermission();
+        if (perm != LocationPermissionStatus.granted) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Location permission is required for GPS pickup.'),
+              backgroundColor: Color(0xFFD32F2F),
+            ),
+          );
+          return;
+        }
+      }
+
+      final pos = await gps.getCurrentPosition().timeout(
+        const Duration(seconds: 4),
+        onTimeout: () => null,
+      );
+      if (pos != null && mounted) {
+        final loc = LocationModel(
+          name: 'Current Location',
+          address: 'GPS (${pos.latitude.toStringAsFixed(4)}, ${pos.longitude.toStringAsFixed(4)})',
+          city: 'Current Location',
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          placeId: 'gps_current',
+        );
+        widget.originController.text = loc.name;
+        ref.read(offerRideProvider.notifier).setOrigin(loc);
+        _originFocusNode.unfocus();
+        if (widget.destinationController.text.isEmpty) {
+          _destinationFocusNode.requestFocus();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('GPS fix failed: $e'),
+            backgroundColor: const Color(0xFFD32F2F),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isGpsLocating = false);
+      }
+      await gps.dispose();
+    }
+  }
+
+  void _onTapAddStopover() {
+    HapticFeedback.lightImpact();
+    final draft = ref.read(offerRideProvider);
+    if (draft.stopovers.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Maximum 3 highway stopovers allowed per route.'),
+        ),
+      );
+      return;
+    }
+    widget.onAddStopover();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final draft = ref.watch(offerRideProvider);
     final vehiclesAsync = ref.watch(vehiclesProvider);
     final authState = ref.watch(authProvider);
@@ -323,7 +438,7 @@ class OfferRideStep1 extends ConsumerWidget {
     );
   }
 
-  // --- 2. Unified Transit Route Rail Card ---
+  // --- 2. Unified Route Selection Card (Integrated Rail & Dedicated Icons) ---
   Widget _buildTransitRouteRailCard(
     BuildContext context,
     WidgetRef ref,
@@ -342,352 +457,523 @@ class OfferRideStep1 extends ConsumerWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Left Vertical Transit Rail
-          Padding(
-            padding: const EdgeInsets.only(top: 14, bottom: 14),
-            child: Column(
-              children: [
-                // Origin Dot (Solid Pine #1B4D3E)
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1B4D3E),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF1B4D3E).withValues(alpha: 0.25),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                ),
-                // Connecting Dashed Mint Line
-                Container(
-                  width: 2.2,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2EC486).withValues(alpha: 0.6),
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
-                if (draft.stopovers.isNotEmpty) ...[
-                  // Stopover Dot (Amber #E5A93C)
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE5A93C),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 1.5),
+          // A. Origin Pickup Row
+          _buildOriginRow(context, ref, draft),
+
+          // B. Inline Stopover & Continuous Rail Divider Section
+          _buildStopoverAndRailSection(context, ref, draft),
+
+          // C. Destination Drop-off Row
+          _buildDestinationRow(context, ref, draft),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOriginRow(
+    BuildContext context,
+    WidgetRef ref,
+    OfferRideState draft,
+  ) {
+    final isFocused = _originFocusNode.hasFocus;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAF8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isFocused ? const Color(0xFF2EC486) : const Color(0xFFE2E8E4),
+          width: isFocused ? 1.2 : 0.8,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Left Transit Node: 28x28dp, #E8F5EF soft mint circle with solid Pine #1B4D3E dot
+          Container(
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+              color: Color(0xFFE8F5EF),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1B4D3E),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF1B4D3E).withValues(alpha: 0.3),
+                      blurRadius: 4,
                     ),
-                  ),
-                  Container(
-                    width: 2.2,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2EC486).withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                  ),
-                ],
-                // Destination Location Pin (Mint #2EC486)
-                const Icon(
-                  Icons.location_on_rounded,
-                  color: Color(0xFF2EC486),
-                  size: 16,
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
 
-          // Right Inputs & Waypoints
+          // Text & Placeholder
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Origin Input
-                InkWell(
-                  onTap: onSelectOrigin,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF6F8F6),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8E4), width: 0.8),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'Origin Location (From)',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF5C6E64),
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Theme(
-                                data: Theme.of(context).copyWith(
-                                  inputDecorationTheme: const InputDecorationTheme(
-                                    filled: false,
-                                    fillColor: Colors.transparent,
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    disabledBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    focusedErrorBorder: InputBorder.none,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                                child: TextFormField(
-                                  controller: originController,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF14241C),
-                                  ),
-                                  decoration: const InputDecoration(
-                                    isDense: true,
-                                    filled: false,
-                                    fillColor: Colors.transparent,
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    disabledBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    focusedErrorBorder: InputBorder.none,
-                                    contentPadding: EdgeInsets.zero,
-                                    hintText: 'Search pickup point or current GPS',
-                                    hintStyle: TextStyle(
-                                      fontSize: 12.5,
-                                      color: Color(0xFF8A9A90),
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
-                                  onChanged: (val) {
-                                    if (val.trim().isNotEmpty) {
-                                      ref.read(offerRideProvider.notifier).setOrigin(
-                                            LocationModel.fromCoordinates(
-                                              name: val.trim(),
-                                              latitude: 23.2420,
-                                              longitude: 69.6669,
-                                            ),
-                                          );
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF1B4D3E)),
-                          tooltip: 'Search Places Autocomplete',
-                          onPressed: onSelectOrigin,
-                        ),
-                      ],
-                    ),
+                const Text(
+                  'Origin Location (From)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF5C6E64),
+                    letterSpacing: 0.8,
                   ),
                 ),
-                const SizedBox(height: 8),
-
-                // Center Divider: Hairline 0.8px with inline "Add Stopover / Toll" text button
-                Row(
-                  children: [
-                    const Expanded(child: Divider(color: Color(0xFFE2E8E4), height: 1)),
-                    Flexible(
-                      child: InkWell(
-                        onTap: onAddStopover,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.add_circle_outline,
-                                  size: 13,
-                                  color: Color(0xFF1B4D3E),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  draft.stopovers.isEmpty
-                                      ? 'Add Stopover / Toll'
-                                      : 'Add Stopover (${draft.stopovers.length}/3)',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF1B4D3E),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                const SizedBox(height: 2),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    inputDecorationTheme: const InputDecorationTheme(
+                      filled: false,
+                      fillColor: Colors.transparent,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  child: TextFormField(
+                    controller: widget.originController,
+                    focusNode: _originFocusNode,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF14241C),
+                    ),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      filled: false,
+                      fillColor: Colors.transparent,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: 'Search pickup point or current GPS',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF8A9A90),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const Expanded(child: Divider(color: Color(0xFFE2E8E4), height: 1)),
-                  ],
-                ),
-
-                // Stopovers List if present
-                if (draft.stopovers.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: List.generate(draft.stopovers.length, (idx) {
-                      final stop = draft.stopovers[idx];
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFBEB),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE5A93C).withValues(alpha: 0.5)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFE5A93C),
-                                shape: BoxShape.circle,
+                    onChanged: (val) {
+                      if (val.trim().isNotEmpty) {
+                        ref.read(offerRideProvider.notifier).setOrigin(
+                              LocationModel.fromCoordinates(
+                                name: val.trim(),
+                                latitude: 23.2420,
+                                longitude: 69.6669,
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Stop ${idx + 1}: ${stop.name}',
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF14241C),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            InkWell(
-                              onTap: () => ref.read(offerRideProvider.notifier).removeStopover(idx),
-                              child: const Icon(Icons.close, size: 14, color: Color(0xFF5C6E64)),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-                const SizedBox(height: 8),
-
-                // Destination Input
-                InkWell(
-                  onTap: onSelectDestination,
-                  borderRadius: BorderRadius.circular(14),
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF6F8F6),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE2E8E4), width: 0.8),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                'Destination Location (To)',
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF5C6E64),
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Theme(
-                                data: Theme.of(context).copyWith(
-                                  inputDecorationTheme: const InputDecorationTheme(
-                                    filled: false,
-                                    fillColor: Colors.transparent,
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    disabledBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    focusedErrorBorder: InputBorder.none,
-                                    contentPadding: EdgeInsets.zero,
-                                  ),
-                                ),
-                                child: TextFormField(
-                                  controller: destinationController,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF14241C),
-                                  ),
-                                  decoration: const InputDecoration(
-                                    isDense: true,
-                                    filled: false,
-                                    fillColor: Colors.transparent,
-                                    border: InputBorder.none,
-                                    enabledBorder: InputBorder.none,
-                                    focusedBorder: InputBorder.none,
-                                    disabledBorder: InputBorder.none,
-                                    errorBorder: InputBorder.none,
-                                    focusedErrorBorder: InputBorder.none,
-                                    contentPadding: EdgeInsets.zero,
-                                    hintText: 'Search dropoff city or hub',
-                                    hintStyle: TextStyle(
-                                      fontSize: 12.5,
-                                      color: Color(0xFF8A9A90),
-                                      fontWeight: FontWeight.normal,
-                                    ),
-                                  ),
-                                  onChanged: (val) {
-                                    if (val.trim().isNotEmpty) {
-                                      ref.read(offerRideProvider.notifier).setDestination(
-                                            LocationModel.fromCoordinates(
-                                              name: val.trim(),
-                                              latitude: 23.0225,
-                                              longitude: 72.5714,
-                                            ),
-                                          );
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.search_rounded, size: 20, color: Color(0xFF1B4D3E)),
-                          tooltip: 'Search Places Autocomplete',
-                          onPressed: onSelectDestination,
-                        ),
-                      ],
-                    ),
+                            );
+                      }
+                    },
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Right Action Indicator: Icons.my_location_rounded (Pine #1B4D3E, 20dp) with subtle splash
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _handleGpsAutoFill,
+              borderRadius: BorderRadius.circular(20),
+              splashColor: const Color(0xFFE8F5EF),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: _isGpsLocating
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1B4D3E)),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.my_location_rounded,
+                        size: 20,
+                        color: Color(0xFF1B4D3E),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStopoverAndRailSection(
+    BuildContext context,
+    WidgetRef ref,
+    OfferRideState draft,
+  ) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOutCubic,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < draft.stopovers.length; i++) ...[
+            _buildRailDivider(
+              rightChild: const Divider(
+                color: Color(0xFFE2E8E4),
+                thickness: 0.8,
+                height: 1,
+              ),
+              height: 16.0,
+            ),
+            _buildStopoverRow(context, ref, draft.stopovers[i], i),
+          ],
+          _buildRailDivider(
+            rightChild: Row(
+              children: [
+                const Expanded(
+                  child: Divider(
+                    color: Color(0xFFE2E8E4),
+                    thickness: 0.8,
+                    height: 1,
+                  ),
+                ),
+                Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  child: InkWell(
+                    onTap: _onTapAddStopover,
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8E4),
+                          width: 0.8,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.add_circle_outline_rounded,
+                            size: 14,
+                            color: Color(0xFF1B4D3E),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            draft.stopovers.isEmpty
+                                ? 'Add Stopover / Toll'
+                                : 'Add Stopover (${draft.stopovers.length}/3)',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1B4D3E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const Expanded(
+                  child: Divider(
+                    color: Color(0xFFE2E8E4),
+                    thickness: 0.8,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
+            height: 32.0,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRailDivider({
+    required Widget rightChild,
+    double height = 32.0,
+  }) {
+    return SizedBox(
+      height: height,
+      child: Row(
+        children: [
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 28,
+            child: Center(
+              child: CustomPaint(
+                size: Size(2.0, height),
+                painter: const _DashedVerticalRailPainter(
+                  color: Color(0xFF2EC486),
+                  strokeWidth: 2.0,
+                  dashHeight: 3.5,
+                  dashGap: 2.5,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: rightChild),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStopoverRow(
+    BuildContext context,
+    WidgetRef ref,
+    LocationModel stop,
+    int index,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBEB),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFFE5A93C).withValues(alpha: 0.5),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Left Transit Node: 28x28dp, Amber circle #FEF3C7 with milestone icon
+          Container(
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF3C7),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.fiber_manual_record_rounded,
+                color: Color(0xFFE5A93C),
+                size: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Text & Placeholder
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Stopover ${index + 1} (Via)',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF92400E),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  stop.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF14241C),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Remove Stopover Action
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                ref.read(offerRideProvider.notifier).removeStopover(index);
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: Color(0xFF5C6E64),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDestinationRow(
+    BuildContext context,
+    WidgetRef ref,
+    OfferRideState draft,
+  ) {
+    final isFocused = _destinationFocusNode.hasFocus;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAF8),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isFocused ? const Color(0xFF2EC486) : const Color(0xFFE2E8E4),
+          width: isFocused ? 1.2 : 0.8,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Left Transit Node: 28x28dp, #E8F5EF soft mint circle with Mint #2EC486 pin
+          Container(
+            width: 28,
+            height: 28,
+            decoration: const BoxDecoration(
+              color: Color(0xFFE8F5EF),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.location_on_rounded,
+                color: Color(0xFF2EC486),
+                size: 18,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Text & Placeholder
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Destination Location (To)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF5C6E64),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    inputDecorationTheme: const InputDecorationTheme(
+                      filled: false,
+                      fillColor: Colors.transparent,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  child: TextFormField(
+                    controller: widget.destinationController,
+                    focusNode: _destinationFocusNode,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF14241C),
+                    ),
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      filled: false,
+                      fillColor: Colors.transparent,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: 'Search dropoff city or hub',
+                      hintStyle: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF8A9A90),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    onChanged: (val) {
+                      if (val.trim().isNotEmpty) {
+                        ref.read(offerRideProvider.notifier).setDestination(
+                              LocationModel.fromCoordinates(
+                                name: val.trim(),
+                                latitude: 23.0225,
+                                longitude: 72.5714,
+                              ),
+                            );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Right Action Indicator: Destination flag or explore icon (Mint #2EC486, 20dp)
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                widget.onSelectDestination();
+              },
+              borderRadius: BorderRadius.circular(20),
+              splashColor: const Color(0xFFE8F5EF),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(
+                  Icons.flag_circle_outlined,
+                  size: 20,
+                  color: Color(0xFF2EC486),
+                ),
+              ),
             ),
           ),
         ],
@@ -721,7 +1007,7 @@ class OfferRideStep1 extends ConsumerWidget {
             side: const BorderSide(color: Color(0xFFE2E8E4), width: 0.8),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
-            onPressed: onSelectOrigin,
+            onPressed: _handleGpsAutoFill,
           ),
           const SizedBox(width: 8),
 
@@ -756,7 +1042,7 @@ class OfferRideStep1 extends ConsumerWidget {
           const SizedBox(width: 8),
 
           // Individual Hub Chips for instant single-hub selection & test compatibility
-          ...popularHubs.map((hub) {
+          ...OfferRideStep1.popularHubs.map((hub) {
             return Padding(
               padding: const EdgeInsets.only(right: 6),
               child: ActionChip(
@@ -773,8 +1059,8 @@ class OfferRideStep1 extends ConsumerWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 0),
                 onPressed: () {
-                  if (originController.text.isEmpty) {
-                    originController.text = hub['name'] as String;
+                  if (widget.originController.text.isEmpty) {
+                    widget.originController.text = hub['name'] as String;
                     ref.read(offerRideProvider.notifier).setOrigin(
                           LocationModel.fromCoordinates(
                             name: hub['name'] as String,
@@ -783,7 +1069,7 @@ class OfferRideStep1 extends ConsumerWidget {
                           ),
                         );
                   } else {
-                    destinationController.text = hub['name'] as String;
+                    widget.destinationController.text = hub['name'] as String;
                     ref.read(offerRideProvider.notifier).setDestination(
                           LocationModel.fromCoordinates(
                             name: hub['name'] as String,
@@ -821,17 +1107,17 @@ class OfferRideStep1 extends ConsumerWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
       onPressed: () {
-        final originHub = popularHubs.firstWhere(
+        final originHub = OfferRideStep1.popularHubs.firstWhere(
           (h) => h['name'] == from,
-          orElse: () => popularHubs[3],
+          orElse: () => OfferRideStep1.popularHubs[3],
         );
-        final destHub = popularHubs.firstWhere(
+        final destHub = OfferRideStep1.popularHubs.firstWhere(
           (h) => h['name'] == to,
-          orElse: () => popularHubs[4],
+          orElse: () => OfferRideStep1.popularHubs[4],
         );
 
-        originController.text = originHub['name'] as String;
-        destinationController.text = destHub['name'] as String;
+        widget.originController.text = originHub['name'] as String;
+        widget.destinationController.text = destHub['name'] as String;
 
         ref.read(offerRideProvider.notifier).setOrigin(
               LocationModel.fromCoordinates(
@@ -1231,5 +1517,45 @@ class OfferRideStep1 extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Custom painter for the continuous dashed vertical transit rail connecting Origin to Destination.
+class _DashedVerticalRailPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double dashHeight;
+  final double dashGap;
+
+  const _DashedVerticalRailPainter({
+    required this.color,
+    this.strokeWidth = 2.0,
+    this.dashHeight = 3.5,
+    this.dashGap = 2.5,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final x = size.width / 2;
+    double y = 0.0;
+    while (y < size.height) {
+      final endY = (y + dashHeight).clamp(0.0, size.height);
+      canvas.drawLine(Offset(x, y), Offset(x, endY), paint);
+      y += dashHeight + dashGap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedVerticalRailPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.dashHeight != dashHeight ||
+        oldDelegate.dashGap != dashGap;
   }
 }

@@ -617,30 +617,43 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                     children: [
                       // Left Transit Visual Track (Origin Beacon, Track Line, Destination Pin)
                       SizedBox(
-                        width: 44,
+                        width: 48,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const SizedBox(height: 18),
-                            // Origin Beacon Marker
+                            const SizedBox(height: 12),
+                            // Origin Node (28x28dp, #E8F5EF circle with Pine dot)
                             Container(
-                              width: 10,
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: AppColors.deepEmerald,
+                              width: 28,
+                              height: 28,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE8F5EF),
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: AppColors.softMint,
-                                  width: 2.0,
+                              ),
+                              child: Center(
+                                child: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1B4D3E),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF1B4D3E).withValues(alpha: 0.3),
+                                        blurRadius: 4,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            // Vertical Track
+                            const SizedBox(height: 2),
+                            // Vertical Track (2dp dashed connector in #2EC486)
                             Expanded(
                               child: CustomPaint(
                                 painter: const _DashedVerticalTrackPainter(
-                                  color: AppColors.softMint,
+                                  color: Color(0xFF2EC486),
                                   strokeWidth: 2.0,
                                   dashHeight: 3.5,
                                   dashGap: 2.5,
@@ -648,14 +661,24 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                                 size: const Size(2, double.infinity),
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            // Destination Pin Marker
-                            const Icon(
-                              Icons.location_on_rounded,
-                              size: 16,
-                              color: AppColors.deepEmerald,
+                            const SizedBox(height: 2),
+                            // Destination Node (28x28dp, #E8F5EF circle with Mint pin)
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFE8F5EF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.location_on_rounded,
+                                  size: 18,
+                                  color: Color(0xFF2EC486),
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 12),
                           ],
                         ),
                       ),
@@ -1130,8 +1153,6 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                   ),
                 ),
               ),
-              if (hasText || onTapAction != null)
-                const SizedBox(width: 4),
               if (hasText)
                 GestureDetector(
                   onTap: () {
@@ -1141,8 +1162,8 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                   },
                   behavior: HitTestBehavior.opaque,
                   child: Container(
-                    width: 28,
-                    height: 28,
+                    width: 24,
+                    height: 24,
                     alignment: Alignment.center,
                     child: const Icon(
                       Icons.cancel_rounded,
@@ -1151,20 +1172,74 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                     ),
                   ),
                 ),
-              if (hasText && onTapAction != null)
-                const SizedBox(width: 2),
-              if (onTapAction != null)
+              const SizedBox(width: 2),
+              if (onTapAction != null) ...[
                 GestureDetector(
                   onTap: onTapAction,
                   behavior: HitTestBehavior.opaque,
                   child: Container(
-                    width: 28,
-                    height: 28,
+                    width: 24,
+                    height: 24,
                     alignment: Alignment.center,
                     child: const Icon(
                       Icons.map_outlined,
                       size: 16,
                       color: AppColors.mutedText,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 2),
+              ],
+              // Dedicated Contextual Action Icon
+              if (isPickup)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _isGpsLocating ? null : _handleGpsCurrentLocation,
+                    borderRadius: BorderRadius.circular(20),
+                    splashColor: const Color(0xFFE8F5EF),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: _isGpsLocating
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF1B4D3E),
+                                ),
+                              ),
+                            )
+                          : const Icon(
+                              Icons.my_location_rounded,
+                              size: 20,
+                              color: Color(0xFF1B4D3E),
+                            ),
+                    ),
+                  ),
+                )
+              else
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      if (onTapAction != null) {
+                        onTapAction();
+                      } else {
+                        focusNode.requestFocus();
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    splashColor: const Color(0xFFE8F5EF),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.flag_circle_outlined,
+                        size: 20,
+                        color: Color(0xFF2EC486),
+                      ),
                     ),
                   ),
                 ),

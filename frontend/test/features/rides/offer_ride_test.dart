@@ -467,6 +467,28 @@ void main() {
       // Verify returned to Step 1
       expect(find.text('1. Choose Your Vehicle'), findsOneWidget);
     });
+
+    testWidgets('Unified transit route rail card displays dedicated icons, labels and stopover pill', (
+      tester,
+    ) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpAndSettle();
+
+      // Verify Origin Row elements
+      expect(find.text('Origin Location (From)'), findsOneWidget);
+      expect(find.text('Search pickup point or current GPS'), findsOneWidget);
+      expect(find.byIcon(Icons.my_location_rounded), findsWidgets);
+
+      // Verify Destination Row elements
+      expect(find.text('Destination Location (To)'), findsOneWidget);
+      expect(find.text('Search dropoff city or hub'), findsOneWidget);
+      expect(find.byIcon(Icons.flag_circle_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.location_on_rounded), findsWidgets);
+
+      // Verify Inline Stopover Divider & Pill
+      expect(find.text('Add Stopover / Toll'), findsOneWidget);
+      expect(find.byIcon(Icons.add_circle_outline_rounded), findsOneWidget);
+    });
   });
 
   group('Responsive Layout Testing Across Viewports & 1.5x Text Scaling', () {
