@@ -164,6 +164,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           if (e is ApiException && e.statusCode == 401) {
             await storageService.clearSession();
             apiClient.setAuthToken(null);
+            if (!mounted) return;
             state = state.copyWith(
               status: AuthStatus.unauthenticated,
               user: null,
@@ -177,6 +178,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
         if (user != null) {
           await storageService.setCompletedOnboarding(true);
+          if (!mounted) return;
           state = state.copyWith(
             status: AuthStatus.authenticated,
             token: token,
@@ -198,6 +200,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
               );
           await storageService.saveUser(fallbackUser);
           await storageService.setCompletedOnboarding(true);
+          if (!mounted) return;
           state = state.copyWith(
             status: AuthStatus.authenticated,
             token: token,
@@ -208,8 +211,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
       }
 
+      if (!mounted) return;
       state = state.copyWith(status: AuthStatus.unauthenticated);
     } catch (_) {
+      if (!mounted) return;
       state = state.copyWith(status: AuthStatus.unauthenticated);
     }
   }

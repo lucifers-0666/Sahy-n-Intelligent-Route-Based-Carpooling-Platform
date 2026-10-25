@@ -9,6 +9,7 @@ import 'package:sahyan/core/location/domain/gps_provider.dart';
 import 'package:sahyan/core/network/api_config.dart';
 import 'package:sahyan/core/widgets/sahyan_button.dart';
 import 'package:sahyan/shared/models/location_model.dart';
+import 'package:sahyan/shared/widgets/location_map_picker_sheet.dart';
 
 /// Pre-curated intercity hubs across India, used when search has no query.
 class IndiaPopularHubs {
@@ -416,6 +417,17 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
     }
   }
 
+  Future<void> _handleChooseOnMap() async {
+    final result = await LocationMapPickerSheet.show(
+      context: context,
+      title: widget.title,
+      isPickup: widget.isPickup,
+    );
+    if (result != null && mounted) {
+      Navigator.of(context).pop(result);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
@@ -602,6 +614,78 @@ class _LocationSearchBottomSheetState extends State<LocationSearchBottomSheet> {
                             ),
                             Text(
                               'Accurate pickup detection via device GPS',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: SahyanColors.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: SahyanColors.textMuted,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // "Choose on Interactive Map" Tactile Capsule
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Material(
+              color: SahyanColors.surface,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                onTap: _handleChooseOnMap,
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: SahyanColors.border,
+                      width: 0.8,
+                    ),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: SahyanColors.primaryMint.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.map_rounded,
+                          size: 16,
+                          color: SahyanColors.primaryDark,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Choose Location on Map',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: SahyanColors.textMain,
+                              ),
+                            ),
+                            Text(
+                              'Select exact pin with live corridor preview',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: SahyanColors.textMuted,

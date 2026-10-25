@@ -35,6 +35,8 @@ class HeroSearchCard extends StatefulWidget {
   final List<Map<String, dynamic>> popularCorridors;
   final VoidCallback? onTapPickup;
   final VoidCallback? onTapDestination;
+  final VoidCallback? onSelectPickupOnMap;
+  final VoidCallback? onSelectDestinationOnMap;
   final ValueChanged<LocationModel>? onOriginLocationSelected;
   final ValueChanged<LocationModel>? onDestinationLocationSelected;
   final bool enableInlineAutocomplete;
@@ -63,6 +65,8 @@ class HeroSearchCard extends StatefulWidget {
     ],
     this.onTapPickup,
     this.onTapDestination,
+    this.onSelectPickupOnMap,
+    this.onSelectDestinationOnMap,
     this.onOriginLocationSelected,
     this.onDestinationLocationSelected,
     this.enableInlineAutocomplete = true,
@@ -572,8 +576,10 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
             onSwap: _handleSwap,
             onUseCurrentLocation: _handleGpsCurrentLocation,
             isGpsLoading: _isGpsLocating,
-            onSelectPickupOnMap: widget.onTapPickup,
-            onSelectDestinationOnMap: widget.onTapDestination,
+            onSelectPickupOnMap:
+                widget.onSelectPickupOnMap ?? widget.onTapPickup,
+            onSelectDestinationOnMap:
+                widget.onSelectDestinationOnMap ?? widget.onTapDestination,
             isPickupReadOnly:
                 !widget.enableInlineAutocomplete && widget.onTapPickup != null,
             isDestinationReadOnly: !widget.enableInlineAutocomplete &&

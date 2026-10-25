@@ -164,6 +164,7 @@ class MockProfileRepository implements ProfileRepository {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('UserModel & Sub-Models Unit Tests', () {
     test(
       'UserModel JSON deserialization with preferences and emergency contacts',

@@ -8,6 +8,7 @@ import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/core/services/map_provider_config.dart';
 import 'package:sahyan/core/services/route_service.dart';
+import 'package:sahyan/core/services/sahyan_tile_provider.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 import 'package:sahyan/shared/widgets/sahyan_3d_vehicle_marker.dart';
 
@@ -296,48 +297,118 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
 
   // ── Map builders ─────────────────────────────────────────────────────────
 
+  bool _isValidCoord(ll.LatLng coord) {
+    return coord.latitude != 0.0 &&
+        coord.longitude != 0.0 &&
+        coord.latitude >= -90.0 &&
+        coord.latitude <= 90.0 &&
+        coord.longitude >= -180.0 &&
+        coord.longitude <= 180.0 &&
+        !coord.latitude.isNaN &&
+        !coord.longitude.isNaN &&
+        !coord.latitude.isInfinite &&
+        !coord.longitude.isInfinite;
+  }
+
   void _fitBounds() {
-    if (_mapController == null) return;
+    if (_mapController == null || !_isMapReady) return;
     try {
       fmap.LatLngBounds? boundsToFit;
 
       if (widget.bounds != null) {
         final sw = toLatLong(widget.bounds.southwest);
         final ne = toLatLong(widget.bounds.northeast);
-        boundsToFit = fmap.LatLngBounds(sw, ne);
-      } else if (_effectivePolylinePoints.isNotEmpty) {
-        double minLat = _effectivePolylinePoints.first.latitude;
-        double maxLat = _effectivePolylinePoints.first.latitude;
-        double minLng = _effectivePolylinePoints.first.longitude;
-        double maxLng = _effectivePolylinePoints.first.longitude;
-
-        for (final p in _effectivePolylinePoints) {
-          if (p.latitude < minLat) minLat = p.latitude;
-          if (p.latitude > maxLat) maxLat = p.latitude;
-          if (p.longitude < minLng) minLng = p.longitude;
-          if (p.longitude > maxLng) maxLng = p.longitude;
+        if (_isValidCoord(sw) && _isValidCoord(ne)) {
+          boundsToFit = fmap.LatLngBounds(sw, ne);
         }
-        boundsToFit = fmap.LatLngBounds(
-          ll.LatLng(minLat, minLng),
-          ll.LatLng(maxLat, maxLng),
-        );
+      } else if (_effectivePolylinePoints.isNotEmpty) {
+        final validPoints =
+            _effectivePolylinePoints.where(_isValidCoord).toList();
+        if (validPoints.length >= 2) {
+          double minLat = validPoints.first.latitude;
+          double maxLat = validPoints.first.latitude;
+          double minLng = validPoints.first.longitude;
+          double maxLng = validPoints.first.longitude;
+
+          for (final p in validPoints) {
+            if (p.latitude < minLat) minLat = p.latitude;
+            if (p.latitude > maxLat) maxLat = p.latitude;
+            if (p.longitude < minLng) minLng = p.longitude;
+            if (p.longitude > maxLng) maxLng = p.longitude;
+          }
+          boundsToFit = fmap.LatLngBounds(
+            ll.LatLng(minLat, minLng),
+            ll.LatLng(maxLat, maxLng),
+          );
+        } else if (validPoints.length == 1) {
+          _mapController!.move(validPoints.first, 13.5);
+          return;
+        }
       } else {
-        boundsToFit = fmap.LatLngBounds(
-          ll.LatLng(
-            math.min(widget.origin.latitude, widget.destination.latitude),
-            math.min(widget.origin.longitude, widget.destination.longitude),
-          ),
-          ll.LatLng(
-            math.max(widget.origin.latitude, widget.destination.latitude),
-            math.max(widget.origin.longitude, widget.destination.longitude),
-          ),
+        final p1 = ll.LatLng(widget.origin.latitude, widget.origin.longitude);
+        final p2 = ll.LatLng(
+          widget.destination.latitude,
+          widget.destination.longitude,
         );
+        final hasP1 = _isValidCoord(p1);
+        final hasP2 = _isValidCoord(p2);
+
+        if (hasP1 && hasP2) {
+          boundsToFit = fmap.LatLngBounds(
+            ll.LatLng(
+              math.min(p1.latitude, p2.latitude),
+              math.min(p1.longitude, p2.longitude),
+            ),
+            ll.LatLng(
+              math.max(p1.latitude, p2.latitude),
+              math.max(p1.longitude, p2.longitude),
+            ),
+          );
+        } else if (hasP1) {
+          _mapController!.move(p1, 13.5);
+          return;
+        } else if (hasP2) {
+          _mapController!.move(p2, 13.5);
+          return;
+        } else {
+          _mapController!.move(const ll.LatLng(23.0225, 72.5714), 10.5);
+          return;
+        }
       }
+
+      if (boundsToFit == null) {
+        _mapController!.move(const ll.LatLng(23.0225, 72.5714), 10.5);
+        return;
+      }
+
+      final sw = boundsToFit.southWest;
+      final ne = boundsToFit.northEast;
+      final latDiff = (ne.latitude - sw.latitude).abs();
+      final lngDiff = (ne.longitude - sw.longitude).abs();
+
+      if (latDiff < 0.005 && lngDiff < 0.005) {
+        final center = ll.LatLng(
+          (sw.latitude + ne.latitude) / 2,
+          (sw.longitude + ne.longitude) / 2,
+        );
+        _mapController!.move(center, 13.5);
+        return;
+      }
+
+      final safeLatMargin = latDiff < 0.02 ? 0.015 : 0.0;
+      final safeLngMargin = lngDiff < 0.02 ? 0.015 : 0.0;
+
+      final safeBounds = fmap.LatLngBounds(
+        ll.LatLng(sw.latitude - safeLatMargin, sw.longitude - safeLngMargin),
+        ll.LatLng(ne.latitude + safeLatMargin, ne.longitude + safeLngMargin),
+      );
 
       _mapController!.fitCamera(
         fmap.CameraFit.bounds(
-          bounds: boundsToFit,
+          bounds: safeBounds,
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+          maxZoom: 16.5,
+          minZoom: 4.0,
         ),
       );
     } catch (_) {}
@@ -378,67 +449,73 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
     final markers = <fmap.Marker>[];
 
     // Pickup Marker
-    markers.add(
-      fmap.Marker(
-        point: ll.LatLng(widget.origin.latitude, widget.origin.longitude),
-        width: 38,
-        height: 38,
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.deepEmerald,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+    final p1 = ll.LatLng(widget.origin.latitude, widget.origin.longitude);
+    if (_isValidCoord(p1)) {
+      markers.add(
+        fmap.Marker(
+          point: p1,
+          width: 38,
+          height: 38,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.deepEmerald,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.trip_origin_rounded,
+                size: 20,
+                color: Colors.white,
               ),
-            ],
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.trip_origin_rounded,
-              size: 20,
-              color: Colors.white,
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
 
     // Destination Marker
-    markers.add(
-      fmap.Marker(
-        point: ll.LatLng(
-          widget.destination.latitude,
-          widget.destination.longitude,
-        ),
-        width: 38,
-        height: 38,
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFFE11D48),
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.25),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+    final p2 = ll.LatLng(
+      widget.destination.latitude,
+      widget.destination.longitude,
+    );
+    if (_isValidCoord(p2)) {
+      markers.add(
+        fmap.Marker(
+          point: p2,
+          width: 38,
+          height: 38,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFE11D48),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.location_on_rounded,
+                size: 22,
+                color: Colors.white,
               ),
-            ],
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.location_on_rounded,
-              size: 22,
-              color: Colors.white,
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
 
     // Stopovers
     for (int i = 0; i < widget.stopovers.length; i++) {
@@ -504,9 +581,28 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
   }
 
   ll.LatLng _getInitialCenter() {
-    final lat = (widget.origin.latitude + widget.destination.latitude) / 2;
-    final lng = (widget.origin.longitude + widget.destination.longitude) / 2;
-    return ll.LatLng(lat, lng);
+    final o = ll.LatLng(widget.origin.latitude, widget.origin.longitude);
+    final d =
+        ll.LatLng(widget.destination.latitude, widget.destination.longitude);
+    final hasO = _isValidCoord(o);
+    final hasD = _isValidCoord(d);
+
+    if (hasO && hasD) {
+      final latDiff = (o.latitude - d.latitude).abs();
+      final lngDiff = (o.longitude - d.longitude).abs();
+      if (latDiff < 0.0001 && lngDiff < 0.0001) {
+        return o;
+      }
+      return ll.LatLng(
+        (o.latitude + d.latitude) / 2,
+        (o.longitude + d.longitude) / 2,
+      );
+    } else if (hasO) {
+      return o;
+    } else if (hasD) {
+      return d;
+    }
+    return const ll.LatLng(23.0225, 72.5714);
   }
 
   // ── Build ────────────────────────────────────────────────────────────────
@@ -562,11 +658,19 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               ),
               children: [
                 fmap.TileLayer(
-                  key: ValueKey('${tileConfig.type.name}_${tileConfig.urlTemplate}'),
+                  key: ValueKey(
+                    '${tileConfig.type.name}_${tileConfig.urlTemplate}',
+                  ),
                   urlTemplate: tileConfig.urlTemplate,
+                  fallbackUrl:
+                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                   subdomains: tileConfig.subdomains,
                   userAgentPackageName: tileConfig.userAgentPackageName,
                   maxZoom: tileConfig.maxZoom.toDouble(),
+                  tileProvider: SahyanTileProvider.create(),
+                  errorTileCallback: (tile, error, stackTrace) {
+                    debugPrint('TILE LOAD ERROR in sahyan_route_map: $error');
+                  },
                 ),
                 fmap.PolylineLayer(polylines: _buildPolylines()),
                 fmap.MarkerLayer(markers: _buildMarkers()),

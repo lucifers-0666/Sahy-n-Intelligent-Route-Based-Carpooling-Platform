@@ -17,6 +17,7 @@ import '../../../bookings/presentation/bookings_provider.dart';
 import '../../../notifications/presentation/providers/notifications_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
 import '../../../rides/presentation/widgets/location_search_bottom_sheet.dart';
+import '../../../../shared/widgets/location_map_picker_sheet.dart';
 import '../../../../app/providers/user_mode_provider.dart';
 import '../widgets/hero_search_card.dart';
 import '../../../../core/localization/l10n_extension.dart';
@@ -241,6 +242,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       context: context,
       title: 'Select Destination Hub',
       initialQuery: _destinationController.text,
+      isPickup: false,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _destinationController.text = result.name;
+        _destinationLocation = result;
+      });
+    }
+  }
+
+  Future<void> _selectPickupOnMap() async {
+    final result = await LocationMapPickerSheet.show(
+      context: context,
+      title: 'Choose Pickup on Map',
+      initialLocation: _originLocation,
+      isPickup: true,
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _originController.text = result.name;
+        _originLocation = result;
+      });
+    }
+  }
+
+  Future<void> _selectDestinationOnMap() async {
+    final result = await LocationMapPickerSheet.show(
+      context: context,
+      title: 'Choose Destination on Map',
+      initialLocation: _destinationLocation,
       isPickup: false,
     );
     if (result != null && mounted) {
@@ -885,6 +916,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   popularCorridors: quickCorridors,
                   onTapPickup: _selectPickupLocation,
                   onTapDestination: _selectDestinationLocation,
+                  onSelectPickupOnMap: _selectPickupOnMap,
+                  onSelectDestinationOnMap: _selectDestinationOnMap,
                   onOriginLocationSelected: (loc) =>
                       setState(() => _originLocation = loc),
                   onDestinationLocationSelected: (loc) =>

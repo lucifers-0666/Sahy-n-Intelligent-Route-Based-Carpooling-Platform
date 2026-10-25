@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/core/services/map_provider_config.dart';
 import 'package:sahyan/core/services/route_service.dart';
+import 'package:sahyan/core/services/sahyan_tile_provider.dart';
 import 'package:sahyan/features/trip/presentation/screens/live_ride_tracking_screen.dart';
 import 'package:sahyan/features/vehicles/domain/vehicle_type.dart';
 import 'package:sahyan/shared/models/location_model.dart';
@@ -220,12 +221,16 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
   }
 
   bool _isValidCoord(ll.LatLng coord) {
-    return coord.latitude >= -90.0 &&
+    return coord.latitude != 0.0 &&
+        coord.longitude != 0.0 &&
+        coord.latitude >= -90.0 &&
         coord.latitude <= 90.0 &&
         coord.longitude >= -180.0 &&
         coord.longitude <= 180.0 &&
         !coord.latitude.isNaN &&
-        !coord.longitude.isNaN;
+        !coord.longitude.isNaN &&
+        !coord.latitude.isInfinite &&
+        !coord.longitude.isInfinite;
   }
 
   void _fitRouteBounds() {
@@ -235,10 +240,33 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
         final sw = toLatLong(widget.bounds.southwest);
         final ne = toLatLong(widget.bounds.northeast);
         if (_isValidCoord(sw) && _isValidCoord(ne)) {
+          final latDiff = (ne.latitude - sw.latitude).abs();
+          final lngDiff = (ne.longitude - sw.longitude).abs();
+          if (latDiff < 0.005 && lngDiff < 0.005) {
+            final center = ll.LatLng(
+              (sw.latitude + ne.latitude) / 2,
+              (sw.longitude + ne.longitude) / 2,
+            );
+            _mapController.move(center, 13.5);
+            return;
+          }
+          final safeLatMargin = latDiff < 0.02 ? 0.015 : 0.0;
+          final safeLngMargin = lngDiff < 0.02 ? 0.015 : 0.0;
           _mapController.fitCamera(
             fmap.CameraFit.bounds(
-              bounds: fmap.LatLngBounds(sw, ne),
+              bounds: fmap.LatLngBounds(
+                ll.LatLng(
+                  sw.latitude - safeLatMargin,
+                  sw.longitude - safeLngMargin,
+                ),
+                ll.LatLng(
+                  ne.latitude + safeLatMargin,
+                  ne.longitude + safeLngMargin,
+                ),
+              ),
               padding: const EdgeInsets.all(50.0),
+              maxZoom: 16.5,
+              minZoom: 4.0,
             ),
           );
           return;
@@ -250,6 +278,8 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
           fmap.CameraFit.coordinates(
             coordinates: points,
             padding: const EdgeInsets.all(50.0),
+            maxZoom: 16.5,
+            minZoom: 4.0,
           ),
         );
         return;
@@ -259,13 +289,30 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
         widget.destination.latitude,
         widget.destination.longitude,
       );
-      if (_isValidCoord(p1) && _isValidCoord(p2)) {
+      final hasP1 = _isValidCoord(p1);
+      final hasP2 = _isValidCoord(p2);
+
+      if (hasP1 && hasP2) {
+        final latDiff = (p1.latitude - p2.latitude).abs();
+        final lngDiff = (p1.longitude - p2.longitude).abs();
+        if (latDiff < 0.005 && lngDiff < 0.005) {
+          _mapController.move(p1, 13.5);
+          return;
+        }
         _mapController.fitCamera(
           fmap.CameraFit.coordinates(
             coordinates: [p1, p2],
             padding: const EdgeInsets.all(50.0),
+            maxZoom: 16.5,
+            minZoom: 4.0,
           ),
         );
+      } else if (hasP1) {
+        _mapController.move(p1, 13.5);
+      } else if (hasP2) {
+        _mapController.move(p2, 13.5);
+      } else {
+        _mapController.move(const ll.LatLng(23.0225, 72.5714), 10.5);
       }
     } catch (_) {}
   }
@@ -423,9 +470,28 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
   }
 
   ll.LatLng _getInitialCenter() {
-    final lat = (widget.origin.latitude + widget.destination.latitude) / 2;
-    final lng = (widget.origin.longitude + widget.destination.longitude) / 2;
-    return ll.LatLng(lat, lng);
+    final o = ll.LatLng(widget.origin.latitude, widget.origin.longitude);
+    final d =
+        ll.LatLng(widget.destination.latitude, widget.destination.longitude);
+    final hasO = _isValidCoord(o);
+    final hasD = _isValidCoord(d);
+
+    if (hasO && hasD) {
+      final latDiff = (o.latitude - d.latitude).abs();
+      final lngDiff = (o.longitude - d.longitude).abs();
+      if (latDiff < 0.0001 && lngDiff < 0.0001) {
+        return o;
+      }
+      return ll.LatLng(
+        (o.latitude + d.latitude) / 2,
+        (o.longitude + d.longitude) / 2,
+      );
+    } else if (hasO) {
+      return o;
+    } else if (hasD) {
+      return d;
+    }
+    return const ll.LatLng(23.0225, 72.5714);
   }
 
   void _showCartoKeyDialog() {
@@ -585,10 +651,16 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
                         fmap.TileLayer(
                           key: ValueKey(_selectedProviderType),
                           urlTemplate: _activeTileConfig.urlTemplate,
+                          fallbackUrl:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           subdomains: _activeTileConfig.subdomains,
                           userAgentPackageName:
                               _activeTileConfig.userAgentPackageName,
                           maxZoom: _activeTileConfig.maxZoom.toDouble(),
+                          tileProvider: SahyanTileProvider.create(),
+                          errorTileCallback: (tile, error, stackTrace) {
+                            debugPrint('TILE LOAD ERROR in full_screen_map: $error');
+                          },
                         ),
                         fmap.PolylineLayer(polylines: _buildPolylines()),
                         fmap.MarkerLayer(markers: _buildMarkers()),

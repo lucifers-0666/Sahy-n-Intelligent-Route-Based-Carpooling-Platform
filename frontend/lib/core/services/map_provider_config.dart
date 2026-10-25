@@ -66,8 +66,8 @@ class MapProviderConfig {
 
   static bool get hasCartoKey => cartoApiKey.isNotEmpty;
 
-  /// Default provider is Sahyān Road (CARTO Voyager) — high-legibility road navigation.
-  static MapProviderType _currentProvider = MapProviderType.cartoVoyager;
+  /// Default provider is OpenStreetMap Standard — 100% reliable, free, zero-key tile loading.
+  static MapProviderType _currentProvider = MapProviderType.osmStandard;
 
   static MapProviderType get currentProvider => _currentProvider;
 

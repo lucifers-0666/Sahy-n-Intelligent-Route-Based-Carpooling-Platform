@@ -374,7 +374,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 380;
+        final isCompact = constraints.maxWidth < 520;
         if (isCompact) {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -404,12 +404,18 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                         color: Color(0xFF1B4D3E),
                       ),
                     ),
-                    Text(
-                      stepTitles[_currentStep],
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF5C6E64),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        stepTitles[_currentStep],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF5C6E64),
+                        ),
                       ),
                     ),
                   ],
@@ -461,25 +467,30 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        '${context.l10n.stepIndicator(_currentStep + 1, 3)}: ',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF5C6E64),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          '${context.l10n.stepIndicator(_currentStep + 1, 3)}: ',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF5C6E64),
+                          ),
                         ),
-                      ),
-                      Text(
-                        stepFullTitles[_currentStep],
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF1B4D3E),
+                        Flexible(
+                          child: Text(
+                            stepFullTitles[_currentStep],
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1B4D3E),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -511,32 +522,39 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                 children: List.generate(stepTitles.length, (index) {
                   final isCurrent = _currentStep == index;
                   final isCompleted = _currentStep > index;
-                  return Row(
-                    children: [
-                      Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isCurrent
-                              ? const Color(0xFF1B4D3E)
-                              : (isCompleted
-                                  ? const Color(0xFF2EC486)
-                                  : const Color(0xFFE2E8E4)),
+                  return Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isCurrent
+                                ? const Color(0xFF1B4D3E)
+                                : (isCompleted
+                                    ? const Color(0xFF2EC486)
+                                    : const Color(0xFFE2E8E4)),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        stepTitles[index],
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                          color: isCurrent
-                              ? const Color(0xFF14241C)
-                              : const Color(0xFF5C6E64),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                            stepTitles[index],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                              color: isCurrent
+                                  ? const Color(0xFF14241C)
+                                  : const Color(0xFF5C6E64),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   );
                 }),
               ),
