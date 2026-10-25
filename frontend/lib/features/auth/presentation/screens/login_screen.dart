@@ -9,7 +9,7 @@ import '../../../../app/providers/user_mode_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../core/localization/sahyan_language_selector.dart';
-import '../../../../core/localization/sahyan_localizations.dart';
+import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../core/widgets/sahyan_text_field.dart';
 import '../../../../firebase_options.dart';
@@ -275,7 +275,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final textColor = isDark ? AppColors.darkText : AppColors.ink;
     const mutedColor = Color(0xFF5B6B66);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final l10n = SahyanLocalizations.of(context);
+    final l10n = context.l10n;
 
     // Only show Google button if configured on platform
     final isGoogleConfigured = DefaultFirebaseOptions.isConfigured;

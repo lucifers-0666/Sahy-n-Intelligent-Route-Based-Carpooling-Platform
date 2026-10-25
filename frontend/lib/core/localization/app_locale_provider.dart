@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Supported locales in Sahyān
+final sharedPreferencesProvider = Provider<SharedPreferences?>((ref) => null);
+
+/// Supported languages in Sahyān
 enum SahyanLanguage {
   english('en', 'English', 'English'),
   gujarati('gu', 'ગુજરાતી', 'Gujarati'),
@@ -25,31 +27,30 @@ enum SahyanLanguage {
 }
 
 class AppLocaleNotifier extends StateNotifier<Locale> {
-  static const String _prefKey = 'sahyan_app_language_code';
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  AppLocaleNotifier(this._prefs) : super(_initial(_prefs));
 
-  AppLocaleNotifier() : super(const Locale('en')) {
-    _loadSavedLocale();
+  final SharedPreferences? _prefs;
+  static const _key = 'app_locale';
+
+  static Locale _initial(SharedPreferences? p) {
+    final saved = p?.getString(_key);
+    if (saved != null && ['en', 'gu', 'hi'].contains(saved)) {
+      return Locale(saved);
+    }
+    final device =
+        WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+    return Locale(['en', 'gu', 'hi'].contains(device) ? device : 'en');
   }
 
-  Future<void> _loadSavedLocale() async {
-    try {
-      final code = await _storage.read(key: _prefKey);
-      if (code != null && code.isNotEmpty) {
-        state = Locale(code);
-      }
-    } catch (_) {}
+  Future<void> setLocale(Locale l) async {
+    state = l;
+    await _prefs?.setString(_key, l.languageCode);
   }
 
-  Future<void> setLanguage(SahyanLanguage language) async {
-    state = language.locale;
-    try {
-      await _storage.write(key: _prefKey, value: language.code);
-    } catch (_) {}
-  }
+  Future<void> setLanguage(SahyanLanguage language) =>
+      setLocale(language.locale);
 }
 
-final appLocaleProvider =
-    StateNotifierProvider<AppLocaleNotifier, Locale>((ref) {
-  return AppLocaleNotifier();
-});
+final appLocaleProvider = StateNotifierProvider<AppLocaleNotifier, Locale>(
+  (ref) => AppLocaleNotifier(ref.watch(sharedPreferencesProvider)),
+);

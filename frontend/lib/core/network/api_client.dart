@@ -89,6 +89,12 @@ class ApiClient {
     return _resolvedBaseUrl!;
   }
 
+  String activeLanguageCode = 'en';
+
+  void setLanguageCode(String code) {
+    activeLanguageCode = code;
+  }
+
   void setAuthToken(String? token) {
     _authToken = token;
   }
@@ -97,6 +103,7 @@ class ApiClient {
     final headers = <String, String>{
       'Content-Type': 'application/json',
       'Accept': 'application/json',
+      'Accept-Language': activeLanguageCode,
     };
     if (_authToken != null && _authToken!.isNotEmpty) {
       headers['Authorization'] = 'Bearer $_authToken';

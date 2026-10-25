@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_radii.dart';
 import 'app_spacing.dart';
@@ -10,11 +9,54 @@ export 'app_colors.dart';
 /// Sahyān Application Theme configuration.
 /// Applies the standardized Plus Jakarta Sans typography and organic Forest palette.
 abstract class AppTheme {
-  static ThemeData get lightTheme {
-    final baseTextTheme = GoogleFonts.plusJakartaSansTextTheme();
+  static String _font(Locale l) => switch (l.languageCode) {
+    'gu' => 'Noto Sans Gujarati',
+    'hi' => 'Noto Sans Devanagari',
+    _ => 'Plus Jakarta Sans',
+  };
+
+  static const List<String> _fontFallbacks = [
+    'Noto Sans Gujarati',
+    'Noto Sans Devanagari',
+    'Plus Jakarta Sans',
+  ];
+
+  static TextTheme _buildTextTheme(Brightness brightness, Locale locale) {
+    final fontName = _font(locale);
+    final isIndian = locale.languageCode == 'gu' || locale.languageCode == 'hi';
+    final extraHeight = isIndian ? 1.4 : null;
+    final isDark = brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.darkText : AppColors.ink;
+    final mutedColor = isDark ? AppColors.darkMuted : AppColors.mutedLight;
+
+    TextStyle adjust(TextStyle base, {Color? color}) {
+      return base.copyWith(
+        fontFamily: fontName,
+        fontFamilyFallback: _fontFallbacks,
+        height: extraHeight ?? base.height,
+        color: color ?? base.color,
+      );
+    }
+
+    return TextTheme(
+      displayLarge: adjust(AppTypography.displayHero, color: textColor),
+      headlineLarge: adjust(AppTypography.pageTitle, color: textColor),
+      headlineMedium: adjust(AppTypography.sectionHeader, color: textColor),
+      titleMedium: adjust(AppTypography.fieldLabel, color: textColor),
+      titleSmall: adjust(AppTypography.cardTitle, color: textColor),
+      bodyLarge: adjust(AppTypography.bodyLarge, color: textColor),
+      bodyMedium: adjust(AppTypography.bodyMedium, color: textColor),
+      bodySmall: adjust(AppTypography.secondary, color: mutedColor),
+      labelLarge: adjust(AppTypography.button, color: isDark ? AppColors.white : null),
+      labelSmall: adjust(AppTypography.caption, color: mutedColor),
+    );
+  }
+
+  static ThemeData light([Locale locale = const Locale('en')]) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      fontFamily: _font(locale),
       scaffoldBackgroundColor: AppColors.canvasLight,
       colorScheme: const ColorScheme.light(
         primary: AppColors.brand,
@@ -26,25 +68,17 @@ abstract class AppTheme {
         error: AppColors.error,
         onError: AppColors.white,
       ),
-      textTheme: baseTextTheme.copyWith(
-        displayLarge: AppTypography.displayHero,
-        headlineLarge: AppTypography.pageTitle,
-        headlineMedium: AppTypography.sectionHeader,
-        titleMedium: AppTypography.fieldLabel,
-        titleSmall: AppTypography.cardTitle,
-        bodyLarge: AppTypography.bodyLarge,
-        bodyMedium: AppTypography.bodyMedium,
-        bodySmall: AppTypography.secondary,
-        labelLarge: AppTypography.button,
-        labelSmall: AppTypography.caption,
-      ),
+      textTheme: _buildTextTheme(Brightness.light, locale),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.canvasLight,
         foregroundColor: AppColors.ink,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: AppTypography.sectionHeader,
+        titleTextStyle: AppTypography.sectionHeader.copyWith(
+          fontFamily: _font(locale),
+          fontFamilyFallback: _fontFallbacks,
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -55,7 +89,10 @@ abstract class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.md),
           ),
-          textStyle: AppTypography.button,
+          textStyle: AppTypography.button.copyWith(
+            fontFamily: _font(locale),
+            fontFamilyFallback: _fontFallbacks,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -66,7 +103,11 @@ abstract class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.md),
           ),
-          textStyle: AppTypography.button.copyWith(color: AppColors.brand),
+          textStyle: AppTypography.button.copyWith(
+            color: AppColors.brand,
+            fontFamily: _font(locale),
+            fontFamilyFallback: _fontFallbacks,
+          ),
         ),
       ),
       cardTheme: CardThemeData(
@@ -85,8 +126,14 @@ abstract class AppTheme {
           horizontal: AppSpacing.base,
           vertical: AppSpacing.md,
         ),
-        hintStyle: AppTypography.secondary,
-        labelStyle: AppTypography.secondary,
+        hintStyle: AppTypography.secondary.copyWith(
+          fontFamily: _font(locale),
+          fontFamilyFallback: _fontFallbacks,
+        ),
+        labelStyle: AppTypography.secondary.copyWith(
+          fontFamily: _font(locale),
+          fontFamilyFallback: _fontFallbacks,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
           borderSide: const BorderSide(color: AppColors.border),
@@ -127,13 +174,11 @@ abstract class AppTheme {
     );
   }
 
-  static ThemeData get darkTheme {
-    final baseTextTheme = GoogleFonts.plusJakartaSansTextTheme(
-      ThemeData(brightness: Brightness.dark).textTheme,
-    );
+  static ThemeData dark([Locale locale = const Locale('en')]) {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: _font(locale),
       scaffoldBackgroundColor: AppColors.darkBg,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.brandBright,
@@ -145,28 +190,7 @@ abstract class AppTheme {
         error: AppColors.error,
         onError: AppColors.white,
       ),
-      textTheme: baseTextTheme.copyWith(
-        displayLarge: AppTypography.displayHero.copyWith(
-          color: AppColors.darkText,
-        ),
-        headlineLarge: AppTypography.pageTitle.copyWith(
-          color: AppColors.darkText,
-        ),
-        headlineMedium: AppTypography.sectionHeader.copyWith(
-          color: AppColors.darkText,
-        ),
-        titleMedium: AppTypography.fieldLabel.copyWith(
-          color: AppColors.darkText,
-        ),
-        titleSmall: AppTypography.cardTitle.copyWith(color: AppColors.darkText),
-        bodyLarge: AppTypography.bodyLarge.copyWith(color: AppColors.darkText),
-        bodyMedium: AppTypography.bodyMedium.copyWith(
-          color: AppColors.darkText,
-        ),
-        bodySmall: AppTypography.secondary.copyWith(color: AppColors.darkMuted),
-        labelLarge: AppTypography.button.copyWith(color: AppColors.white),
-        labelSmall: AppTypography.caption.copyWith(color: AppColors.darkMuted),
-      ),
+      textTheme: _buildTextTheme(Brightness.dark, locale),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.darkBg,
         foregroundColor: AppColors.darkText,
@@ -175,6 +199,8 @@ abstract class AppTheme {
         centerTitle: false,
         titleTextStyle: AppTypography.sectionHeader.copyWith(
           color: AppColors.darkText,
+          fontFamily: _font(locale),
+          fontFamilyFallback: _fontFallbacks,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -186,7 +212,10 @@ abstract class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.md),
           ),
-          textStyle: AppTypography.button,
+          textStyle: AppTypography.button.copyWith(
+            fontFamily: _font(locale),
+            fontFamilyFallback: _fontFallbacks,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -197,7 +226,11 @@ abstract class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadii.md),
           ),
-          textStyle: AppTypography.button.copyWith(color: AppColors.mint),
+          textStyle: AppTypography.button.copyWith(
+            color: AppColors.mint,
+            fontFamily: _font(locale),
+            fontFamilyFallback: _fontFallbacks,
+          ),
         ),
       ),
       cardTheme: CardThemeData(
@@ -216,9 +249,15 @@ abstract class AppTheme {
           horizontal: AppSpacing.base,
           vertical: AppSpacing.md,
         ),
-        hintStyle: AppTypography.secondary.copyWith(color: AppColors.darkMuted),
+        hintStyle: AppTypography.secondary.copyWith(
+          color: AppColors.darkMuted,
+          fontFamily: _font(locale),
+          fontFamilyFallback: _fontFallbacks,
+        ),
         labelStyle: AppTypography.secondary.copyWith(
           color: AppColors.darkMuted,
+          fontFamily: _font(locale),
+          fontFamilyFallback: _fontFallbacks,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadii.md),
@@ -259,6 +298,9 @@ abstract class AppTheme {
       extensions: const <ThemeExtension<dynamic>>[SahyanThemeTokens.dark],
     );
   }
+
+  static ThemeData get lightTheme => light(const Locale('en'));
+  static ThemeData get darkTheme => dark(const Locale('en'));
 }
 
 /// 2026 Semantic Tokens exposed via ThemeExtension

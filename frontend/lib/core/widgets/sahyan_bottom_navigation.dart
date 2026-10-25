@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_elevation.dart';
 import '../../app/theme/app_radii.dart';
+import '../localization/l10n_extension.dart';
 
 /// Standardized Sahyān Floating Bottom Navigation bar.
 /// Houses the 5 core destinations with an elevated center Offer Ride action.
@@ -36,6 +37,8 @@ class SahyanBottomNavigation extends StatelessWidget {
       horizontalMargin = 16.0;
     }
 
+    final l10n = context.l10n;
+
     return Container(
       color: Colors.transparent,
       padding: EdgeInsets.only(
@@ -65,13 +68,13 @@ class SahyanBottomNavigation extends StatelessWidget {
                   children: [
                     _buildNavItem(
                       index: 0,
-                      label: 'Home',
+                      label: l10n.navHome,
                       icon: Icons.home_outlined,
                       activeIcon: Icons.home_rounded,
                     ),
                     _buildNavItem(
                       index: 1,
-                      label: 'Rides',
+                      label: l10n.navRides,
                       icon: Icons.directions_car_outlined,
                       activeIcon: Icons.directions_car_rounded,
                     ),
@@ -79,13 +82,13 @@ class SahyanBottomNavigation extends StatelessWidget {
                     const Expanded(child: SizedBox()),
                     _buildNavItem(
                       index: 3,
-                      label: 'Bookings',
+                      label: l10n.navBookings,
                       icon: Icons.confirmation_number_outlined,
                       activeIcon: Icons.confirmation_number_rounded,
                     ),
                     _buildNavItem(
                       index: 4,
-                      label: 'Profile',
+                      label: l10n.navProfile,
                       icon: Icons.person_outline_rounded,
                       activeIcon: Icons.person_rounded,
                     ),
@@ -94,7 +97,7 @@ class SahyanBottomNavigation extends StatelessWidget {
               ),
             ),
             // Center elevated Offer Ride action
-            Positioned(top: 0, bottom: 0, child: _buildCenterAction()),
+            Positioned(top: 0, bottom: 0, child: _buildCenterAction(context)),
           ],
         ),
       ),
@@ -150,7 +153,7 @@ class SahyanBottomNavigation extends StatelessWidget {
     );
   }
 
-  Widget _buildCenterAction() {
+  Widget _buildCenterAction(BuildContext context) {
     final isActive = currentIndex == 2;
 
     return Material(
@@ -187,7 +190,7 @@ class SahyanBottomNavigation extends StatelessWidget {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  'Offer Ride',
+                  context.l10n.navOfferRide,
                   maxLines: 1,
                   style: TextStyle(
                     fontSize: 10,

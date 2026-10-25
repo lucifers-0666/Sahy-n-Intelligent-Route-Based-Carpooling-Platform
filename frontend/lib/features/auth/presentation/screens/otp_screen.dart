@@ -8,7 +8,7 @@ import '../../../../app/providers/user_mode_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../core/localization/sahyan_language_selector.dart';
-import '../../../../core/localization/sahyan_localizations.dart';
+import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../shared/widgets/feedback/feedback_service.dart';
@@ -271,7 +271,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen>
     final phoneFormatted = _formatPhone(authState.otpSentToPhone);
     final textColor = isDark ? AppColors.darkText : AppColors.ink;
     const mutedColor = Color(0xFF5B6B66);
-    final l10n = SahyanLocalizations.of(context);
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBg : AppColors.canvasLight,
@@ -460,7 +460,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen>
   Widget _buildOtpInputRow(
     bool isDark,
     Color textColor,
-    SahyanLocalizations l10n,
+    AppLocalizations l10n,
   ) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -585,7 +585,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen>
   }
 
   /// ONE Single Success Moment: Expanding Check Morph (No duplicate toast or pill)
-  Widget _buildSingleSuccessMoment(bool isDark, SahyanLocalizations l10n) {
+  Widget _buildSingleSuccessMoment(bool isDark, AppLocalizations l10n) {
     return Center(
       child: Container(
         height: 72,

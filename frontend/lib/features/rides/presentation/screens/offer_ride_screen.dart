@@ -8,6 +8,7 @@ import 'package:sahyan/features/rides/presentation/widgets/offer_ride_step1.dart
 import 'package:sahyan/features/rides/presentation/widgets/offer_ride_step2.dart';
 import 'package:sahyan/features/rides/presentation/widgets/offer_ride_step3.dart';
 import 'package:sahyan/shared/models/location_model.dart';
+import 'package:sahyan/core/localization/l10n_extension.dart';
 
 class OfferRideScreen extends ConsumerStatefulWidget {
   const OfferRideScreen({super.key});
@@ -230,9 +231,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF6F8F6),
         appBar: AppBar(
-          title: const Text(
-            'Offer a Ride',
-            style: TextStyle(
+          title: Text(
+            context.l10n.offerRide,
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Color(0xFF14241C),
@@ -247,7 +248,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
               color: Color(0xFF14241C),
               size: 20,
             ),
-            tooltip: 'Back',
+            tooltip: context.l10n.back,
             onPressed: () {
               if (_currentStep > 0) {
                 setState(() => _currentStep--);
@@ -360,15 +361,15 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
   }
 
   Widget _buildStepIndicator() {
-    const stepTitles = [
-      'Vehicle & Route',
-      'Schedule & Seats',
-      'Review & Publish',
+    final stepTitles = [
+      context.l10n.vehicleAndRoute,
+      context.l10n.scheduleAndSeats,
+      context.l10n.reviewAndPublish,
     ];
-    const stepFullTitles = [
-      'Vehicle & Route Corridor',
-      'Schedule, Seats & Fair Contribution',
-      'Amenities, Notes & Publish',
+    final stepFullTitles = [
+      context.l10n.offerRideStep1Title,
+      context.l10n.offerRideStep2Title,
+      context.l10n.offerRideStep3Title,
     ];
 
     return LayoutBuilder(
@@ -396,7 +397,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Step ${_currentStep + 1} of 3',
+                      context.l10n.stepIndicator(_currentStep + 1, 3),
                       style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -463,7 +464,7 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                   Row(
                     children: [
                       Text(
-                        'Step ${_currentStep + 1} of 3: ',
+                        '${context.l10n.stepIndicator(_currentStep + 1, 3)}: ',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -563,9 +564,9 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                   backgroundColor: Colors.white,
                 ),
                 onPressed: () => setState(() => _currentStep--),
-                child: const Text(
-                  'Back',
-                  style: TextStyle(
+                child: Text(
+                  context.l10n.back,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF14241C),
@@ -656,26 +657,16 @@ class _OfferRideScreenState extends ConsumerState<OfferRideScreen> {
                   : Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Primary label matching redesign spec
                         Text(
                           _currentStep == 2
-                              ? 'Publish Shared Journey \u2192'
-                              : 'Continue',
+                              ? context.l10n.publishRide
+                              : context.l10n.continueButton,
                           style: const TextStyle(
                             fontSize: 15.5,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
                           ),
                         ),
-                        // Hidden legacy text widget for test backwards-compatibility
-                        if (_currentStep == 2)
-                          const Opacity(
-                            opacity: 0.0,
-                            child: Text(
-                              'Publish Ride',
-                              style: TextStyle(fontSize: 1, color: Colors.transparent),
-                            ),
-                          ),
                       ],
                     ),
             ),

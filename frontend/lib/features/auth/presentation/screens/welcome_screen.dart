@@ -9,7 +9,7 @@ import '../../../../app/providers/user_mode_provider.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../core/localization/sahyan_language_selector.dart';
-import '../../../../core/localization/sahyan_localizations.dart';
+import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/widgets/sahyan_button.dart';
 import '../auth_provider.dart';
 import '../widgets/sahyan_highway_hero.dart';
@@ -95,7 +95,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
     final screenHeight = mediaQuery.size.height;
     final screenWidth = mediaQuery.size.width;
     final bottomPadding = mediaQuery.padding.bottom;
-    final l10n = SahyanLocalizations.of(context);
+    final l10n = context.l10n;
 
     // Responsive hero height (44-48% of screen)
     final heroHeight = (screenHeight * 0.44).clamp(270.0, 380.0);
@@ -106,7 +106,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
         : AppColors.border.withValues(alpha: 0.85);
     final textColor = isDark ? AppColors.darkText : AppColors.ink;
     const mutedColor = Color(0xFF5B6B66);
-    final scriptScale = l10n.languageCode == 'en' ? 0.0 : 1.5;
+    final scriptScale = Localizations.localeOf(context).languageCode == 'en' ? 0.0 : 1.5;
 
     final authState = ref.watch(authProvider);
     if (authState.isAuthenticated) {

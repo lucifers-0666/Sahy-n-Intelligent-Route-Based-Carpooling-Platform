@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/localization/sahyan_language_selector.dart';
 import '../../../../core/services/biometric_service.dart';
 import '../../../../core/widgets/design_system.dart';
@@ -39,10 +40,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final l10n = context.l10n;
 
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: const SahyanAppBar(title: 'Settings', showBackButton: true),
+      appBar: SahyanAppBar(title: l10n.settingsTitle, showBackButton: true),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.md),
@@ -50,7 +52,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Account Section
-              _buildSectionHeader('ACCOUNT'),
+              _buildSectionHeader(l10n.accountSectionHeader),
               SahyanCard(
                 padding: EdgeInsets.zero,
                 child: Column(
@@ -61,11 +63,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        user?.name ?? 'Carpool Member',
+                        user?.name ?? l10n.carpoolMember,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        user?.email ?? 'Member Account',
+                        user?.email ?? l10n.memberAccount,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -83,11 +85,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        'Edit Profile & Travel Preferences',
+                        l10n.editProfileAndPrefs,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'City, bio, and co-traveler preferences',
+                        l10n.editProfileSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -105,11 +107,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        'Saved Places',
+                        l10n.savedPlaces,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Home, Work and custom addresses',
+                        l10n.savedPlacesSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -127,11 +129,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        'Emergency Contacts',
+                        l10n.emergencyContacts,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Trusted contacts notified during SOS alerts',
+                        l10n.emergencyContactsSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -150,14 +152,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                       title: Text(
                         user?.isDriverEligible == true
-                            ? 'Driver Status & Vehicles'
-                            : 'Driver Verification & Onboarding',
+                            ? l10n.driverStatusAndVehicles
+                            : l10n.driverOnboardingTitle,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
                         user?.isDriverEligible == true
-                            ? 'Approved driver • Manage fleet and routes'
-                            : 'Submit driving licence to offer shared rides',
+                            ? l10n.driverStatusSubtitle
+                            : l10n.driverOnboardingSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -179,7 +181,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: AppSpacing.lg),
 
               // Language & Localization Section
-              _buildSectionHeader('LANGUAGE & REGION'),
+              _buildSectionHeader(l10n.languageAndRegion),
               SahyanCard(
                 padding: EdgeInsets.zero,
                 child: ListTile(
@@ -188,11 +190,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     color: AppColors.primaryForest,
                   ),
                   title: Text(
-                    'Preferred Language',
+                    l10n.preferredLanguage,
                     style: AppTypography.cardTitle.copyWith(fontSize: 14),
                   ),
                   subtitle: Text(
-                    'English • ગુજરાતી • हिन्दी',
+                    l10n.languageSubtitle,
                     style: AppTypography.caption.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -204,7 +206,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: AppSpacing.lg),
 
               // Notifications Section
-              _buildSectionHeader('NOTIFICATIONS'),
+              _buildSectionHeader(l10n.notifications),
               SahyanCard(
                 padding: EdgeInsets.zero,
                 child: Column(
@@ -212,11 +214,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     SwitchListTile(
                       activeThumbColor: AppColors.primaryForest,
                       title: Text(
-                        'Push Notifications',
+                        l10n.pushNotifications,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Instant booking updates and ride statuses',
+                        l10n.pushNotificationsSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -230,11 +232,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     SwitchListTile(
                       activeThumbColor: AppColors.primaryForest,
                       title: Text(
-                        'Trip Status Alerts',
+                        l10n.tripStatusAlerts,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Boarding reminders and departure countdowns',
+                        l10n.tripStatusAlertsSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -248,11 +250,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     SwitchListTile(
                       activeThumbColor: AppColors.primaryForest,
                       title: Text(
-                        'Carpool Community Updates',
+                        l10n.carpoolCommunityUpdates,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'New highway corridors and eco impact digests',
+                        l10n.carpoolCommunitySubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -269,7 +271,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: AppSpacing.lg),
 
               // Privacy & Permissions
-              _buildSectionHeader('PRIVACY & SECURITY'),
+              _buildSectionHeader(l10n.privacyAndSecurity),
               SahyanCard(
                 padding: EdgeInsets.zero,
                 child: Column(
@@ -277,11 +279,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     SwitchListTile(
                       activeThumbColor: AppColors.primaryForest,
                       title: Text(
-                        'Route Location Sharing',
+                        l10n.routeLocationSharing,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Share active corridor location with confirmed driver',
+                        l10n.routeLocationSharingSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -295,11 +297,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     SwitchListTile(
                       activeThumbColor: AppColors.primaryForest,
                       title: Text(
-                        'App Lock / Fingerprint Unlock',
+                        l10n.appLockFingerprint,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Require fingerprint on open or after 1 minute',
+                        l10n.appLockSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -319,7 +321,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        'Change Password',
+                        l10n.changePassword,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       trailing: const Icon(
@@ -335,11 +337,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        'Privacy & System Permissions',
+                        l10n.privacyPermissions,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Corridor location, sensor, and DPDP rights',
+                        l10n.privacyPermissionsSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -357,14 +359,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: AppSpacing.lg),
 
               // Legal & About
-              _buildSectionHeader('ABOUT & LEGAL'),
+              _buildSectionHeader(l10n.aboutAndLegal),
               SahyanCard(
                 padding: EdgeInsets.zero,
                 child: Column(
                   children: [
                     ListTile(
                       title: Text(
-                        'Terms of Service',
+                        l10n.termsOfService,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       trailing: const Icon(
@@ -376,7 +378,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const Divider(height: 1, color: AppColors.border),
                     ListTile(
                       title: Text(
-                        'Privacy Policy',
+                        l10n.privacyPolicy,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       trailing: const Icon(
@@ -388,7 +390,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const Divider(height: 1, color: AppColors.border),
                     ListTile(
                       title: Text(
-                        'Application Version',
+                        l10n.applicationVersion,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       trailing: Text(
@@ -406,11 +408,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        'Safety Center & Protocols',
+                        l10n.safetyCenterProtocols,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Trust score, verification, and roadside emergency',
+                        l10n.safetyCenterSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -428,11 +430,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        'Help & Support',
+                        l10n.helpAndSupport,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'FAQ, dispute resolution, and member desk',
+                        l10n.helpAndSupportSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -450,11 +452,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: AppColors.primaryForest,
                       ),
                       title: Text(
-                        'System States & Diagnostics',
+                        l10n.systemStatesDiagnostics,
                         style: AppTypography.cardTitle.copyWith(fontSize: 14),
                       ),
                       subtitle: Text(
-                        'Test offline mode, refunds, and edge scenarios',
+                        l10n.systemStatesSubtitle,
                         style: AppTypography.caption.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -473,7 +475,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
               // Logout Action
               SahyanButton(
-                text: 'Sign Out',
+                text: l10n.signOut,
                 icon: Icons.logout_rounded,
                 variant: SahyanButtonVariant.destructive,
                 isFullWidth: true,
@@ -490,7 +492,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   icon: const Icon(Icons.delete_outline_rounded, size: 18),
                   label: Text(
-                    'Delete Account & Erase Personal Data (DPDP Act)',
+                    l10n.deleteAccountDpdp,
                     style: AppTypography.caption.copyWith(
                       color: AppColors.textSecondary,
                       decoration: TextDecoration.underline,
@@ -539,11 +541,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
+    final l10n = context.l10n;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Account & Erase Data', style: AppTypography.cardTitle),
+        title: Text(l10n.deleteAccountDpdp, style: AppTypography.cardTitle),
         content: Text(
           'In compliance with the Digital Personal Data Protection (DPDP) Act, this action permanently anonymizes your personal information, contact records, vehicle registrations, and account credentials. This action cannot be reversed.',
           style: AppTypography.bodyMedium,
@@ -551,7 +554,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -584,7 +587,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 }
               }
             },
-            child: const Text('Erase & Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),

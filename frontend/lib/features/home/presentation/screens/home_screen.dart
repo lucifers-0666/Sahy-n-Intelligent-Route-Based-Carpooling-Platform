@@ -19,6 +19,7 @@ import '../../../rides/presentation/rides_provider.dart';
 import '../../../rides/presentation/widgets/location_search_bottom_sheet.dart';
 import '../../../../app/providers/user_mode_provider.dart';
 import '../widgets/hero_search_card.dart';
+import '../../../../core/localization/l10n_extension.dart';
 
 /// Single-Screen Hybrid UI/UX Redesigned Home Screen for Sahyān.
 /// Blends modern smartphone-native mobility ergonomics (JoyRide-inspired clarity)
@@ -334,11 +335,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     context.push('/search-results');
   }
 
-  String _getTimeGreeting() {
+  String _getTimeGreeting(BuildContext context) {
     final hour = DateTime.now().hour;
-    if (hour >= 4 && hour < 12) return 'Good morning';
-    if (hour >= 12 && hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour >= 4 && hour < 12) return context.l10n.goodMorning;
+    if (hour >= 12 && hour < 17) return context.l10n.goodAfternoon;
+    return context.l10n.goodEvening;
   }
 
   String _getTimeSubtitle() {
@@ -433,7 +434,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          'Take a Ride',
+                          context.l10n.takeRide,
                           style: TextStyle(
                             fontFamily: 'Plus Jakarta Sans',
                             fontSize: 12.5,
@@ -494,7 +495,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          isDriverEligible ? 'Offer a Ride' : 'Become a Host',
+                          isDriverEligible
+                              ? context.l10n.offerRide
+                              : context.l10n.becomeHost,
                           style: TextStyle(
                             fontFamily: 'Plus Jakarta Sans',
                             fontSize: 12.5,
@@ -611,7 +614,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              '${_getTimeGreeting()}, $displayName',
+                              '${_getTimeGreeting(context)}, $displayName',
                               style: const TextStyle(
                                 fontFamily: 'Plus Jakarta Sans',
                                 fontSize: 22,
@@ -901,8 +904,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     Expanded(
                       child: _QuickActionTile(
                         icon: Icons.add_road_rounded,
-                        label: 'Offer Ride',
-                        caption: 'Publish route',
+                        label: context.l10n.offerRide,
+                        caption: context.l10n.publishRide,
                         onTap: () => context.push('/offer-ride'),
                       ),
                     ),
@@ -910,8 +913,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     Expanded(
                       child: _QuickActionTile(
                         icon: Icons.confirmation_number_outlined,
-                        label: 'My Bookings',
-                        caption: 'Active passes',
+                        label: context.l10n.myBookings,
+                        caption: context.l10n.tabActive,
                         onTap: () => context.push('/bookings'),
                       ),
                     ),
@@ -919,8 +922,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     Expanded(
                       child: _QuickActionTile(
                         icon: Icons.shield_outlined,
-                        label: 'Safety Center',
-                        caption: '24/7 SOS desk',
+                        label: context.l10n.safetyCenter,
+                        caption: 'SOS 24/7',
                         onTap: () => context.push('/safety-center'),
                       ),
                     ),
@@ -939,10 +942,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Popular Highway Corridors',
-                        style: TextStyle(
+                        context.l10n.popularHighwayCorridors,
+                        style: const TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
@@ -1058,23 +1061,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Verified Carpool Community',
-                                style: TextStyle(
+                                context.l10n.verifiedCarpoolCommunity,
+                                style: const TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.primaryText,
                                 ),
                               ),
-                              SizedBox(height: 3),
+                              const SizedBox(height: 3),
                               Text(
-                                'Government ID verification, vehicle registration validation, and 4-digit boarding security on every planned journey.',
-                                style: TextStyle(
+                                context.l10n.communityVerifiedSubtitle,
+                                style: const TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 12,
                                   color: AppColors.mutedText,
@@ -1116,23 +1119,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           ),
                         ),
                         const SizedBox(width: 14),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Standard Corridor Flow',
-                                style: TextStyle(
+                                context.l10n.standardCorridorFlow,
+                                style: const TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 14,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.primaryText,
                                 ),
                               ),
-                              SizedBox(height: 2),
+                              const SizedBox(height: 2),
                               Text(
-                                'Direct intercity highway routing · Co-travel verified',
-                                style: TextStyle(
+                                context.l10n.directIntercityTransit,
+                                style: const TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 12,
                                   color: AppColors.mutedText,

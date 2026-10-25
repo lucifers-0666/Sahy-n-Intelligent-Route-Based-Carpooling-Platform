@@ -1,11 +1,29 @@
 {
   "@@locale": "en",
   "welcomeHeadline": "Share the journey,\nnot just the ride.",
+  "@welcomeHeadline": {
+    "description": "Hero headline on welcome screen."
+  },
   "welcomeSubline": "Find verified riders and drivers for routes across India.",
+  "@welcomeSubline": {
+    "description": "Subline on welcome screen."
+  },
   "registerIntro": "Join India's verified carpooling community.",
-  "otpIncompleteError": "Enter all 6 digits to verify.",
-  "fullNameLabel": "Full name",
-  "fullNameHelper": "As on your ID",
+  "@registerIntro": {
+    "description": "Intro copy on registration screen."
+  },
+  "chipVerified": "Verified",
+  "chipFairCost": "Fair cost",
+  "chipDirectRoutes": "Direct routes",
+  "continueWithPhone": "Continue with phone",
+  "useEmailOrPassword": "Use email or password instead",
+  "continueWithEmailOrPassword": "Use email or password instead",
+  "exploreAsGuest": "Explore as guest · Browse rides",
+  "whatsYourNumber": "What's your number?",
+  "enterNumberPrompt": "Enter your mobile number to sign in or get started.",
+  "invalidPhoneError": "Please enter a valid 10-digit Indian mobile number (starts with 6-9)",
+  "getOtp": "Get verification code",
+  "signInWithPasswordInstead": "Sign in with password instead",
   "termsConsentPrefix": "By continuing, you agree to our ",
   "@termsConsentPrefix": {
     "description": "Legal consent copy; must be reviewed by legal counsel."
@@ -13,5 +31,266 @@
   "termsAndPrivacy": "Terms & Privacy",
   "@termsAndPrivacy": {
     "description": "Legal link label; must be reviewed by legal counsel."
-  }
+  },
+  "registerPrompt": "Don't have an account? Register",
+  "verifyYourPhone": "Verify your phone",
+  "sentCodeTo": "We sent a 6-digit code to ",
+  "edit": "Edit",
+  "resendIn": "Resend in ",
+  "resendCode": "Resend code",
+  "phoneVerifiedSuccess": "Phone verified successfully",
+  "otpIncompleteError": "Enter all 6 digits to verify.",
+  "@otpIncompleteError": {
+    "description": "Validation error when fewer than 6 OTP digits are entered."
+  },
+  "createYourAccount": "Create your account",
+  "step1Title": "Basic Details",
+  "step2Title": "Preferences & Role",
+  "fullNameLabel": "Full name",
+  "@fullNameLabel": {
+    "description": "Label for the full name text input."
+  },
+  "fullNameHelper": "As on your ID",
+  "@fullNameHelper": {
+    "description": "Helper text beneath the full name text input."
+  },
+  "roleSelectionTitle": "How will you travel with Sahyān?",
+  "rolePassenger": "Passenger",
+  "roleDriver": "Driver",
+  "roleBoth": "Both",
+  "driverVerificationNote": "Note: Drivers will need driver licence and vehicle verification before offering rides.",
+  "emailWhyWeAsk": "Why we ask: for monthly trip statements and tax receipts.",
+  "passwordWhyWeAsk": "Why we ask: sign in without waiting for SMS on other devices.",
+  "logoutPromptTitle": "Log out of Sahyān?",
+  "logoutPromptMessage": "You will need to verify your phone number to sign back in on this device.",
+  "keepLoggedIn": "Keep Logged In",
+  "logOutAction": "Log Out",
+
+  "settingsTitle": "Settings",
+  "accountSectionHeader": "ACCOUNT",
+  "carpoolMember": "Carpool Member",
+  "memberAccount": "Member Account",
+  "editProfileAndPrefs": "Edit Profile & Travel Preferences",
+  "editProfileSubtitle": "City, bio, and co-traveler preferences",
+  "savedPlaces": "Saved Places",
+  "savedPlacesSubtitle": "Home, Work and custom addresses",
+  "emergencyContacts": "Emergency Contacts",
+  "emergencyContactsSubtitle": "Trusted contacts notified during SOS alerts",
+  "driverStatusAndVehicles": "Driver Status & Vehicles",
+  "driverStatusSubtitle": "Approved driver • Manage fleet and routes",
+  "driverOnboardingTitle": "Driver Verification & Onboarding",
+  "driverOnboardingSubtitle": "Submit driving licence to offer shared rides",
+  "languageAndRegion": "LANGUAGE & REGION",
+  "preferredLanguage": "Preferred Language",
+  "languageSubtitle": "English • ગુજરાતી • हिन्दी",
+  "notifications": "NOTIFICATIONS",
+  "pushNotifications": "Push Notifications",
+  "pushNotificationsSubtitle": "Instant booking updates and ride statuses",
+  "tripStatusAlerts": "Trip Status Alerts",
+  "tripStatusAlertsSubtitle": "Boarding reminders and departure countdowns",
+  "carpoolCommunityUpdates": "Carpool Community Updates",
+  "carpoolCommunitySubtitle": "New highway corridors and eco impact digests",
+  "privacyAndSecurity": "PRIVACY & SECURITY",
+  "routeLocationSharing": "Route Location Sharing",
+  "routeLocationSharingSubtitle": "Share active corridor location with confirmed driver",
+  "appLockFingerprint": "App Lock / Fingerprint Unlock",
+  "appLockSubtitle": "Require biometric auth to open Sahyān",
+  "changePassword": "Change Password",
+  "privacyPermissions": "Privacy & System Permissions",
+  "privacyPermissionsSubtitle": "Corridor location, sensor, and DPDP rights",
+  "aboutAndLegal": "ABOUT & LEGAL",
+  "termsOfService": "Terms of Service",
+  "privacyPolicy": "Privacy Policy",
+  "applicationVersion": "Application Version",
+  "safetyCenterProtocols": "Safety Center & Protocols",
+  "safetyCenterSubtitle": "Trust score, verification, and roadside emergency",
+  "helpAndSupport": "Help & Support",
+  "helpAndSupportSubtitle": "FAQ, dispute resolution, and member desk",
+  "systemStatesDiagnostics": "System States & Diagnostics",
+  "systemStatesSubtitle": "Test offline mode, refunds, and edge scenarios",
+  "signOut": "Sign Out",
+  "deleteAccountDpdp": "Delete Account & Erase Personal Data (DPDP Act)",
+
+  "takeRide": "Take a Ride",
+  "offerRide": "Offer a Ride",
+  "whereHeading": "Where are you heading?",
+  "pickupLocation": "Pickup location",
+  "destination": "Destination",
+  "frequentCorridors": "Frequent Corridors",
+  "travelDateTime": "Travel date & time",
+  "passengers": "Passengers",
+  "findMatchingRides": "Find Matching Rides",
+  "useCurrentLocation": "Use Current Location",
+  "chooseOnMap": "Choose on Map",
+  "selectDateTime": "Select Date & Time",
+  "quickActions": "Quick Actions",
+  "pickupLabel": "PICKUP LOCATION",
+  "destinationLabel": "DESTINATION",
+  "pickupHint": "Search city, area or landmark",
+  "destinationHint": "Where do you want to go?",
+
+  "myJourneys": "My Journeys",
+  "tabActive": "Active",
+  "tabPending": "Pending",
+  "tabHistory": "History",
+  "noActiveBoardingPasses": "No Active Boarding Passes",
+  "noPendingRequests": "No Pending Requests",
+  "noTripHistory": "No Ride History Yet",
+  "underReview": "Under Review",
+  "cancelRequest": "Cancel Request",
+  "viewRideDetails": "View Ride Details",
+  "digitalBoardingPass": "Digital Boarding Pass",
+  "boardingPass": "Boarding Pass",
+  "scanToBoard": "Scan to Board",
+  "seatConfirmed": "Seat Confirmed",
+  "fare": "Fare",
+  "seats": "Seats",
+  "pickup": "Pickup",
+  "dropoff": "Dropoff",
+  "rateTripAndDriver": "Rate Trip & Driver",
+  "ecoImpact": "Eco Impact",
+  "breakdown": "Breakdown",
+  "cancelRequestConfirmTitle": "Cancel Request?",
+  "cancelRequestConfirmMessage": "Are you sure you want to cancel this booking request? The driver will be notified.",
+  "keep": "Keep",
+  "bookingRequestCancelled": "Booking request cancelled",
+
+  "navHome": "Home",
+  "navRides": "Rides",
+  "navOfferRide": "Offer Ride",
+  "navBookings": "Bookings",
+  "navProfile": "Profile",
+
+  "offerRideStep1Title": "Route Details",
+  "offerRideStep2Title": "Timing & Pricing",
+  "offerRideStep3Title": "Vehicle & Preferences",
+  "publishRide": "Publish Ride",
+  "availableSeats": "Available Seats",
+  "pricePerSeat": "Price per Seat",
+  "stopovers": "Stopovers",
+  "addStopover": "Add Stopover",
+  "departureTime": "Departure Time",
+  "selectVehicle": "Select Vehicle",
+
+  "rideDetailsTitle": "Ride Details",
+  "rideOverview": "Ride Overview",
+  "driver": "Driver",
+  "vehicle": "Vehicle",
+  "requestSeat": "Request Seat",
+  "requestUnderReview": "Request Under Review (Pending Driver Approval)",
+  "seatConfirmedActive": "Seat Confirmed · Active Booking",
+  "noRideSelected": "No ride selected",
+  "unableToLoadRide": "Unable to load ride details",
+  "retry": "Retry",
+  "itinerary": "Itinerary",
+  "coTravelers": "Co-travelers",
+
+  "continueButton": "Continue",
+  "cancel": "Cancel",
+  "save": "Save",
+  "back": "Back",
+  "confirm": "Confirm",
+  "close": "Close",
+  "search": "Search",
+  "delete": "Delete",
+  "loading": "Loading...",
+  "languageChangedSuccess": "Language changed to English",
+
+  "seatsRequested": "{count, plural, =1{1 seat requested} other{{count} seats requested}}",
+  "@seatsRequested": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seatsAvailable": "{count, plural, =1{1 seat available} other{{count} seats available}}",
+  "@seatsAvailable": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "seatsCount": "{count, plural, =1{1 seat} other{{count} seats}}",
+  "@seatsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "passengersCount": "{count, plural, =1{1 passenger} other{{count} passengers}}",
+  "@passengersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "co2Saved": "You saved {kg} kg CO₂ this month",
+  "@co2Saved": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
+  "autoExpiresIn": "Auto-expires in {min} mins if unaccepted",
+  "@autoExpiresIn": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "stepIndicator": "Step {current} of {total}",
+  "@stepIndicator": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+
+  "findRideAlongRoute": "Find a ride along your route.",
+  "p2pCorridor": "P2P Corridor",
+  "goodMorning": "Good morning",
+  "goodAfternoon": "Good afternoon",
+  "goodEvening": "Good evening",
+  "popularHighwayCorridors": "Popular Highway Corridors",
+  "verifiedCarpoolCommunity": "Verified Carpool Community",
+  "communityVerifiedSubtitle": "Government ID verification, vehicle registration validation, and 4-digit boarding security on every planned journey.",
+  "standardCorridorFlow": "Standard Corridor Flow",
+  "directIntercityTransit": "Direct intercity highway routing · Co-travel verified",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "date": "Date",
+  "time": "Time",
+  "vehicleAndRoute": "Vehicle & Route",
+  "scheduleAndSeats": "Schedule & Seats",
+  "reviewAndPublish": "Review & Publish",
+  "amenitiesAndPreferences": "Amenities & Preferences",
+  "journeyNotes": "Journey Notes",
+  "journeySummary": "Journey Summary",
+  "freeCancellation": "Free Cancellation",
+  "secureBoardingPin": "Secure Boarding PIN",
+  "sosProtection": "Live Journey & SOS Protection",
+  "trustSafetyPolicies": "Trust, Safety & Policies",
+  "tripInProgress": "Trip in Progress",
+  "tripCompleted": "Trip Completed",
+  "rideCancelled": "Ride Cancelled",
+  "rideFull": "Ride Full",
+  "becomeHost": "Become a Host",
+  "myBookings": "My Bookings",
+  "safetyCenter": "Safety Center",
+
+  "errorNetwork": "Network error. Please check your connection.",
+  "errorUnauthorized": "Session expired. Please sign in again.",
+  "errorServerError": "Server error. Please try again later.",
+  "errorNotFound": "Requested resource was not found.",
+  "errorUnknown": "Something went wrong. Please try again."
 }

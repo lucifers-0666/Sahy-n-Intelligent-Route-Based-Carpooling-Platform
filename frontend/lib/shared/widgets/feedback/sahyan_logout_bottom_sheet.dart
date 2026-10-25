@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../app/providers/user_mode_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_radii.dart';
-import '../../../core/localization/sahyan_localizations.dart';
+import '../../../core/localization/l10n_extension.dart';
 import '../../../core/widgets/sahyan_button.dart';
 import '../../../features/auth/presentation/auth_provider.dart';
 
@@ -30,7 +30,7 @@ class SahyanLogoutBottomSheet extends ConsumerWidget {
     final bgColor = isDark ? AppColors.darkSurface : Colors.white;
     final textColor = isDark ? AppColors.darkText : AppColors.ink;
     const mutedColor = Color(0xFF5B6B66);
-    final l10n = SahyanLocalizations.of(context);
+    final l10n = context.l10n;
 
     return Material(
       color: bgColor,

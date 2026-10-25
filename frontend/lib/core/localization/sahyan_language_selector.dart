@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../l10n/generated/app_localizations.dart';
 import 'app_locale_provider.dart';
 
 /// Compact, premium language selector pill (English / ગુજરાતી / हिन्दी)
@@ -14,7 +15,8 @@ class SahyanLanguageSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentLocale = ref.watch(appLocaleProvider);
-    final isThemeDark = isDark || Theme.of(context).brightness == Brightness.dark;
+    final isThemeDark =
+        isDark || Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       height: 32,
@@ -36,9 +38,28 @@ class SahyanLanguageSelector extends ConsumerWidget {
         children: SahyanLanguage.values.map((lang) {
           final isSelected = lang.code == currentLocale.languageCode;
           return GestureDetector(
-            onTap: () {
+            onTap: () async {
+              if (isSelected) return;
               HapticFeedback.selectionClick();
-              ref.read(appLocaleProvider.notifier).setLanguage(lang);
+              await ref.read(appLocaleProvider.notifier).setLocale(lang.locale);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).clearSnackBars();
+                final newL10n = lookupAppLocalizations(lang.locale);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      newL10n.languageChangedSuccess,
+                      style: const TextStyle(
+                        fontFamily: 'Plus Jakarta Sans',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    duration: const Duration(seconds: 2),
+                    backgroundColor: AppColors.brand,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 180),
@@ -59,7 +80,9 @@ class SahyanLanguageSelector extends ConsumerWidget {
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                   color: isSelected
                       ? Colors.white
-                      : (isThemeDark ? AppColors.darkMuted : AppColors.mutedLight),
+                      : (isThemeDark
+                          ? AppColors.darkMuted
+                          : AppColors.mutedLight),
                 ),
               ),
             ),

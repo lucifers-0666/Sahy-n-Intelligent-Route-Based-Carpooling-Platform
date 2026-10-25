@@ -8,6 +8,7 @@ import 'package:sahyan/features/rides/presentation/rides_provider.dart';
 import 'package:sahyan/features/trip/presentation/widgets/rate_trip_sheet.dart';
 import 'package:sahyan/features/trip/presentation/widgets/sos_action_bottom_sheet.dart';
 import 'package:sahyan/shared/widgets/bento/bento_widgets.dart';
+import 'package:sahyan/core/localization/l10n_extension.dart';
 
 /// Design tokens for Bookings Hub & Digital Boarding Pass
 abstract class BookingsHubColors {
@@ -87,18 +88,18 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text(
-          'Cancel Request?',
-          style: TextStyle(
+        title: Text(
+          context.l10n.cancelRequestConfirmTitle,
+          style: const TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 16,
             fontWeight: FontWeight.w800,
             color: BookingsHubColors.textPrimary,
           ),
         ),
-        content: const Text(
-          'Are you sure you want to cancel this booking request? The driver will be notified.',
-          style: TextStyle(
+        content: Text(
+          context.l10n.cancelRequestConfirmMessage,
+          style: const TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             fontSize: 13,
             color: BookingsHubColors.textMuted,
@@ -108,9 +109,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Keep',
-              style: TextStyle(
+            child: Text(
+              context.l10n.keep,
+              style: const TextStyle(
                 fontFamily: 'Plus Jakarta Sans',
                 fontWeight: FontWeight.w700,
                 color: BookingsHubColors.textMuted,
@@ -119,9 +120,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text(
-              'Cancel Request',
-              style: TextStyle(
+            child: Text(
+              context.l10n.cancelRequest,
+              style: const TextStyle(
                 fontFamily: 'Plus Jakarta Sans',
                 fontWeight: FontWeight.w700,
                 color: BookingsHubColors.coralUrgent,
@@ -136,7 +137,7 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
       await ref.read(bookingsNotifierProvider.notifier).cancelBooking(bookingId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking request cancelled')),
+          SnackBar(content: Text(context.l10n.bookingRequestCancelled)),
         );
       }
     }
@@ -154,14 +155,14 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
 
     final dynamicTabs = [
       SegmentedPillBarItem(
-        label: 'Active',
+        label: context.l10n.tabActive,
         badgeCount: activeBookings.isNotEmpty ? activeBookings.length : null,
       ),
       SegmentedPillBarItem(
-        label: 'Pending',
+        label: context.l10n.tabPending,
         badgeCount: pendingBookings.isNotEmpty ? pendingBookings.length : null,
       ),
-      const SegmentedPillBarItem(label: 'History'),
+      SegmentedPillBarItem(label: context.l10n.tabHistory),
     ];
 
     return Scaffold(
@@ -169,9 +170,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
       appBar: AppBar(
         backgroundColor: BookingsHubColors.surface,
         elevation: 0,
-        title: const Text(
-          'My Journeys',
-          style: TextStyle(
+        title: Text(
+          context.l10n.myJourneys,
+          style: const TextStyle(
             fontFamily: 'Plus Jakarta Sans',
             color: BookingsHubColors.textPrimary,
             fontSize: 20,
@@ -626,18 +627,18 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 3),
-                const Row(
+                Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.schedule_rounded,
                       size: 11,
                       color: BookingsHubColors.textMuted,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'Auto-expires in 14 mins if unaccepted',
-                        style: TextStyle(
+                        context.l10n.autoExpiresIn(14),
+                        style: const TextStyle(
                           fontFamily: 'Plus Jakarta Sans',
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -672,9 +673,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
-                      'Cancel Request',
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.cancelRequest,
+                      style: const TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -722,9 +723,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text(
-                      'View Ride Details',
-                      style: TextStyle(
+                    child: Text(
+                      context.l10n.viewRideDetails,
+                      style: const TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -1250,9 +1251,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No Active Boarding Passes',
-            style: TextStyle(
+          Text(
+            context.l10n.noActiveBoardingPasses,
+            style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1332,9 +1333,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No Pending Requests',
-            style: TextStyle(
+          Text(
+            context.l10n.noPendingRequests,
+            style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1390,9 +1391,9 @@ class _BookingsHubScreenState extends ConsumerState<BookingsHubScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'No Ride History Yet',
-            style: TextStyle(
+          Text(
+            context.l10n.noTripHistory,
+            style: const TextStyle(
               fontFamily: 'Plus Jakarta Sans',
               fontSize: 18,
               fontWeight: FontWeight.w800,

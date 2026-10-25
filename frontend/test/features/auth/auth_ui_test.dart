@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahyan/app/theme/app_theme.dart';
-import 'package:sahyan/core/localization/sahyan_localizations.dart';
 import 'package:sahyan/features/auth/presentation/screens/login_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/register_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/otp_screen.dart';
@@ -104,11 +103,8 @@ Widget createTestApp(
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      localizationsDelegates: const [
-        AppLocalizations.delegate,
-        SahyanLocalizations.delegate,
-      ],
-      supportedLocales: SahyanLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       home: MediaQuery(
         data: MediaQueryData(
           size: Size(width, height),

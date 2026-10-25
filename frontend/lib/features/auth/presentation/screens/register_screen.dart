@@ -8,7 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../../app/theme/app_radii.dart';
 import '../../../../core/localization/sahyan_language_selector.dart';
-import '../../../../core/localization/sahyan_localizations.dart';
+import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/widgets/sahyan_button.dart';
 import '../../../../core/widgets/sahyan_text_field.dart';
 import '../../../../shared/widgets/feedback/feedback_service.dart';
@@ -518,7 +518,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final textColor = isDark ? AppColors.darkText : AppColors.ink;
     const mutedColor = Color(0xFF5B6B66);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
-    final l10n = SahyanLocalizations.of(context);
+    final l10n = context.l10n;
 
     final authState = ref.watch(authProvider);
     if (authState.isAuthenticated) {
@@ -734,7 +734,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     bool isDark,
     Color textColor,
     Color mutedColor,
-    SahyanLocalizations l10n,
+    AppLocalizations l10n,
   ) {
     final showNameError =
         (_hasNameBlurred || _hasAttemptedStep1) && !_isNameValid;
@@ -998,7 +998,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     bool isDark,
     Color textColor,
     Color mutedColor,
-    SahyanLocalizations l10n,
+    AppLocalizations l10n,
   ) {
     final isPassengerRole = _selectedRole == 'rider';
     final isDriverRole = _selectedRole == 'driver' || _selectedRole == 'both';

@@ -12,6 +12,8 @@ import '../../../../shared/models/location_model.dart';
 import '../../../../shared/widgets/bento/bento_widgets.dart';
 import '../../../../shared/widgets/journey_location_card.dart';
 import '../../../rides/presentation/widgets/location_search_bottom_sheet.dart';
+import 'package:intl/intl.dart';
+import '../../../../core/localization/l10n_extension.dart';
 
 enum _ActiveLocationField { none, origin, destination }
 
@@ -417,41 +419,27 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
     }
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime date, BuildContext context) {
     final now = DateTime.now();
     if (date.year == now.year &&
         date.month == now.month &&
         date.day == now.day) {
-      return 'Today';
+      return context.l10n.today;
     }
     final tomorrow = now.add(const Duration(days: 1));
     if (date.year == tomorrow.year &&
         date.month == tomorrow.month &&
         date.day == tomorrow.day) {
-      return 'Tomorrow';
+      return context.l10n.tomorrow;
     }
-    final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${weekdays[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
+    final locale = Localizations.localeOf(context).toString();
+    return DateFormat.yMMMd(locale).format(date);
   }
 
   @override
   Widget build(BuildContext context) {
     final formattedTime = widget.selectedTime.format(context);
-    final formattedDate = _formatDate(widget.selectedDate);
+    final formattedDate = _formatDate(widget.selectedDate, context);
 
     return BentoContainer(
       padding: const EdgeInsets.all(20),
@@ -499,9 +487,9 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Where are you heading?',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.whereHeading,
+                      style: const TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -512,9 +500,9 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    const Text(
-                      'Find a ride along your route.',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.findRideAlongRoute,
+                      style: const TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
@@ -549,9 +537,9 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                       ),
                     ),
                     const SizedBox(width: 5),
-                    const Text(
-                      'P2P Corridor',
-                      style: TextStyle(
+                    Text(
+                      context.l10n.p2pCorridor,
+                      style: const TextStyle(
                         fontFamily: 'Plus Jakarta Sans',
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -629,11 +617,11 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
           // D. Frequent Highway Corridors
           Row(
             children: [
-              const Flexible(
+              Flexible(
                 child: Text(
-                  'FREQUENT CORRIDORS',
+                  context.l10n.frequentCorridors.toUpperCase(),
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -756,7 +744,7 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
               children: [
                 _SummarySelectionRow(
                   icon: Icons.calendar_today_rounded,
-                  label: 'TRAVEL DATE & TIME',
+                  label: context.l10n.travelDateTime.toUpperCase(),
                   value: '$formattedDate · $formattedTime',
                   onTap: () {
                     HapticFeedback.selectionClick();
@@ -774,9 +762,8 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                 ),
                 _SummarySelectionRow(
                   icon: Icons.people_outline_rounded,
-                  label: 'PASSENGERS',
-                  value:
-                      '${widget.selectedSeats} ${widget.selectedSeats == 1 ? 'seat' : 'seats'}',
+                  label: context.l10n.passengers.toUpperCase(),
+                  value: context.l10n.seatsCount(widget.selectedSeats),
                   onTap: () {
                     HapticFeedback.selectionClick();
                     if (widget.onOpenPassengers != null) {
@@ -830,22 +817,22 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                             ),
                           ),
                         )
-                      : const Row(
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.search_rounded,
                               size: 18,
                               color: AppColors.softMint,
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Flexible(
                               child: Text(
-                                'Find Matching Rides',
+                                context.l10n.findMatchingRides,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontFamily: 'Plus Jakarta Sans',
                                   fontSize: 15.5,
                                   fontWeight: FontWeight.w800,
@@ -854,8 +841,8 @@ class _HeroSearchCardState extends State<HeroSearchCard> {
                                 ),
                               ),
                             ),
-                            SizedBox(width: 8),
-                            Icon(
+                            const SizedBox(width: 8),
+                            const Icon(
                               Icons.arrow_forward_rounded,
                               size: 16,
                               color: Colors.white,

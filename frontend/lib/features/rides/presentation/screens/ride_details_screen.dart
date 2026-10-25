@@ -23,6 +23,7 @@ import 'package:sahyan/features/rides/presentation/widgets/request_seat_bottom_s
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/shared/widgets/auth_gate_dialog.dart';
 import 'package:sahyan/shared/widgets/sahyan_route_map.dart';
+import 'package:sahyan/core/localization/l10n_extension.dart';
 import 'package:sahyan/shared/widgets/full_screen_route_map_sheet.dart';
 import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
 import '../rides_provider.dart';
@@ -109,7 +110,7 @@ class RideDetailsScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: const Text('Retry'),
+                    child: Text(context.l10n.retry),
                   ),
                 ],
               ),
@@ -120,13 +121,13 @@ class RideDetailsScreen extends ConsumerWidget {
     }
 
     if (ride == null) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppColors.lightSurface,
-        appBar: SahyanAppBar(title: 'Ride Overview'),
+        appBar: SahyanAppBar(title: context.l10n.rideOverview),
         body: Center(
           child: Text(
-            'No ride selected',
-            style: TextStyle(color: AppColors.mutedText),
+            context.l10n.noRideSelected,
+            style: const TextStyle(color: AppColors.mutedText),
           ),
         ),
       );
@@ -143,7 +144,7 @@ class RideDetailsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.lightSurface,
-      appBar: const SahyanAppBar(title: 'Ride Overview'),
+      appBar: SahyanAppBar(title: context.l10n.rideOverview),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
@@ -1068,16 +1069,16 @@ class RideDetailsScreen extends ConsumerWidget {
       );
     }
     if (ride.isActive) {
-      return const PrimaryButton(text: 'Trip in Progress', isDisabled: true);
+      return PrimaryButton(text: context.l10n.tripInProgress, isDisabled: true);
     }
     if (ride.isCompleted) {
-      return const PrimaryButton(text: 'Trip Completed', isDisabled: true);
+      return PrimaryButton(text: context.l10n.tripCompleted, isDisabled: true);
     }
     if (ride.isCancelled) {
-      return const PrimaryButton(text: 'Ride Cancelled', isDisabled: true);
+      return PrimaryButton(text: context.l10n.rideCancelled, isDisabled: true);
     }
     if (ride.availableSeats <= 0) {
-      return const PrimaryButton(text: 'Ride Full', isDisabled: true);
+      return PrimaryButton(text: context.l10n.rideFull, isDisabled: true);
     }
 
     final bookingsAsync = ref.watch(bookingsNotifierProvider);
@@ -1097,15 +1098,15 @@ class RideDetailsScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: const Color(0xFFFDE68A)),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.hourglass_top_rounded, size: 18, color: Color(0xFFD97706)),
-              SizedBox(width: 8),
+              const Icon(Icons.hourglass_top_rounded, size: 18, color: Color(0xFFD97706)),
+              const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  'Request Under Review (Pending Driver Approval)',
-                  style: TextStyle(
+                  context.l10n.requestUnderReview,
+                  style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -1126,15 +1127,15 @@ class RideDetailsScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.deepEmerald.withValues(alpha: 0.3)),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.check_circle_rounded, size: 18, color: AppColors.deepEmerald),
-              SizedBox(width: 8),
+              const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.deepEmerald),
+              const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  'Seat Confirmed · Active Booking',
-                  style: TextStyle(
+                  context.l10n.seatConfirmedActive,
+                  style: const TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -1151,7 +1152,7 @@ class RideDetailsScreen extends ConsumerWidget {
     final isGuest = ref.watch(userModeProvider).isGuest;
 
     return PrimaryButton(
-      text: 'Request Seat',
+      text: context.l10n.requestSeat,
       onPressed: () async {
         if (isGuest) {
           final authed = await AuthGateDialog.show(

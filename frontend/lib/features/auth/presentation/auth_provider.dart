@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahyan/core/network/api_client.dart';
+import 'package:sahyan/core/localization/app_locale_provider.dart';
 import 'package:sahyan/core/storage/secure_storage_service.dart';
 import 'package:sahyan/shared/models/user_model.dart';
 import 'package:sahyan/features/auth/data/auth_repository.dart';
@@ -876,7 +877,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 // Global Providers
 final apiClientProvider = Provider<ApiClient>((ref) {
-  return ApiClient();
+  final client = ApiClient();
+  final locale = ref.watch(appLocaleProvider);
+  client.setLanguageCode(locale.languageCode);
+  return client;
 });
 
 final secureStorageServiceProvider = Provider<SecureStorageService>((ref) {

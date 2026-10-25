@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:sahyan/core/localization/l10n_extension.dart';
 import 'package:sahyan/shared/models/location_model.dart';
 
 /// Unified Connected Journey Location Card for Sahyān.
@@ -32,12 +33,12 @@ class JourneyLocationCard extends StatefulWidget {
   final bool isPickupReadOnly;
   final bool isDestinationReadOnly;
   final bool isGpsLoading;
-  final String pickupLabel;
-  final String destinationLabel;
+  final String? pickupLabel;
+  final String? destinationLabel;
   final String? pickupPrefix;
   final String? destinationPrefix;
-  final String pickupHint;
-  final String destinationHint;
+  final String? pickupHint;
+  final String? destinationHint;
   final IconData? destinationTrailingIcon;
   final List<LocationModel> stopovers;
   final ValueChanged<int>? onRemoveStopover;
@@ -67,12 +68,12 @@ class JourneyLocationCard extends StatefulWidget {
     this.isPickupReadOnly = false,
     this.isDestinationReadOnly = false,
     this.isGpsLoading = false,
-    this.pickupLabel = 'PICKUP LOCATION',
-    this.destinationLabel = 'DESTINATION',
+    this.pickupLabel,
+    this.destinationLabel,
     this.pickupPrefix,
     this.destinationPrefix,
-    this.pickupHint = 'Search city, area or landmark',
-    this.destinationHint = 'Where do you want to go?',
+    this.pickupHint,
+    this.destinationHint,
     this.destinationTrailingIcon,
     this.stopovers = const [],
     this.onRemoveStopover,
@@ -186,9 +187,9 @@ class _JourneyLocationCardState extends State<JourneyLocationCard> {
         children: [
           // 1. Pickup Origin Field Row
           _buildLocationRow(
-            label: widget.pickupLabel,
+            label: widget.pickupLabel ?? context.l10n.pickupLabel,
             labelPrefix: widget.pickupPrefix,
-            hint: widget.pickupHint,
+            hint: widget.pickupHint ?? context.l10n.pickupHint,
             controller: widget.pickupController,
             focusNode: _effectivePickupFocusNode,
             isFocused: isPickupFocused,
@@ -242,9 +243,9 @@ class _JourneyLocationCardState extends State<JourneyLocationCard> {
 
           // 4. Destination Drop-off Field Row
           _buildLocationRow(
-            label: widget.destinationLabel,
+            label: widget.destinationLabel ?? context.l10n.destinationLabel,
             labelPrefix: widget.destinationPrefix,
-            hint: widget.destinationHint,
+            hint: widget.destinationHint ?? context.l10n.destinationHint,
             controller: widget.destinationController,
             focusNode: _effectiveDestFocusNode,
             isFocused: isDestFocused,
@@ -297,7 +298,7 @@ class _JourneyLocationCardState extends State<JourneyLocationCard> {
                   color: widget.emeraldColor,
                 ),
                 label: Text(
-                  'Use my current location',
+                  context.l10n.useCurrentLocation,
                   style: TextStyle(
                     fontFamily: 'Plus Jakarta Sans',
                     fontSize: 12.5,
