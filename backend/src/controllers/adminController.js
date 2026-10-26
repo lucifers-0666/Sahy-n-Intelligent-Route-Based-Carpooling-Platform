@@ -1014,3 +1014,284 @@ exports.updatePlatformConfig = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc Get all open and resolved dispute cases for admin review
+ * @route GET /api/v1/admin/disputes
+ * @access Private (Admin)
+ */
+exports.getDisputeCases = async (req, res, next) => {
+  try {
+    const { status = 'all', page = 1, limit = 20, search } = req.query;
+    const filter = { 'dispute.status': { $ne: 'none' } };
+
+    if (status !== 'all') {
+      filter['dispute.status'] = status;
+    }
+
+    if (search && mongoose.Types.ObjectId.isValid(search)) {
+      filter.$or = [
+        { _id: search },
+        { ride: search },
+        { passenger: search },
+      ];
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const total = await Booking.countDocuments(filter);
+    const disputes = await Booking.find(filter)
+      .sort({ 'dispute.driverReportedAt': -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .populate('passenger', 'name email phone rating fraudMetrics')
+      .populate({
+        path: 'ride',
+        select: 'origin destination departureTime status driver locationBreadcrumbs telemetryAlerts',
+        populate: { path: 'driver', select: 'name email phone rating driverProfile' },
+      })
+      .populate('paymentTransactionId');
+
+    return res.status(200).json({
+      success: true,
+      count: disputes.length,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+      data: disputes,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Resolve a dispute case with audit logging and outcome recording
+ * @route PATCH /api/v1/admin/disputes/:id/resolve
+ * @access Private (Admin/Safety Officer/Support Lead)
+ */
+exports.resolveDisputeCase = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { resolution, notes = '' } = req.body;
+    const adminId = req.user._id || req.user.id;
+
+    const allowedResolutions = [
+      'resolved_paid',
+      'resolved_forgiven',
+      'penalty_applied',
+      'dismissed',
+    ];
+
+    if (!allowedResolutions.includes(resolution)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid resolution. Allowed values: ${allowedResolutions.join(', ')}`,
+      });
+    }
+
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    if (!booking.dispute || booking.dispute.status === 'none') {
+      return res.status(400).json({
+        success: false,
+        message: 'This booking has no active dispute case',
+      });
+    }
+
+    booking.dispute.status = resolution;
+    booking.dispute.resolvedAt = new Date();
+    booking.dispute.resolvedBy = adminId;
+    booking.dispute.resolutionNotes = String(notes).trim();
+
+    if (resolution === 'resolved_paid') {
+      booking.paymentStatus = 'paid';
+    } else if (resolution === 'penalty_applied') {
+      // Restrict passenger's cash booking capabilities
+      const passenger = await User.findById(booking.passenger);
+      if (passenger) {
+        if (!passenger.capabilities) passenger.capabilities = {};
+        passenger.capabilities.canBookCash = false;
+        if (!passenger.fraudMetrics) passenger.fraudMetrics = {};
+        passenger.fraudMetrics.disputesLostCount = (passenger.fraudMetrics.disputesLostCount || 0) + 1;
+        await passenger.save();
+      }
+    }
+
+    await booking.save();
+
+    await AuditLog.create({
+      action: 'DISPUTE_RESOLVED',
+      admin: adminId,
+      actorRole: req.user.role || 'admin',
+      targetUser: booking.passenger,
+      bookingId: booking._id,
+      rideId: booking.ride ? booking.ride._id : null,
+      reason: `Admin resolved dispute: ${notes}`,
+      metadata: {
+        resolution,
+        bookingId: booking._id,
+        driverReportedAt: booking.dispute.driverReportedAt,
+        passengerRespondedAt: booking.dispute.passengerRespondedAt,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Dispute case resolved successfully.',
+      data: booking,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Retrieve users with flagged fraud signals and elevated risk scores
+ * @route GET /api/v1/admin/fraud/signals
+ * @access Private (Admin)
+ */
+exports.getFraudRiskSignals = async (req, res, next) => {
+  try {
+    const { riskTier, page = 1, limit = 20 } = req.query;
+    const filter = {
+      $or: [
+        { 'fraudMetrics.riskScore': { $gte: 25 } },
+        { 'fraudMetrics.unpaidReportsCount': { $gt: 0 } },
+        { 'capabilities.canBookCash': false },
+      ],
+    };
+
+    if (riskTier && ['low', 'medium', 'high', 'critical'].includes(riskTier)) {
+      filter['fraudMetrics.riskTier'] = riskTier;
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const total = await User.countDocuments(filter);
+    const users = await User.find(filter)
+      .sort({ 'fraudMetrics.riskScore': -1, createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .select('name email phone role accountStatus capabilities fraudMetrics rating createdAt');
+
+    return res.status(200).json({
+      success: true,
+      count: users.length,
+      total,
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
+      data: users,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Get user submitted appeals for restrictions or suspensions
+ * @route GET /api/v1/admin/appeals
+ * @access Private (Admin)
+ */
+exports.getUserAppeals = async (req, res, next) => {
+  try {
+    const usersWithAppeals = await User.find({
+      'appeals.0': { $exists: true },
+    }).select('name email phone accountStatus capabilities fraudMetrics appeals');
+
+    const flatAppeals = [];
+    usersWithAppeals.forEach((u) => {
+      (u.appeals || []).forEach((appeal, index) => {
+        flatAppeals.push({
+          userId: u._id,
+          userName: u.name,
+          userPhone: u.phone,
+          accountStatus: u.accountStatus,
+          canBookCash: u.capabilities?.canBookCash,
+          appealIndex: index,
+          appealId: appeal._id,
+          reason: appeal.reason,
+          status: appeal.status,
+          submittedAt: appeal.submittedAt,
+          reviewedAt: appeal.reviewedAt,
+          reviewerNotes: appeal.reviewerNotes,
+        });
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: flatAppeals.length,
+      data: flatAppeals,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Review and resolve an appeal (reinstatement or rejection)
+ * @route PATCH /api/v1/admin/appeals/:userId/:appealIndex
+ * @access Private (Super Admin / Safety Officer)
+ */
+exports.reviewUserAppeal = async (req, res, next) => {
+  try {
+    const { userId, appealIndex } = req.params;
+    const { action, reviewerNotes = '' } = req.body; // action: 'approve' | 'reject'
+    const adminId = req.user._id || req.user.id;
+
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid action. Must be 'approve' or 'reject'",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user || !user.appeals || !user.appeals[appealIndex]) {
+      return res.status(404).json({ success: false, message: 'Appeal not found' });
+    }
+
+    const appeal = user.appeals[appealIndex];
+    appeal.status = action === 'approve' ? 'approved' : 'rejected';
+    appeal.reviewedAt = new Date();
+    appeal.reviewedBy = adminId;
+    appeal.reviewerNotes = String(reviewerNotes).trim();
+
+    if (action === 'approve') {
+      user.accountStatus = 'active';
+      if (!user.capabilities) user.capabilities = {};
+      user.capabilities.canBookCash = true;
+      if (user.fraudMetrics) {
+        user.fraudMetrics.riskScore = Math.max(0, (user.fraudMetrics.riskScore || 0) - 30);
+        user.fraudMetrics.riskTier = user.fraudMetrics.riskScore >= 50 ? 'high' : 'low';
+      }
+    }
+
+    await user.save();
+
+    await AuditLog.create({
+      action: 'APPEAL_RESOLVED',
+      admin: adminId,
+      actorRole: req.user.role || 'admin',
+      targetUser: user._id,
+      reason: `Appeal ${action}d: ${reviewerNotes}`,
+      metadata: { appealIndex, action, reviewerNotes },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `User appeal ${action}d successfully.`,
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

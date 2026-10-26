@@ -10,6 +10,10 @@ const {
   acceptBooking,
   rejectBooking,
   updateBookingStatus,
+  verifyBoardingPin,
+  confirmCashPayment,
+  reportUnpaidCash,
+  disputeUnpaidCash,
 } = require('../controllers/bookingController');
 
 // All booking endpoints require authentication
@@ -39,5 +43,17 @@ router.patch('/:id/accept', acceptBooking);
 
 // Reject pending booking request (Driver)
 router.patch('/:id/reject', rejectBooking);
+
+// Boarding PIN Verification (Driver)
+router.post('/:id/verify-pin', verifyBoardingPin);
+
+// Cash payment confirmation (Driver)
+router.post('/:id/confirm-cash', confirmCashPayment);
+
+// Report unpaid cash contribution (Driver)
+router.post('/:id/report-unpaid', reportUnpaidCash);
+
+// Dispute unpaid cash report (Passenger)
+router.post('/:id/dispute-unpaid', disputeUnpaidCash);
 
 module.exports = router;

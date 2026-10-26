@@ -188,6 +188,44 @@ const rideSchema = new mongoose.Schema(
       maxlength: [500, 'Notes cannot exceed 500 characters'],
       default: '',
     },
+    cancellationPolicy: {
+      policyType: {
+        type: String,
+        enum: ['flexible', 'moderate', 'strict'],
+        default: 'moderate',
+      },
+      description: {
+        type: String,
+        default: 'Free cancellation up to 2 hours before scheduled departure.',
+      },
+    },
+    allowedPaymentMethods: {
+      type: [String],
+      enum: ['cash', 'upi', 'card', 'netbanking', 'sandbox'],
+      default: ['cash', 'upi', 'card', 'netbanking', 'sandbox'],
+    },
+    locationBreadcrumbs: [
+      {
+        latitude: { type: Number, required: true },
+        longitude: { type: Number, required: true },
+        speed: { type: Number, default: 0 },
+        heading: { type: Number, default: 0 },
+        accuracy: { type: Number, default: 0 },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+    telemetryAlerts: [
+      {
+        alertType: {
+          type: String,
+          enum: ['SPEED_ANOMALY', 'LOCATION_JUMP', 'OFF_ROUTE', 'STALE_LOCATION', 'ROUTE_DEVIATION'],
+          required: true,
+        },
+        message: { type: String, required: true },
+        timestamp: { type: Date, default: Date.now },
+        details: { type: mongoose.Schema.Types.Mixed, default: {} },
+      },
+    ],
   },
   {
     timestamps: true,

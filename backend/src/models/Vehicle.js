@@ -64,6 +64,18 @@ const vehicleSchema = new mongoose.Schema(
       enum: ['active', 'inactive', 'pending_verification', 'rejected'],
       default: 'active',
     },
+    rcExpiryDate: {
+      type: Date,
+      default: null,
+    },
+    insuranceExpiryDate: {
+      type: Date,
+      default: null,
+    },
+    pollutionCertExpiryDate: {
+      type: Date,
+      default: null,
+    },
     vehicleImage: {
       type: String,
       default: '',

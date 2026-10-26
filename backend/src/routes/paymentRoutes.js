@@ -5,13 +5,15 @@ const {
   createOrder,
   verifyPayment,
   releaseEscrow,
+  handlePaymentWebhook,
 } = require('../controllers/paymentController');
 
-// All payment routes require authentication
-router.use(authenticate);
+// Gateway Webhook route: Authenticated via cryptographic HMAC signature, not user JWT
+router.post('/webhook', handlePaymentWebhook);
 
-router.post('/order', createOrder);
-router.post('/verify', verifyPayment);
-router.post('/release-escrow', releaseEscrow);
+// User protected payment routes require authentication
+router.post('/order', authenticate, createOrder);
+router.post('/verify', authenticate, verifyPayment);
+router.post('/release-escrow', authenticate, releaseEscrow);
 
 module.exports = router;

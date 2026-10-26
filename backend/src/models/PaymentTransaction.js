@@ -37,11 +37,42 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'escrow_held', 'settled_to_driver', 'refunded'],
+      enum: ['pending', 'escrow_held', 'settled_to_driver', 'refunded', 'failed'],
       default: 'pending',
     },
     gatewayReference: {
-      type: String, // Mock transaction ID in sandbox mode
+      type: String, // Mock transaction ID in sandbox mode or Razorpay/Stripe payment_id
+      sparse: true,
+      index: true,
+    },
+    idempotencyKey: {
+      type: String,
+      sparse: true,
+      unique: true,
+      index: true,
+    },
+    webhookEventId: {
+      type: String,
+      sparse: true,
+      unique: true,
+      index: true,
+    },
+    signature: {
+      type: String,
+      default: null,
+    },
+    verifiedBy: {
+      type: String,
+      enum: ['provider_webhook', 'admin_override', 'sandbox_mock', 'none'],
+      default: 'none',
+    },
+    failureReason: {
+      type: String,
+      default: null,
+    },
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
     },
   },
   {
@@ -50,6 +81,7 @@ const paymentTransactionSchema = new mongoose.Schema(
 );
 
 paymentTransactionSchema.index({ driverId: 1, status: 1 });
+paymentTransactionSchema.index({ bookingId: 1, status: 1 });
 
 paymentTransactionSchema.set('toJSON', {
   transform: (doc, ret) => {

@@ -73,17 +73,118 @@ const bookingSchema = new mongoose.Schema(
       default: 'pending',
       index: true,
     },
+    // Boarding verification & PIN anti-tamper controls
+    boardingPin: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    boardingPinExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    boardingPinAttempts: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    boardingPinLocked: {
+      type: Boolean,
+      default: false,
+    },
+    boardedAt: {
+      type: Date,
+      default: null,
+    },
+    boardedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    // Payment method & state segregation
+    paymentMethod: {
+      type: String,
+      enum: {
+        values: ['cash', 'upi', 'card', 'netbanking', 'sandbox'],
+        message: 'Payment method must be cash, upi, card, netbanking, or sandbox',
+      },
+      default: 'cash',
+      index: true,
+    },
+    paymentType: {
+      type: String,
+      enum: {
+        values: ['cash_on_boarding', 'online_escrow'],
+        message: 'Payment type must be cash_on_boarding or online_escrow',
+      },
+      default: 'cash_on_boarding',
+    },
     paymentStatus: {
       type: String,
       enum: {
-        values: ['pending', 'paid', 'escrow_released', 'refunded'],
-        message: 'Payment status must be pending, paid, escrow_released, or refunded',
+        values: [
+          'pending',
+          'paid',
+          'cash_collected',
+          'unpaid_reported',
+          'disputed',
+          'escrow_released',
+          'refunded',
+        ],
+        message: 'Payment status must be valid lifecycle state',
       },
       default: 'pending',
+      index: true,
     },
     paymentTransactionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'PaymentTransaction',
+    },
+    // Explicit terms & cancellation policy snapshot
+    cancellationPolicy: {
+      policyType: {
+        type: String,
+        enum: ['flexible', 'moderate', 'strict'],
+        default: 'moderate',
+      },
+      description: {
+        type: String,
+        default: 'Free cancellation up to 2 hours before scheduled departure.',
+      },
+      acceptedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    },
+    // Non-payment & dispute management subdocument
+    dispute: {
+      status: {
+        type: String,
+        enum: [
+          'none',
+          'unpaid_reported',
+          'passenger_disputed',
+          'under_review',
+          'resolved_paid',
+          'resolved_forgiven',
+          'penalty_applied',
+        ],
+        default: 'none',
+      },
+      driverReportedAt: { type: Date, default: null },
+      driverNotes: { type: String, default: '' },
+      passengerRespondedAt: { type: Date, default: null },
+      passengerNotes: { type: String, default: '' },
+      evidenceUrls: [{ type: String }],
+      resolvedAt: { type: Date, default: null },
+      resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+      resolutionNotes: { type: String, default: '' },
+    },
+    idempotencyKey: {
+      type: String,
+      sparse: true,
+      index: true,
+      default: null,
     },
     passengerNote: {
       type: String,

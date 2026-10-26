@@ -19,8 +19,12 @@ class BookingModel extends Equatable {
   final LocationModel pickup;
   final LocationModel drop;
   final String? pin;
+  final String paymentMethod;
   final String paymentStatus;
   final String? paymentTransactionId;
+  final String? disputeStatus;
+  final bool boardingPinLocked;
+  final DateTime? boardedAt;
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -34,8 +38,12 @@ class BookingModel extends Equatable {
     required this.contributionPerSeat,
     required this.totalContribution,
     required this.status,
+    this.paymentMethod = 'cash',
     this.paymentStatus = 'pending',
     this.paymentTransactionId,
+    this.disputeStatus,
+    this.boardingPinLocked = false,
+    this.boardedAt,
     this.passengerNote = '',
     required this.pickup,
     required this.drop,
@@ -210,16 +218,25 @@ class BookingModel extends Equatable {
       contributionPerSeat: perSeat,
       totalContribution: total,
       status: parsedStatus,
+      paymentMethod: json['paymentMethod']?.toString() ?? 'cash',
       paymentStatus:
           (json['paymentStatus'] ?? json['payment_status'])?.toString() ??
           'pending',
       paymentTransactionId:
           (json['paymentTransactionId'] ?? json['payment_transaction_id'])
               ?.toString(),
+      disputeStatus: (json['dispute'] is Map)
+          ? (json['dispute'] as Map)['status']?.toString()
+          : json['disputeStatus']?.toString(),
+      boardingPinLocked: json['boardingPinLocked'] == true,
+      boardedAt: DateTime.tryParse(json['boardedAt']?.toString() ?? ''),
       passengerNote: json['passengerNote']?.toString() ?? '',
       pickup: resolvedPickup,
       drop: resolvedDrop,
-      pin: (json['pin'] ?? json['securityPin'] ?? json['pickupPin'])
+      pin: (json['boardingPin'] ??
+              json['pin'] ??
+              json['securityPin'] ??
+              json['pickupPin'])
           ?.toString(),
       createdAt:
           DateTime.tryParse(
@@ -243,9 +260,13 @@ class BookingModel extends Equatable {
       'contributionPerSeat': contributionPerSeat,
       'totalContribution': totalContribution,
       'status': status.name,
+      'paymentMethod': paymentMethod,
       'paymentStatus': paymentStatus,
       if (paymentTransactionId != null)
         'paymentTransactionId': paymentTransactionId,
+      if (disputeStatus != null) 'disputeStatus': disputeStatus,
+      'boardingPinLocked': boardingPinLocked,
+      if (boardedAt != null) 'boardedAt': boardedAt!.toIso8601String(),
       'passengerNote': passengerNote,
       'pickup': pickup.toJson(),
       'drop': drop.toJson(),
@@ -266,8 +287,12 @@ class BookingModel extends Equatable {
     contributionPerSeat,
     totalContribution,
     status,
+    paymentMethod,
     paymentStatus,
     paymentTransactionId,
+    disputeStatus,
+    boardingPinLocked,
+    boardedAt,
     passengerNote,
     pickup,
     drop,

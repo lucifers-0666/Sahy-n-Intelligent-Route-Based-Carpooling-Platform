@@ -163,6 +163,13 @@ const createRide = async (req, res, next) => {
       });
     }
 
+    if (driverUser.driverProfile?.licenseExpiryDate && new Date(driverUser.driverProfile.licenseExpiryDate) < new Date()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your driving license has expired. Please upload valid renewal documentation.',
+      });
+    }
+
     // 7. Vehicle existence and ownership authorization
     if (!mongoose.Types.ObjectId.isValid(vehicleId)) {
       return res.status(400).json({
@@ -262,6 +269,13 @@ const createRide = async (req, res, next) => {
       pickupPolicy: pickupPolicy === 'exact' ? 'exact' : 'nearby',
       amenities: Array.isArray(amenities) ? amenities : [],
       notes: notes ? String(notes).trim() : '',
+      cancellationPolicy: req.body.cancellationPolicy || {
+        policyType: 'moderate',
+        description: 'Free cancellation up to 2 hours before scheduled departure.',
+      },
+      allowedPaymentMethods: Array.isArray(req.body.allowedPaymentMethods) && req.body.allowedPaymentMethods.length > 0
+        ? req.body.allowedPaymentMethods
+        : ['cash', 'upi', 'card', 'netbanking', 'sandbox'],
       status: 'scheduled',
     });
 

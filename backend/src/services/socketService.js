@@ -218,11 +218,62 @@ function initSocketService(io) {
 
       // Fail-closed database ownership verification
       try {
-        const ride = await Ride.findById(rideId).select('driver status');
+        const ride = await Ride.findById(rideId).select('driver status locationBreadcrumbs telemetryAlerts');
         if (!ride || ride.driver.toString() !== socket.user._id.toString()) {
           socket.emit('error', { message: 'Unauthorized: You are not the designated driver for this ride.' });
           return;
         }
+
+        // Anomaly & Outlier check against previous breadcrumb
+        const prevBreadcrumb =
+          ride.locationBreadcrumbs && ride.locationBreadcrumbs.length > 0
+            ? ride.locationBreadcrumbs[ride.locationBreadcrumbs.length - 1]
+            : null;
+
+        if (prevBreadcrumb) {
+          const isJump = LocationProcessor.isOutlier(
+            prevBreadcrumb,
+            sanitized,
+            sanitized.vehicleType || 'sedan'
+          );
+          if (isJump) {
+            const alert = {
+              alertType: 'LOCATION_JUMP',
+              message: 'Suspicious location jump detected: rapid displacement between telematics pings',
+              timestamp: new Date(),
+              details: {
+                prev: {
+                  latitude: prevBreadcrumb.latitude,
+                  longitude: prevBreadcrumb.longitude,
+                  timestamp: prevBreadcrumb.timestamp,
+                },
+                curr: {
+                  latitude: sanitized.latitude,
+                  longitude: sanitized.longitude,
+                  timestamp: sanitized.timestamp,
+                },
+              },
+            };
+            if (!ride.telemetryAlerts) ride.telemetryAlerts = [];
+            ride.telemetryAlerts.push(alert);
+            broadcastToAdmins('telemetry_alert', { rideId, ...alert });
+          }
+        }
+
+        // Record breadcrumb audit sample (bound memory to 200 points)
+        if (!ride.locationBreadcrumbs) ride.locationBreadcrumbs = [];
+        ride.locationBreadcrumbs.push({
+          latitude: sanitized.latitude,
+          longitude: sanitized.longitude,
+          speed: sanitized.speed,
+          heading: sanitized.heading,
+          accuracy: sanitized.accuracy,
+          timestamp: new Date(sanitized.timestamp),
+        });
+        if (ride.locationBreadcrumbs.length > 200) {
+          ride.locationBreadcrumbs.shift();
+        }
+        await ride.save();
 
         // Broadcast sanitized compact payload to all passengers in the room
         socket.to(`ride:${rideId}`).emit('passenger_location_stream', sanitized);

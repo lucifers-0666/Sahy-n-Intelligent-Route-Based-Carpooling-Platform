@@ -1,7 +1,11 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const Booking = require('../models/Booking');
 const Ride = require('../models/Ride');
+const User = require('../models/User');
 const PaymentTransaction = require('../models/PaymentTransaction');
+const AuditLog = require('../models/AuditLog');
+const FraudDetectionService = require('../services/fraudDetectionService');
 
 /**
  * Sahyan Capacity Model Definition (Phase 8 & Future Phase 9):
@@ -45,8 +49,34 @@ function isValidCoordinate(lat, lng) {
  */
 exports.createBooking = async (req, res, next) => {
   try {
-    const passengerId = req.user.id;
-    const { rideId, requestedSeats, passengerNote, pickup, drop } = req.body;
+    const passengerId = req.user.id || req.user._id;
+    const { rideId, requestedSeats, passengerNote, pickup, drop, paymentMethod = 'cash', idempotencyKey } = req.body;
+
+    // Idempotency check: Return existing booking if previously created with this key
+    if (idempotencyKey && typeof idempotencyKey === 'string') {
+      const existingIdempotentBooking = await Booking.findOne({
+        passenger: passengerId,
+        idempotencyKey: idempotencyKey.trim(),
+      });
+      if (existingIdempotentBooking) {
+        return res.status(200).json({
+          success: true,
+          message: 'Booking request already processed (Idempotent replay)',
+          data: existingIdempotentBooking,
+        });
+      }
+    }
+
+    // Check cash booking restrictions if cash selected
+    if (paymentMethod === 'cash') {
+      const passengerUser = await User.findById(passengerId);
+      if (passengerUser && passengerUser.capabilities && passengerUser.capabilities.canBookCash === false) {
+        return res.status(403).json({
+          success: false,
+          message: 'Cash payment is restricted on your account due to unresolved payment disputes. Please use an online payment method.',
+        });
+      }
+    }
 
     // 1. Validate required fields
     if (!rideId) {
@@ -225,6 +255,17 @@ exports.createBooking = async (req, res, next) => {
     // 8. Create booking record with duplicate race protection
     let booking;
     try {
+      const validPaymentMethod = ['cash', 'upi', 'card', 'netbanking', 'sandbox'].includes(paymentMethod)
+        ? paymentMethod
+        : 'cash';
+      const paymentTypeSnapshot = validPaymentMethod === 'cash' ? 'cash_on_boarding' : 'online_escrow';
+
+      const cancellationPolicySnapshot = ride.cancellationPolicy || {
+        policyType: 'moderate',
+        description: 'Free cancellation up to 2 hours before scheduled departure.',
+        acceptedAt: new Date(),
+      };
+
       booking = await Booking.create({
         passenger: passengerId,
         ride: rideId,
@@ -232,6 +273,11 @@ exports.createBooking = async (req, res, next) => {
         contributionPerSeat,
         totalContribution,
         status: 'pending',
+        paymentMethod: validPaymentMethod,
+        paymentType: paymentTypeSnapshot,
+        paymentStatus: 'pending',
+        cancellationPolicy: cancellationPolicySnapshot,
+        idempotencyKey: idempotencyKey ? String(idempotencyKey).trim() : null,
         passengerNote: typeof passengerNote === 'string' ? passengerNote.trim() : '',
         pickup: pickupSnapshot,
         drop: dropSnapshot,
@@ -836,13 +882,22 @@ exports.acceptBooking = async (req, res, next) => {
         }
 
         // 6. Transition booking status pending -> accepted atomically inside session
+        const boardingPin = crypto.randomInt(1000, 10000).toString();
+        const boardingPinExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
         const updatedBooking = await Booking.findOneAndUpdate(
           {
             _id: id,
             status: 'pending',
           },
           {
-            $set: { status: 'accepted' },
+            $set: {
+              status: 'accepted',
+              boardingPin,
+              boardingPinExpiresAt,
+              boardingPinAttempts: 0,
+              boardingPinLocked: false,
+            },
           },
           { new: true, session }
         );
@@ -998,13 +1053,22 @@ exports.acceptBooking = async (req, res, next) => {
         });
       }
 
+      const boardingPin = crypto.randomInt(1000, 10000).toString();
+      const boardingPinExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
       const updatedBooking = await Booking.findOneAndUpdate(
         {
           _id: id,
           status: 'pending',
         },
         {
-          $set: { status: 'accepted' },
+          $set: {
+            status: 'accepted',
+            boardingPin,
+            boardingPinExpiresAt,
+            boardingPinAttempts: 0,
+            boardingPinLocked: false,
+          },
         },
         { new: true }
       );
@@ -1375,6 +1439,294 @@ exports.rejectBooking = async (req, res, next) => {
         await session.endSession();
       } catch (_) {}
     }
+    next(error);
+  }
+};
+
+/**
+ * @desc    Verify 4-digit boarding PIN presented by passenger at pickup
+ * @route   POST /api/v1/bookings/:id/verify-pin
+ * @access  Private (Ride Driver Only)
+ */
+exports.verifyBoardingPin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { pin } = req.body;
+    const driverId = (req.user._id || req.user.id).toString();
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid booking ID format' });
+    }
+
+    if (!pin || typeof pin !== 'string' || pin.trim().length !== 4) {
+      return res.status(400).json({ success: false, message: 'A 4-digit boarding PIN is required' });
+    }
+
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    if (!booking.ride || booking.ride.driver.toString() !== driverId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Only the designated ride driver can verify boarding PIN',
+      });
+    }
+
+    if (booking.status !== 'accepted') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot verify boarding for booking with status '${booking.status}'`,
+      });
+    }
+
+    if (booking.boardedAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'Passenger has already boarded',
+      });
+    }
+
+    if (booking.boardingPinLocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Boarding PIN is locked due to too many failed attempts. Please contact support.',
+      });
+    }
+
+    if (booking.boardingPinExpiresAt && new Date(booking.boardingPinExpiresAt) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Boarding PIN has expired. Driver must re-request verification.',
+      });
+    }
+
+    const trimmedPin = pin.trim();
+    if (booking.boardingPin !== trimmedPin) {
+      const attempts = (booking.boardingPinAttempts || 0) + 1;
+      const isLocked = attempts >= 5;
+
+      booking.boardingPinAttempts = attempts;
+      if (isLocked) {
+        booking.boardingPinLocked = true;
+      }
+      await booking.save();
+
+      await AuditLog.create({
+        action: isLocked ? 'BOARDING_PIN_LOCKED' : 'BOARDING_PIN_FAILED',
+        actorRole: 'driver',
+        admin: driverId,
+        targetUser: booking.passenger,
+        bookingId: booking._id,
+        rideId: booking.ride._id,
+        reason: isLocked
+          ? '5 consecutive invalid PIN attempts. Boarding PIN locked.'
+          : `Invalid PIN attempt (${attempts}/5)`,
+      });
+
+      if (isLocked) {
+        return res.status(403).json({
+          success: false,
+          message: 'Maximum verification attempts exceeded. Boarding PIN is now locked.',
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: `Invalid boarding PIN. Remaining attempts: ${5 - attempts}`,
+      });
+    }
+
+    // PIN is correct
+    booking.boardedAt = new Date();
+    booking.boardedBy = driverId;
+    booking.boardingPinAttempts = 0;
+    await booking.save();
+
+    await AuditLog.create({
+      action: 'BOARDING_PIN_VERIFIED',
+      actorRole: 'driver',
+      admin: driverId,
+      targetUser: booking.passenger,
+      bookingId: booking._id,
+      rideId: booking.ride._id,
+      reason: 'Passenger successfully verified boarding PIN with driver.',
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Boarding PIN verified successfully. Passenger marked as boarded.',
+      data: {
+        bookingId: booking._id,
+        boardedAt: booking.boardedAt,
+        status: booking.status,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Driver confirms cash contribution receipt from passenger
+ * @route   POST /api/v1/bookings/:id/confirm-cash
+ * @access  Private (Ride Driver Only)
+ */
+exports.confirmCashPayment = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const driverId = (req.user._id || req.user.id).toString();
+
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    if (!booking.ride || booking.ride.driver.toString() !== driverId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: Driver mismatch' });
+    }
+
+    if (booking.paymentMethod !== 'cash') {
+      return res.status(400).json({ success: false, message: 'Booking payment method is not cash' });
+    }
+
+    booking.paymentStatus = 'cash_collected';
+    await booking.save();
+
+    await AuditLog.create({
+      action: 'CASH_PAYMENT_CONFIRMED',
+      actorRole: 'driver',
+      admin: driverId,
+      targetUser: booking.passenger,
+      bookingId: booking._id,
+      rideId: booking.ride._id,
+      reason: 'Driver confirmed receipt of cash contribution from passenger.',
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Cash payment confirmed successfully.',
+      data: booking,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Driver reports non-payment of cash contribution by passenger
+ * @route   POST /api/v1/bookings/:id/report-unpaid
+ * @access  Private (Ride Driver Only)
+ */
+exports.reportUnpaidCash = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body;
+    const driverId = (req.user._id || req.user.id).toString();
+
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    if (!booking.ride || booking.ride.driver.toString() !== driverId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: Driver mismatch' });
+    }
+
+    if (booking.paymentMethod !== 'cash') {
+      return res.status(400).json({
+        success: false,
+        message: 'Unpaid cash report can only be filed for cash bookings',
+      });
+    }
+
+    booking.paymentStatus = 'unpaid_reported';
+    booking.dispute = {
+      status: 'unpaid_reported',
+      driverReportedAt: new Date(),
+      driverNotes: String(notes || 'Passenger failed to provide agreed cash contribution').trim(),
+      passengerRespondedAt: null,
+      passengerNotes: '',
+      evidenceUrls: [],
+    };
+    await booking.save();
+
+    // Trigger user fraud risk evaluation
+    await FraudDetectionService.evaluateUserRisk(booking.passenger);
+
+    await AuditLog.create({
+      action: 'UNPAID_CASH_REPORTED',
+      actorRole: 'driver',
+      admin: driverId,
+      targetUser: booking.passenger,
+      bookingId: booking._id,
+      rideId: booking.ride._id,
+      reason: `Driver reported unpaid cash contribution: ${booking.dispute.driverNotes}`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Unpaid cash contribution reported. Recorded for safety review.',
+      data: booking,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Passenger disputes an unpaid cash allegation
+ * @route   POST /api/v1/bookings/:id/dispute-unpaid
+ * @access  Private (Passenger Only)
+ */
+exports.disputeUnpaidCash = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { notes, evidenceUrls = [] } = req.body;
+    const passengerId = (req.user._id || req.user.id).toString();
+
+    const booking = await Booking.findById(id);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    if (booking.passenger.toString() !== passengerId) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: Passenger mismatch' });
+    }
+
+    if (!booking.dispute || booking.dispute.status !== 'unpaid_reported') {
+      return res.status(400).json({
+        success: false,
+        message: 'No open unpaid report exists on this booking to dispute',
+      });
+    }
+
+    booking.paymentStatus = 'disputed';
+    booking.dispute.status = 'passenger_disputed';
+    booking.dispute.passengerRespondedAt = new Date();
+    booking.dispute.passengerNotes = String(notes || 'Passenger disputes non-payment allegation').trim();
+    if (Array.isArray(evidenceUrls)) {
+      booking.dispute.evidenceUrls = evidenceUrls;
+    }
+    await booking.save();
+
+    await AuditLog.create({
+      action: 'PAYMENT_DISPUTED',
+      actorRole: 'user',
+      admin: passengerId,
+      targetUser: passengerId,
+      bookingId: booking._id,
+      rideId: booking.ride,
+      reason: `Passenger submitted dispute against unpaid report: ${booking.dispute.passengerNotes}`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Dispute submitted successfully. Case initiated for administrative review.',
+      data: booking,
+    });
+  } catch (error) {
     next(error);
   }
 };
