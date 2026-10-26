@@ -635,48 +635,7 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
       color: tileConfig.backgroundColor,
       child: Stack(
         children: [
-          Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.identity()
-              ..setEntry(3, 2, 0.0012)
-              ..rotateX(_tiltDegrees * math.pi / 180.0),
-            child: fmap.FlutterMap(
-              mapController: _mapController,
-              options: fmap.MapOptions(
-                initialCenter: _getInitialCenter(),
-                initialZoom: 8.5,
-                interactionOptions: fmap.InteractionOptions(
-                  flags: widget.interactive
-                      ? fmap.InteractiveFlag.all
-                      : fmap.InteractiveFlag.none,
-                ),
-                onMapReady: () {
-                  _isMapReady = true;
-                  _fitBounds();
-                  widget.onMapCreated?.call(_mapController);
-                },
-              ),
-              children: [
-                fmap.TileLayer(
-                  key: ValueKey(
-                    '${tileConfig.type.name}_${tileConfig.urlTemplate}',
-                  ),
-                  urlTemplate: tileConfig.urlTemplate,
-                  fallbackUrl:
-                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  subdomains: tileConfig.subdomains,
-                  userAgentPackageName: tileConfig.userAgentPackageName,
-                  maxZoom: tileConfig.maxZoom.toDouble(),
-                  tileProvider: SahyanTileProvider.create(),
-                  errorTileCallback: (tile, error, stackTrace) {
-                    debugPrint('TILE LOAD ERROR in sahyan_route_map: $error');
-                  },
-                ),
-                fmap.PolylineLayer(polylines: _buildPolylines()),
-                fmap.MarkerLayer(markers: _buildMarkers()),
-              ],
-            ),
-          ),
+          _buildTransformedMap(tileConfig),
 
           // Map style selector badge
           _buildMapStyleBadge(tileConfig),
@@ -692,6 +651,56 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
             _buildFollowToggleFab(),
         ],
       ),
+    );
+  }
+
+  Widget _buildTransformedMap(MapTileConfig tileConfig) {
+    final map = fmap.FlutterMap(
+      mapController: _mapController,
+      options: fmap.MapOptions(
+        initialCenter: _getInitialCenter(),
+        initialZoom: 8.5,
+        interactionOptions: fmap.InteractionOptions(
+          flags: widget.interactive
+              ? fmap.InteractiveFlag.all
+              : fmap.InteractiveFlag.none,
+        ),
+        onMapReady: () {
+          _isMapReady = true;
+          _fitBounds();
+          widget.onMapCreated?.call(_mapController);
+        },
+      ),
+      children: [
+        fmap.TileLayer(
+          key: ValueKey(
+            '${tileConfig.type.name}_${tileConfig.urlTemplate}',
+          ),
+          urlTemplate: tileConfig.urlTemplate,
+          fallbackUrl: tileConfig.fallbackUrl,
+          subdomains: tileConfig.subdomains,
+          userAgentPackageName: tileConfig.userAgentPackageName,
+          maxZoom: tileConfig.maxZoom.toDouble(),
+          tileProvider: SahyanTileProvider.create(),
+          errorTileCallback: (tile, error, stackTrace) {
+            debugPrint('TILE LOAD ERROR in sahyan_route_map: $error');
+          },
+        ),
+        fmap.PolylineLayer(polylines: _buildPolylines()),
+        fmap.MarkerLayer(markers: _buildMarkers()),
+      ],
+    );
+
+    if (_tiltDegrees <= 0) {
+      return map;
+    }
+
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.0003)
+        ..rotateX(_tiltDegrees * math.pi / 180.0),
+      child: map,
     );
   }
 
@@ -714,6 +723,16 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
           ),
           itemBuilder: (ctx) => [
             _buildPopupItem(
+              MapProviderType.osmStandard,
+              'OpenStreetMap',
+              Icons.map_rounded,
+            ),
+            _buildPopupItem(
+              MapProviderType.osmHot,
+              'Sahyān High-Contrast (OSM)',
+              Icons.traffic_rounded,
+            ),
+            _buildPopupItem(
               MapProviderType.cartoVoyager,
               'Sahyān Road',
               Icons.alt_route_rounded,
@@ -732,11 +751,6 @@ class _SahyanRouteMapState extends State<SahyanRouteMap>
               MapProviderType.cyclosm,
               'Topographic Terrain',
               Icons.terrain_rounded,
-            ),
-            _buildPopupItem(
-              MapProviderType.osmStandard,
-              'OpenStreetMap',
-              Icons.map_rounded,
             ),
             _buildPopupItem(
               MapProviderType.cartoDark,

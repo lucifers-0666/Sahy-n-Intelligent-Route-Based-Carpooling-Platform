@@ -29,6 +29,7 @@ class MapTileConfig {
   final MapProviderType type;
   final String displayName;
   final String urlTemplate;
+  final String? fallbackUrl;
   final List<String> subdomains;
   final int maxZoom;
   final String attributionText;
@@ -39,6 +40,7 @@ class MapTileConfig {
     required this.type,
     required this.displayName,
     required this.urlTemplate,
+    this.fallbackUrl,
     this.subdomains = const ['a', 'b', 'c', 'd'],
     this.maxZoom = 19,
     required this.attributionText,
@@ -77,12 +79,35 @@ class MapProviderConfig {
 
   /// Preset configurations with verified OpenStreetMap and CARTO licenses
   static Map<MapProviderType, MapTileConfig> get providers => {
+    MapProviderType.osmStandard: const MapTileConfig(
+      type: MapProviderType.osmStandard,
+      displayName: 'OpenStreetMap',
+      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      fallbackUrl: null, // Canonical source; null enables flutter_map in-memory image cache
+      subdomains: [],
+      maxZoom: 19,
+      attributionText: '© OpenStreetMap contributors',
+      userAgentPackageName: 'com.sahyan.sahyan',
+      backgroundColor: Color(0xFFE2E8F0),
+    ),
+    MapProviderType.osmHot: const MapTileConfig(
+      type: MapProviderType.osmHot,
+      displayName: 'Sahyān High-Contrast',
+      urlTemplate: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+      fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      subdomains: ['a', 'b'],
+      maxZoom: 19,
+      attributionText: '© OpenStreetMap contributors, HOT style',
+      userAgentPackageName: 'com.sahyan.sahyan',
+      backgroundColor: Color(0xFFF8FAFC),
+    ),
     MapProviderType.cartoVoyager: MapTileConfig(
       type: MapProviderType.cartoVoyager,
       displayName: 'Sahyān Road',
       urlTemplate: hasCartoKey
           ? 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?api_key=$cartoApiKey'
           : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+      fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       subdomains: const ['a', 'b', 'c', 'd'],
       maxZoom: 19,
       attributionText: '© OpenStreetMap contributors, © CARTO',
@@ -94,6 +119,7 @@ class MapProviderConfig {
       urlTemplate: hasCartoKey
           ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png?api_key=$cartoApiKey'
           : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       subdomains: const ['a', 'b', 'c', 'd'],
       maxZoom: 19,
       attributionText: '© OpenStreetMap contributors, © CARTO',
@@ -105,36 +131,18 @@ class MapProviderConfig {
       urlTemplate: hasCartoKey
           ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png?api_key=$cartoApiKey'
           : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       subdomains: const ['a', 'b', 'c', 'd'],
       maxZoom: 19,
       attributionText: '© OpenStreetMap contributors, © CARTO',
       backgroundColor: const Color(0xFF0F172A),
-    ),
-    MapProviderType.osmStandard: const MapTileConfig(
-      type: MapProviderType.osmStandard,
-      displayName: 'OpenStreetMap',
-      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      subdomains: [],
-      maxZoom: 19,
-      attributionText: '© OpenStreetMap contributors',
-      userAgentPackageName: 'com.sahyan.app/1.0 (contact@sahyan.app)',
-      backgroundColor: Color(0xFFE2E8F0),
-    ),
-    MapProviderType.osmHot: const MapTileConfig(
-      type: MapProviderType.osmHot,
-      displayName: 'Sahyān High-Contrast',
-      urlTemplate: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
-      subdomains: ['a', 'b', 'c'],
-      maxZoom: 19,
-      attributionText: '© OpenStreetMap contributors, HOT style',
-      userAgentPackageName: 'com.sahyan.app/1.0 (contact@sahyan.app)',
-      backgroundColor: Color(0xFFF8FAFC),
     ),
     MapProviderType.satellite: const MapTileConfig(
       type: MapProviderType.satellite,
       displayName: 'Satellite Aerial',
       urlTemplate:
           'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       subdomains: [],
       maxZoom: 19,
       attributionText: '© Esri, Maxar, Earthstar Geographics, OpenStreetMap',
@@ -145,6 +153,7 @@ class MapProviderConfig {
       displayName: 'Topographic Terrain',
       urlTemplate:
           'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+      fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       subdomains: ['a', 'b', 'c'],
       maxZoom: 18,
       attributionText: '© OpenStreetMap contributors, CyclOSM',

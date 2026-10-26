@@ -307,13 +307,12 @@ class _LocationMapPickerSheetState extends State<LocationMapPickerSheet>
               fmap.TileLayer(
                 key: ValueKey(_selectedProviderType),
                 urlTemplate: tileConfig.urlTemplate,
-                fallbackUrl: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                fallbackUrl: tileConfig.fallbackUrl,
                 subdomains: tileConfig.subdomains,
                 userAgentPackageName: tileConfig.userAgentPackageName,
                 maxZoom: tileConfig.maxZoom.toDouble(),
                 tileProvider: SahyanTileProvider.create(),
                 tileBuilder: (context, tileWidget, tile) {
-                  debugPrint('MAP PICKER TILE: ${tile.coordinates} load=${tile.loadError}');
                   return tileWidget;
                 },
                 errorTileCallback: (tile, error, stackTrace) {

@@ -608,6 +608,51 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
     );
   }
 
+  Widget _buildInteractiveMap(BuildContext context) {
+    final map = fmap.FlutterMap(
+      mapController: _mapController,
+      options: fmap.MapOptions(
+        initialCenter: _getInitialCenter(),
+        initialZoom: 8.5,
+        interactionOptions: const fmap.InteractionOptions(
+          flags: fmap.InteractiveFlag.all,
+        ),
+        onMapReady: () {
+          _isMapReady = true;
+          _fitRouteBounds();
+        },
+      ),
+      children: [
+        fmap.TileLayer(
+          key: ValueKey(_selectedProviderType),
+          urlTemplate: _activeTileConfig.urlTemplate,
+          fallbackUrl: _activeTileConfig.fallbackUrl,
+          subdomains: _activeTileConfig.subdomains,
+          userAgentPackageName: _activeTileConfig.userAgentPackageName,
+          maxZoom: _activeTileConfig.maxZoom.toDouble(),
+          tileProvider: SahyanTileProvider.create(),
+          errorTileCallback: (tile, error, stackTrace) {
+            debugPrint('TILE LOAD ERROR in full_screen_map: $error');
+          },
+        ),
+        fmap.PolylineLayer(polylines: _buildPolylines()),
+        fmap.MarkerLayer(markers: _buildMarkers()),
+      ],
+    );
+
+    if (!_is3DTilt) {
+      return map;
+    }
+
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.0003)
+        ..rotateX(38.0 * math.pi / 180.0),
+      child: map,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -629,44 +674,7 @@ class _FullScreenRouteMapSheetState extends State<FullScreenRouteMapSheet>
                       ),
                     ),
                   )
-                : Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.0012)
-                      ..rotateX(_is3DTilt ? 42.0 * math.pi / 180.0 : 0.0),
-                    child: fmap.FlutterMap(
-                      mapController: _mapController,
-                      options: fmap.MapOptions(
-                        initialCenter: _getInitialCenter(),
-                        initialZoom: 8.5,
-                        interactionOptions: const fmap.InteractionOptions(
-                          flags: fmap.InteractiveFlag.all,
-                        ),
-                        onMapReady: () {
-                          _isMapReady = true;
-                          _fitRouteBounds();
-                        },
-                      ),
-                      children: [
-                        fmap.TileLayer(
-                          key: ValueKey(_selectedProviderType),
-                          urlTemplate: _activeTileConfig.urlTemplate,
-                          fallbackUrl:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          subdomains: _activeTileConfig.subdomains,
-                          userAgentPackageName:
-                              _activeTileConfig.userAgentPackageName,
-                          maxZoom: _activeTileConfig.maxZoom.toDouble(),
-                          tileProvider: SahyanTileProvider.create(),
-                          errorTileCallback: (tile, error, stackTrace) {
-                            debugPrint('TILE LOAD ERROR in full_screen_map: $error');
-                          },
-                        ),
-                        fmap.PolylineLayer(polylines: _buildPolylines()),
-                        fmap.MarkerLayer(markers: _buildMarkers()),
-                      ],
-                    ),
-                  ),
+                : _buildInteractiveMap(context),
           ),
 
           // ─── 2. Top Navigation Bar ──────────────────────────────────────────
