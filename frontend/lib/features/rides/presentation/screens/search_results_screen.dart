@@ -729,7 +729,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                               left: 16,
                               right: 16,
                               top: 8,
-                              bottom: 90,
+                              bottom: 120,
                             ),
                             children: [
                               _buildDragHandle(),
@@ -803,7 +803,7 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
                                 left: 16,
                                 right: 16,
                                 top: 8,
-                                bottom: 90,
+                                bottom: 120,
                               ),
                               itemCount: filteredResults.isEmpty
                                   ? 2

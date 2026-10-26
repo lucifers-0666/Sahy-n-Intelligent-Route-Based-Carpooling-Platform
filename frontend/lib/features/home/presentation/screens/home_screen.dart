@@ -376,18 +376,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   String _getTimeSubtitle() {
     final hour = DateTime.now().hour;
     if (hour >= 4 && hour < 7) {
-      return 'Early morning start · Smooth Gujarat highways await';
+      return 'Smooth Gujarat highways await';
     }
     if (hour >= 7 && hour < 12) {
-      return 'Ready for your morning corridor commute?';
+      return 'Ready for your morning commute?';
     }
     if (hour >= 12 && hour < 17) {
-      return 'Midday travels made seamless, shared, and green';
+      return 'Seamless, shared & green journeys';
     }
     if (hour >= 17 && hour < 21) {
-      return 'Heading back home? Find verified rides on your route';
+      return 'Verified rides on your route home';
     }
-    return 'Late commute? Safe travels with verified co-passengers';
+    return 'Safe travels with verified carpoolers';
   }
 
   String _getActiveCity(UserModel? user) {

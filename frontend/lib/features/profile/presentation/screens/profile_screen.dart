@@ -27,7 +27,13 @@ class ProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: AppColors.warmBackground,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 2.0,
+        shadowColor: Colors.black12,
+        shape: const Border(
+          bottom: BorderSide(color: AppColors.border, width: 0.8),
+        ),
         title: Text('Account Profile', style: AppTypography.screenTitle),
       ),
       body: SafeArea(
@@ -93,10 +99,7 @@ class ProfileScreen extends ConsumerWidget {
               )
             : SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
