@@ -1,55 +1,72 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 90" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 130" fill="none">
+  <!-- Sahyān Primary Brand Master Lockup -->
   <defs>
-    <linearGradient id="primary_emerald" x1="10" y1="10" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#0E705A"/>
-      <stop offset="50%" stop-color="#0B5D4B"/>
-      <stop offset="100%" stop-color="#074234"/>
+    <linearGradient id="prmEmeraldGrad" x1="10" y1="20" x2="110" y2="80" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0E6B57"/>
+      <stop offset="60%" stop-color="#0B5D4B"/>
+      <stop offset="100%" stop-color="#084C3A"/>
     </linearGradient>
-    <linearGradient id="primary_mint" x1="45" y1="35" x2="85" y2="55" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#2EE59D"/>
-      <stop offset="100%" stop-color="#0F7A5F"/>
+    <linearGradient id="prmLeafGrad" x1="285" y1="26" x2="305" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#3DDC97"/>
+      <stop offset="100%" stop-color="#0B5D4B"/>
     </linearGradient>
   </defs>
 
-  <!-- SYMBOL (Scaled at offset x=6, y=6) -->
-  <g transform="translate(6, 6) scale(0.65)">
-    <!-- Upper Route Wing -->
-    <path d="M 18 26 C 36 26 54 36 68 50 L 98 57 C 104 58.5 104 61.5 98 63 L 74 69 C 70 70 67 67 67 63 L 67 59 C 55 49 42 40 18 40 C 14 40 12 37 12 33 C 12 29 14 26 18 26 Z" 
-          fill="url(#primary_emerald)"/>
-    <!-- Lower Route Wing -->
-    <path d="M 18 94 C 36 94 54 84 68 70 L 98 63 C 104 61.5 104 58.5 98 57 L 74 51 C 70 50 67 53 67 57 L 67 61 C 55 71 42 80 18 80 C 14 80 12 83 12 87 C 12 91 14 94 18 94 Z" 
-          fill="url(#primary_emerald)"/>
-    <!-- Dynamic Match Core -->
-    <path d="M 52 60 L 78 44 C 82 41.5 87 43.5 87 48 L 87 72 C 87 76.5 82 78.5 78 76 L 52 60 Z" 
-          fill="url(#primary_mint)"/>
-    <!-- Highway Dashes -->
-    <path d="M 24 33 C 38 33 50 41 58 50" stroke="#3DDC97" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 5" opacity="0.85"/>
-    <path d="M 24 87 C 38 87 50 79 58 70" stroke="#3DDC97" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="4 5" opacity="0.85"/>
-    <!-- Focal Node -->
-    <circle cx="72" cy="60" r="5" fill="#FFFFFF"/>
-    <circle cx="72" cy="60" r="2.5" fill="#0B5D4B"/>
+  <!-- Route Convergence Symbol -->
+  <g transform="translate(10, 15) scale(0.5)">
+    <!-- Road Borders -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="#A7E8D2" stroke-width="26" stroke-linecap="round"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="#A7E8D2" stroke-width="26" stroke-linecap="round"/>
+    <path d="M 150 100 L 252 100" stroke="#A7E8D2" stroke-width="26" stroke-linecap="round"/>
+    <path d="M 244 80 L 272 100 L 244 120 Z" fill="#A7E8D2"/>
+
+    <!-- Road Surface -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="url(#prmEmeraldGrad)" stroke-width="20" stroke-linecap="round"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="url(#prmEmeraldGrad)" stroke-width="20" stroke-linecap="round"/>
+    <path d="M 150 100 L 250 100" stroke="url(#prmEmeraldGrad)" stroke-width="20" stroke-linecap="round"/>
+    <path d="M 244 84 L 268 100 L 244 116 Z" fill="#084C3A"/>
+
+    <!-- Dashed Center Lines -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 7"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 7"/>
+    <path d="M 150 100 L 246 100" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-dasharray="5 7"/>
+
+    <!-- Origin Nodes -->
+    <circle cx="45" cy="45" r="14" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+    <circle cx="45" cy="45" r="7" fill="#F2F7F4"/>
+    <circle cx="45" cy="155" r="14" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+    <circle cx="45" cy="155" r="7" fill="#F2F7F4"/>
+
+    <!-- Central Hub -->
+    <circle cx="150" cy="100" r="22" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+    <circle cx="150" cy="100" r="14" fill="#0B5D4B"/>
+    <circle cx="150" cy="100" r="7" fill="#084C3A"/>
   </g>
 
-  <!-- SAHYĀN WORDMARK -->
-  <text x="92" y="54" 
-        font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" 
-        font-size="44" 
+  <!-- Typography Lockup -->
+  <text x="160" y="70" 
+        font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" 
+        font-size="50" 
         font-weight="800" 
-        letter-spacing="-0.8" 
-        fill="#0B5D4B">
-    Sahy<tspan fill="#0B5D4B">ā</tspan>n
+        letter-spacing="-1.2" 
+        fill="#084C3A">
+    Sahyān
   </text>
 
-  <!-- Macron over 'a' precisely drawn for brand consistency -->
-  <rect x="268" y="20" width="18" height="4" rx="2" fill="#0B5D4B"/>
+  <!-- Macron line over 'a' -->
+  <rect x="308" y="30" width="18" height="4.5" rx="2" fill="#084C3A"/>
 
-  <!-- Subtitle Tagline -->
-  <text x="94" y="74" 
-        font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" 
-        font-size="11" 
-        font-weight="700" 
-        letter-spacing="1.4" 
-        fill="#0F7A5F">
-    INTELLIGENT CARPOOLING
+  <!-- Leaf Accent -->
+  <path d="M 288 32 C 298 26, 308 30, 306 40 C 298 42, 290 40, 288 32 Z" 
+        fill="url(#prmLeafGrad)"/>
+
+  <!-- Tagline -->
+  <text x="162" y="98" 
+        font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" 
+        font-size="14.5" 
+        font-weight="600" 
+        letter-spacing="0.2" 
+        fill="#12352E">
+    Different paths. One shared journey.
   </text>
 </svg>

@@ -10,9 +10,9 @@ import '../auth_provider.dart';
 /// Redesigned Minimal & Premium Splash Screen for Sahyān.
 ///
 /// Features:
-/// - Full-screen Deep Emerald background (#0B5D4B)
-/// - Centered animated route-convergence brand mark with wordmark and tagline
-/// - Tagline: "Intelligent journeys, shared naturally."
+/// - Full-screen Deep Emerald background (#0B5D4B) with subtle radial route glow
+/// - Centered animated route-convergence brand mark with vehicles, wordmark, and tagline
+/// - Tagline: "Different paths. One shared journey."
 /// - Minimalist circular loading indicator only if startup takes longer than the animation
 /// - Safe 3.5s timeout prevents hanging indefinitely on backend/storage delays
 /// - Honors reduced-motion accessibility preferences
@@ -130,23 +130,50 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         _isAnimationFinished &&
         startupState.status == AppStartupStatus.initializing;
 
+    // Responsive size: keeps balanced layout on narrow screens (320dp) up to large displays
+    final logoSize = (mediaQuery.size.width * 0.32).clamp(90.0, 135.0);
+
     return Scaffold(
       backgroundColor: AppColors.brand,
       body: Stack(
         children: [
-          // Deep Emerald Canvas
+          // Deep Emerald Canvas (#0B5D4B)
           const Positioned.fill(child: ColoredBox(color: AppColors.brand)),
 
-          // Centered Brand Symbol + Wordmark + Tagline
+          // Subtle Route Ambient Glow
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: const Alignment(0.0, -0.15),
+                  radius: 0.85,
+                  colors: [
+                    AppColors.brandBright.withValues(alpha: 0.35),
+                    AppColors.mintGlow.withValues(alpha: 0.12),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.45, 1.0],
+                ),
+              ),
+            ),
+          ),
+
+          // Centered Brand Symbol + Vehicles + Wordmark + Tagline
           Center(
-            child: SahyanAnimatedRouteLogo(
-              size: 104,
-              isDark: true,
-              showWordmark: true,
-              showTagline: true,
-              wordmarkColor: Colors.white,
-              taglineColor: Colors.white.withValues(alpha: 0.88),
-              onComplete: _onAnimationCompleted,
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: SahyanAnimatedRouteLogo(
+                  size: logoSize,
+                  isDark: true,
+                  showWordmark: true,
+                  showTagline: true,
+                  wordmarkColor: Colors.white,
+                  taglineColor: Colors.white.withValues(alpha: 0.90),
+                  onComplete: _onAnimationCompleted,
+                ),
+              ),
             ),
           ),
 

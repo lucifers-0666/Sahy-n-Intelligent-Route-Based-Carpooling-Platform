@@ -175,12 +175,12 @@ class SahyanLogo extends StatelessWidget {
             if (showTagline) ...[
               const SizedBox(height: 2),
               Text(
-                'INTERCITY CARPOOL',
+                'Different paths. One shared journey.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: size * 0.22,
                   fontWeight: FontWeight.w700,
                   color: effectiveSubColor,
-                  letterSpacing: 1.2,
+                  letterSpacing: 0.2,
                   height: 1.1,
                 ),
               ),
@@ -211,12 +211,12 @@ class SahyanLogo extends StatelessWidget {
                 ),
                 if (showTagline) ...[
                   Text(
-                    'INTERCITY CARPOOL',
+                    'Different paths. One shared journey.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: size * 0.22,
                       fontWeight: FontWeight.w700,
                       color: effectiveSubColor,
-                      letterSpacing: 1.2,
+                      letterSpacing: 0.2,
                       height: 1.1,
                     ),
                   ),
@@ -245,12 +245,12 @@ class SahyanLogo extends StatelessWidget {
             if (showTagline) ...[
               const SizedBox(height: 2),
               Text(
-                'GUJARAT CARPOOL',
+                'Different paths. One shared journey.',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: size * 0.18,
                   fontWeight: FontWeight.w700,
                   color: effectiveSubColor,
-                  letterSpacing: 1.4,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],
@@ -290,12 +290,12 @@ class SahyanLogo extends StatelessWidget {
                 ),
                 if (showTagline) ...[
                   Text(
-                    'INTERCITY CARPOOL',
+                    'Different paths. One shared journey.',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: size * 0.22,
                       fontWeight: FontWeight.w700,
                       color: Colors.white.withValues(alpha: 0.75),
-                      letterSpacing: 1.2,
+                      letterSpacing: 0.2,
                       height: 1.1,
                     ),
                   ),
@@ -385,10 +385,10 @@ class SahyanRouteMatchBadge extends StatelessWidget {
 
 /// Resolution-independent painter for the master route convergence logo.
 /// Draws:
-/// - Left curved route originating at bottom-left
-/// - Right curved route originating at bottom-right
-/// - Central convergence trunk
-/// - Destination node pin
+/// - Top curved route originating from top-left origin node
+/// - Bottom curved route originating from bottom-left origin node
+/// - Central junction hub connecting all routes
+/// - Forward exit highway terminating in directional arrow
 class _SahyanRouteConvergencePainter extends CustomPainter {
   final Color color;
   final double progress;
@@ -403,7 +403,7 @@ class _SahyanRouteConvergencePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final scale = size.width / 100.0;
-    final strokeWidth = 10.0 * scale;
+    final strokeWidth = 8.5 * scale;
 
     final strokePaint = Paint()
       ..color = color
@@ -421,92 +421,146 @@ class _SahyanRouteConvergencePainter extends CustomPainter {
       final pulsePaint = Paint()
         ..color = color.withValues(alpha: (1.0 - pulseProgress) * 0.45)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5 * scale;
-      final pulseRadius = (7.5 + pulseProgress * 18.0) * scale;
-      canvas.drawCircle(Offset(84 * scale, 50 * scale), pulseRadius, pulsePaint);
+        ..strokeWidth = 2.0 * scale;
+      final pulseRadius = (7.5 + pulseProgress * 16.0) * scale;
+      canvas.drawCircle(Offset(50 * scale, 50 * scale), pulseRadius, pulsePaint);
     }
 
     if (progress <= 0.0) return;
 
-    // 1. Top-Left Route Inlet (Smooth curve down-right to central horizontal path)
-    final topPath = Path();
-    topPath.moveTo(16 * scale, 28 * scale);
-    topPath.cubicTo(
-      42 * scale,
-      28 * scale,
-      50 * scale,
-      50 * scale,
-      66 * scale,
-      50 * scale,
-    );
-    topPath.lineTo(82 * scale, 50 * scale);
+    // 1. Top-Left Route Inlet (Cubic curve to central hub (50, 50))
+    final topPath = Path()
+      ..moveTo(15 * scale, 22 * scale)
+      ..cubicTo(
+        32 * scale,
+        22 * scale,
+        40 * scale,
+        38 * scale,
+        50 * scale,
+        50 * scale,
+      );
 
-    // 2. Bottom-Left Route Inlet (Smooth curve up-right to central horizontal path)
-    final bottomPath = Path();
-    bottomPath.moveTo(16 * scale, 72 * scale);
-    bottomPath.cubicTo(
-      42 * scale,
-      72 * scale,
-      50 * scale,
-      50 * scale,
-      66 * scale,
-      50 * scale,
-    );
-    bottomPath.lineTo(82 * scale, 50 * scale);
+    // 2. Bottom-Left Route Inlet (Cubic curve to central hub (50, 50))
+    final bottomPath = Path()
+      ..moveTo(15 * scale, 78 * scale)
+      ..cubicTo(
+        32 * scale,
+        78 * scale,
+        40 * scale,
+        62 * scale,
+        50 * scale,
+        50 * scale,
+      );
+
+    // 3. Right Shared Highway (Hub (50, 50) to Exit (84, 50))
+    final rightPath = Path()
+      ..moveTo(50 * scale, 50 * scale)
+      ..lineTo(84 * scale, 50 * scale);
 
     if (progress >= 1.0) {
       // Draw both origin points (two travelers starting journeys)
-      canvas.drawCircle(Offset(16 * scale, 28 * scale), 7.5 * scale, fillPaint);
-      canvas.drawCircle(Offset(16 * scale, 72 * scale), 7.5 * scale, fillPaint);
+      canvas.drawCircle(Offset(15 * scale, 22 * scale), 5.5 * scale, fillPaint);
+      canvas.drawCircle(Offset(15 * scale, 78 * scale), 5.5 * scale, fillPaint);
+
       // Draw converging paths
       canvas.drawPath(topPath, strokePaint);
       canvas.drawPath(bottomPath, strokePaint);
-      // Destination Terminal Node Pin (one shared destination)
-      canvas.drawCircle(Offset(84 * scale, 50 * scale), 7.5 * scale, fillPaint);
+      canvas.drawPath(rightPath, strokePaint);
+
+      // Central Hub Ring
+      canvas.drawCircle(
+        Offset(50 * scale, 50 * scale),
+        7.5 * scale,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.8 * scale,
+      );
+      canvas.drawCircle(Offset(50 * scale, 50 * scale), 4.0 * scale, fillPaint);
+
+      // Destination Terminal Arrow / Node
+      final arrowPath = Path()
+        ..moveTo(82 * scale, 43 * scale)
+        ..lineTo(92 * scale, 50 * scale)
+        ..lineTo(82 * scale, 57 * scale)
+        ..close();
+      canvas.drawPath(arrowPath, fillPaint);
     } else {
       // 1. Origin dots appear first with scale transition (0.0 to 0.25)
       final originScale = (progress / 0.25).clamp(0.0, 1.0);
       if (originScale > 0.0) {
         canvas.drawCircle(
-          Offset(16 * scale, 28 * scale),
-          7.5 * scale * originScale,
+          Offset(15 * scale, 22 * scale),
+          5.5 * scale * originScale,
           fillPaint,
         );
         canvas.drawCircle(
-          Offset(16 * scale, 72 * scale),
-          7.5 * scale * originScale,
+          Offset(15 * scale, 78 * scale),
+          5.5 * scale * originScale,
           fillPaint,
         );
       }
 
-      // 2. Partial animated stroke draw (0.15 to 1.0)
-      final pathDrawProgress = ((progress - 0.15) / 0.85).clamp(0.0, 1.0);
+      // 2. Partial animated stroke draw (0.15 to 0.70)
+      final inDrawProgress = ((progress - 0.15) / 0.55).clamp(0.0, 1.0);
       final topMetrics = topPath.computeMetrics().toList();
       final bottomMetrics = bottomPath.computeMetrics().toList();
 
-      if (topMetrics.isNotEmpty && pathDrawProgress > 0.0) {
+      if (topMetrics.isNotEmpty && inDrawProgress > 0.0) {
         final extractTop = topMetrics.first.extractPath(
           0,
-          topMetrics.first.length * pathDrawProgress,
+          topMetrics.first.length * inDrawProgress,
         );
         canvas.drawPath(extractTop, strokePaint);
       }
-      if (bottomMetrics.isNotEmpty && pathDrawProgress > 0.0) {
+      if (bottomMetrics.isNotEmpty && inDrawProgress > 0.0) {
         final extractBottom = bottomMetrics.first.extractPath(
           0,
-          bottomMetrics.first.length * pathDrawProgress,
+          bottomMetrics.first.length * inDrawProgress,
         );
         canvas.drawPath(extractBottom, strokePaint);
       }
 
-      // 3. Destination node appears as path reaches end
-      if (progress > 0.82) {
-        final nodeProgress = ((progress - 0.82) / 0.18).clamp(0.0, 1.0);
+      // 3. Central Hub appears (0.50 to 0.75)
+      if (progress > 0.50) {
+        final hubProgress = ((progress - 0.50) / 0.25).clamp(0.0, 1.0);
         canvas.drawCircle(
-          Offset(84 * scale, 50 * scale),
-          7.5 * scale * nodeProgress,
+          Offset(50 * scale, 50 * scale),
+          7.5 * scale * hubProgress,
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.8 * scale,
+        );
+        canvas.drawCircle(
+          Offset(50 * scale, 50 * scale),
+          4.0 * scale * hubProgress,
           fillPaint,
         );
+      }
+
+      // 4. Right highway extends (0.65 to 1.0)
+      if (progress > 0.65) {
+        final outDrawProgress = ((progress - 0.65) / 0.35).clamp(0.0, 1.0);
+        final rightMetrics = rightPath.computeMetrics().toList();
+        if (rightMetrics.isNotEmpty && outDrawProgress > 0.0) {
+          final extractRight = rightMetrics.first.extractPath(
+            0,
+            rightMetrics.first.length * outDrawProgress,
+          );
+          canvas.drawPath(extractRight, strokePaint);
+        }
+      }
+
+      // 5. Destination arrow appears at end
+      if (progress > 0.85) {
+        final arrowProgress = ((progress - 0.85) / 0.15).clamp(0.0, 1.0);
+        final arrowPath = Path()
+          ..moveTo(82 * scale, (50 - (7 * arrowProgress)) * scale)
+          ..lineTo((82 + (10 * arrowProgress)) * scale, 50 * scale)
+          ..lineTo(82 * scale, (50 + (7 * arrowProgress)) * scale)
+          ..close();
+        canvas.drawPath(arrowPath, fillPaint);
       }
     }
   }

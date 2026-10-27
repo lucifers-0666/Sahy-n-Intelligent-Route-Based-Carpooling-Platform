@@ -1,20 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- Sahyān Master App Icon -->
-  <rect width="512" height="512" rx="118" fill="#0B5D4B"/>
-  <g transform="translate(56, 56) scale(4.0)">
-    <!-- Top-left Route Inlet -->
-    <path d="M 16 28 C 42 28 50 50 66 50 L 82 50" 
-          stroke="#3DDC97" 
-          stroke-width="10" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"/>
-    <!-- Bottom-left Route Inlet -->
-    <path d="M 16 72 C 42 72 50 50 66 50 L 82 50" 
-          stroke="#3DDC97" 
-          stroke-width="10" 
-          stroke-linecap="round" 
-          stroke-linejoin="round"/>
-    <!-- Destination Node -->
-    <circle cx="84" cy="50" r="7.5" fill="#FFFFFF"/>
+  <!-- Sahyān Master App Icon (512x512) -->
+  <defs>
+    <linearGradient id="bgIconGrad" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0E6B57"/>
+      <stop offset="100%" stop-color="#084C3A"/>
+    </linearGradient>
+    <linearGradient id="iconRoadGrad" x1="40" y1="40" x2="270" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#084C3A"/>
+      <stop offset="100%" stop-color="#053327"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Canvas in Deep Emerald -->
+  <rect width="512" height="512" rx="118" fill="url(#bgIconGrad)"/>
+
+  <!-- Centered Route Convergence Mark -->
+  <g transform="translate(64, 116) scale(1.28)">
+    <!-- Road Borders -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="#A7E8D2" stroke-width="28" stroke-linecap="round"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="#A7E8D2" stroke-width="28" stroke-linecap="round"/>
+    <path d="M 150 100 L 252 100" stroke="#A7E8D2" stroke-width="28" stroke-linecap="round"/>
+    <path d="M 244 78 L 274 100 L 244 122 Z" fill="#A7E8D2"/>
+
+    <!-- Inner Road -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="url(#iconRoadGrad)" stroke-width="22" stroke-linecap="round"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="url(#iconRoadGrad)" stroke-width="22" stroke-linecap="round"/>
+    <path d="M 150 100 L 250 100" stroke="url(#iconRoadGrad)" stroke-width="22" stroke-linecap="round"/>
+    <path d="M 244 83 L 269 100 L 244 117 Z" fill="#084C3A"/>
+
+    <!-- Dashed Center Lines -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="5 7"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="5 7"/>
+    <path d="M 150 100 L 246 100" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="5 7"/>
+
+    <!-- Origin Nodes -->
+    <circle cx="45" cy="45" r="16" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+    <circle cx="45" cy="45" r="8" fill="#F2F7F4"/>
+    <circle cx="45" cy="155" r="16" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+    <circle cx="45" cy="155" r="8" fill="#F2F7F4"/>
+
+    <!-- Central Hub -->
+    <circle cx="150" cy="100" r="24" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+    <circle cx="150" cy="100" r="16" fill="#0B5D4B"/>
+    <circle cx="150" cy="100" r="8" fill="#A7E8D2"/>
   </g>
 </svg>

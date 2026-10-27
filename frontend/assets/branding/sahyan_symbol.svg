@@ -1,21 +1,94 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <!-- Sahyān Master Route Convergence Symbol (Two origins, one convergence, shared destination) -->
-  <!-- Origin Node 1 -->
-  <circle cx="16" cy="28" r="7.5" fill="#3DDC97"/>
-  <!-- Origin Node 2 -->
-  <circle cx="16" cy="72" r="7.5" fill="#3DDC97"/>
-  <!-- Top-left Route Inlet -->
-  <path d="M 16 28 C 42 28 50 50 66 50 L 82 50" 
-        stroke="#3DDC97" 
-        stroke-width="10" 
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" fill="none">
+  <!-- Sahyān Converging Route Symbol (Different paths. One shared journey.) -->
+  <defs>
+    <linearGradient id="roadEmeraldGrad" x1="40" y1="40" x2="270" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0E6B57"/>
+      <stop offset="60%" stop-color="#0B5D4B"/>
+      <stop offset="100%" stop-color="#084C3A"/>
+    </linearGradient>
+    <linearGradient id="mintAccentGrad" x1="40" y1="40" x2="270" y2="100" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#A7E8D2"/>
+      <stop offset="100%" stop-color="#3DDC97"/>
+    </linearGradient>
+    <filter id="hubGlow" x="110" y="60" width="80" height="80" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Mint Glow on Hub -->
+  <circle cx="150" cy="100" r="28" fill="#A7E8D2" opacity="0.25" filter="url(#hubGlow)"/>
+
+  <!-- Road Borders (Wider stroke behind road surface) -->
+  <!-- Top Curved Road Border -->
+  <path d="M 45 45 C 95 45, 120 78, 150 100" 
+        stroke="#A7E8D2" 
+        stroke-width="26" 
+        stroke-linecap="round"/>
+  <!-- Bottom Curved Road Border -->
+  <path d="M 45 155 C 95 155, 120 122, 150 100" 
+        stroke="#A7E8D2" 
+        stroke-width="26" 
+        stroke-linecap="round"/>
+  <!-- Right Highway Road Border -->
+  <path d="M 150 100 L 252 100" 
+        stroke="#A7E8D2" 
+        stroke-width="26" 
+        stroke-linecap="round"/>
+  <!-- Right Arrow Border -->
+  <path d="M 244 80 L 272 100 L 244 120 Z" 
+        fill="#A7E8D2"/>
+
+  <!-- Road Surfaces (Emerald fill inside borders) -->
+  <!-- Top Road Surface -->
+  <path d="M 45 45 C 95 45, 120 78, 150 100" 
+        stroke="url(#roadEmeraldGrad)" 
+        stroke-width="20" 
+        stroke-linecap="round"/>
+  <!-- Bottom Road Surface -->
+  <path d="M 45 155 C 95 155, 120 122, 150 100" 
+        stroke="url(#roadEmeraldGrad)" 
+        stroke-width="20" 
+        stroke-linecap="round"/>
+  <!-- Right Highway Surface -->
+  <path d="M 150 100 L 250 100" 
+        stroke="url(#roadEmeraldGrad)" 
+        stroke-width="20" 
+        stroke-linecap="round"/>
+  <!-- Right Arrow Head Surface -->
+  <path d="M 244 84 L 268 100 L 244 116 Z" 
+        fill="#084C3A"/>
+
+  <!-- Road Center Dashed Lines (White markings) -->
+  <path d="M 45 45 C 95 45, 120 78, 150 100" 
+        stroke="#FFFFFF" 
+        stroke-width="3" 
         stroke-linecap="round" 
-        stroke-linejoin="round"/>
-  <!-- Bottom-left Route Inlet -->
-  <path d="M 16 72 C 42 72 50 50 66 50 L 82 50" 
-        stroke="#3DDC97" 
-        stroke-width="10" 
+        stroke-dasharray="5 7" 
+        opacity="0.95"/>
+  <path d="M 45 155 C 95 155, 120 122, 150 100" 
+        stroke="#FFFFFF" 
+        stroke-width="3" 
         stroke-linecap="round" 
-        stroke-linejoin="round"/>
-  <!-- Destination Terminal Node -->
-  <circle cx="84" cy="50" r="7.5" fill="#3DDC97"/>
+        stroke-dasharray="5 7" 
+        opacity="0.95"/>
+  <path d="M 150 100 L 246 100" 
+        stroke="#FFFFFF" 
+        stroke-width="3" 
+        stroke-linecap="round" 
+        stroke-dasharray="5 7" 
+        opacity="0.95"/>
+
+  <!-- Origin Circular Nodes -->
+  <!-- Top Origin Node -->
+  <circle cx="45" cy="45" r="14" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+  <circle cx="45" cy="45" r="7" fill="#F2F7F4"/>
+  <!-- Bottom Origin Node -->
+  <circle cx="45" cy="155" r="14" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+  <circle cx="45" cy="155" r="7" fill="#F2F7F4"/>
+
+  <!-- Central Junction Hub (Concentric Rings) -->
+  <circle cx="150" cy="100" r="22" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+  <circle cx="150" cy="100" r="14" fill="#0B5D4B"/>
+  <circle cx="150" cy="100" r="7" fill="#084C3A"/>
 </svg>

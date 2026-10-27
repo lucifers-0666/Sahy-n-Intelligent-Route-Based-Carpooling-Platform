@@ -738,7 +738,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('Intelligent journeys, shared naturally.'),
+      find.text('Different paths. One shared journey.'),
       findsOneWidget,
     );
     for (final letter in ['S', 'a', 'h', 'y', 'ā', 'n']) {
