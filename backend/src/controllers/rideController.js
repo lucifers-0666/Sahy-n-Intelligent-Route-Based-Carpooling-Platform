@@ -1076,12 +1076,44 @@ const cancelRide = async (req, res, next) => {
           });
         }
 
+        // Find any paid bookings to ensure escrow payments are safely refunded
+        const paidBookingsInTx = await Booking.find({
+          ride: id,
+          status: { $in: ['pending', 'accepted'] },
+          paymentStatus: 'paid',
+        }).session(session);
+        const paidBookingIdsInTx = paidBookingsInTx.map((b) => b._id);
+
         // Mark any pending and accepted bookings as cancelled
         await Booking.updateMany(
           { ride: id, status: { $in: ['pending', 'accepted'] } },
-          { $set: { status: 'cancelled' } },
+          {
+            $set: {
+              status: 'cancelled',
+              cancellationReason: 'Ride cancelled by driver before departure',
+            },
+          },
           { session }
         );
+
+        if (paidBookingIdsInTx.length > 0) {
+          await Booking.updateMany(
+            { _id: { $in: paidBookingIdsInTx } },
+            { $set: { paymentStatus: 'refunded' } },
+            { session }
+          );
+          await PaymentTransaction.updateMany(
+            { bookingId: { $in: paidBookingIdsInTx }, status: { $in: ['pending', 'escrow_held'] } },
+            {
+              $set: {
+                status: 'refunded',
+                refundedAt: new Date(),
+                failureReason: 'Automatic refund: Planned ride cancelled by driver',
+              },
+            },
+            { session }
+          );
+        }
 
         await session.commitTransaction();
         await session.endSession();
@@ -1131,10 +1163,40 @@ const cancelRide = async (req, res, next) => {
         });
       }
 
+      // Find any paid bookings to ensure escrow payments are safely refunded
+      const paidBookings = await Booking.find({
+        ride: id,
+        status: { $in: ['pending', 'accepted'] },
+        paymentStatus: 'paid',
+      });
+      const paidBookingIds = paidBookings.map((b) => b._id);
+
       await Booking.updateMany(
         { ride: id, status: { $in: ['pending', 'accepted'] } },
-        { $set: { status: 'cancelled' } }
+        {
+          $set: {
+            status: 'cancelled',
+            cancellationReason: 'Ride cancelled by driver before departure',
+          },
+        }
       );
+
+      if (paidBookingIds.length > 0) {
+        await Booking.updateMany(
+          { _id: { $in: paidBookingIds } },
+          { $set: { paymentStatus: 'refunded' } }
+        );
+        await PaymentTransaction.updateMany(
+          { bookingId: { $in: paidBookingIds }, status: { $in: ['pending', 'escrow_held'] } },
+          {
+            $set: {
+              status: 'refunded',
+              refundedAt: new Date(),
+              failureReason: 'Automatic refund: Planned ride cancelled by driver',
+            },
+          }
+        );
+      }
     }
 
     await updatedRide.populate([

@@ -689,4 +689,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errorUnknown => 'Something went wrong. Please try again.';
+
+  @override
+  String get tripPaymentEscrow => 'Trip Payment & Escrow';
+
+  @override
+  String get sandboxSimulationCheckout => 'Sandbox Simulation Checkout';
+
+  @override
+  String get simulatedEscrowSandbox => 'Simulated Escrow Sandbox';
+
+  @override
+  String get testMode => 'TEST MODE';
+
+  @override
+  String get sandboxNotice =>
+      'This transaction runs in sandbox prototype mode. No actual currency or bank account will be debited.';
+
+  @override
+  String get paymentAuthorized => 'Payment Authorized';
+
+  @override
+  String get paymentEscrowSuccess =>
+      'Funds placed securely in simulated escrow. Funds will only be released to the driver upon successful trip completion.';
+
+  @override
+  String get viewBoardingPass => 'View Boarding Pass';
+
+  @override
+  String get fareBreakdown => 'Fare Breakdown';
+
+  @override
+  String get baseContribution => 'Base Contribution';
+
+  @override
+  String get platformSafetyFee => 'Platform & Safety Fee';
+
+  @override
+  String get tollSplitContribution => 'Toll Split Contribution';
+
+  @override
+  String get totalPayable => 'Total Payable';
+
+  @override
+  String get selectPaymentMethod => 'Select Payment Method';
+
+  @override
+  String get payWithUpi => 'UPI Instant (GPay / PhonePe / Paytm)';
+
+  @override
+  String get payWithCard => 'Credit / Debit Card';
+
+  @override
+  String get payWithNetbanking => 'Net Banking';
+
+  @override
+  String get payWithSandbox => 'Sandbox Simulated Escrow';
+
+  @override
+  String get authorizeAndHoldEscrow => 'Authorize & Hold Escrow';
+
+  @override
+  String get reportDispute => 'Report Dispute';
+
+  @override
+  String get disputeCaseSubmitted =>
+      'Dispute case submitted for administrative review';
+
+  @override
+  String get reportNoShow => 'Report No-Show';
+
+  @override
+  String get noShowRecorded =>
+      'No-show recorded and submitted for verification';
+
+  @override
+  String get refundRequested => 'Refund Requested';
 }

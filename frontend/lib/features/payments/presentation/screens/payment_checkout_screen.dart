@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/localization/l10n_extension.dart';
 import '../../../../core/widgets/design_system.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../bookings/domain/booking_model.dart';
@@ -102,12 +103,12 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                 ),
                 const SizedBox(height: AppSpacing.base),
                 Text(
-                  'Payment Authorized',
+                  context.l10n.paymentAuthorized,
                   style: AppTypography.screenTitle.copyWith(fontSize: 20),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  '₹${_totalAmount.toStringAsFixed(0)} placed securely in simulated escrow. Funds will only be released to the driver upon successful trip completion.',
+                  '₹${_totalAmount.toStringAsFixed(0)} ${context.l10n.paymentEscrowSuccess}',
                   textAlign: TextAlign.center,
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.textSecondary,
@@ -115,7 +116,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 SahyanButton(
-                  text: 'View Boarding Pass',
+                  text: context.l10n.viewBoardingPass,
                   isFullWidth: true,
                   onPressed: () {
                     Navigator.of(dialogCtx).pop();
@@ -142,9 +143,9 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.warmBackground,
-      appBar: const SahyanAppBar(
-        title: 'Trip Payment & Escrow',
-        subtitle: 'Sandbox Simulation Checkout',
+      appBar: SahyanAppBar(
+        title: context.l10n.tripPaymentEscrow,
+        subtitle: context.l10n.sandboxSimulationCheckout,
         showBackButton: true,
       ),
       body: SafeArea(
@@ -182,7 +183,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                           Row(
                             children: [
                               Text(
-                                'Simulated Escrow Sandbox',
+                                context.l10n.simulatedEscrowSandbox,
                                 style: AppTypography.cardTitle.copyWith(
                                   fontSize: 13,
                                   color: AppColors.mutedBrass,
@@ -202,7 +203,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  'TEST MODE',
+                                  context.l10n.testMode,
                                   style: AppTypography.caption.copyWith(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w800,
@@ -214,7 +215,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'This transaction runs in sandbox prototype mode. No actual currency or bank account will be debited.',
+                            context.l10n.sandboxNotice,
                             style: AppTypography.caption.copyWith(
                               color: AppColors.textPrimary,
                             ),
@@ -281,7 +282,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Fare Contribution Breakdown',
+                      context.l10n.fareBreakdown,
                       style: AppTypography.sectionHeader.copyWith(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -289,17 +290,17 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                     ),
                     const SizedBox(height: AppSpacing.base),
                     _buildRow(
-                      'Ride Seat Contribution (${widget.booking.requestedSeats} Seat${widget.booking.requestedSeats > 1 ? 's' : ''})',
+                      '${context.l10n.baseContribution} (${widget.booking.requestedSeats})',
                       '₹${_baseFare.toStringAsFixed(0)}',
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     _buildRow(
-                      'Safety & Platform Fee',
+                      context.l10n.platformSafetyFee,
                       '₹${_platformFee.toStringAsFixed(0)}',
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     _buildRow(
-                      'Toll & FASTag Pool Split',
+                      context.l10n.tollSplitContribution,
                       '₹${_tollSplit.toStringAsFixed(0)}',
                     ),
                     const Divider(
@@ -310,7 +311,7 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Total Payable',
+                          context.l10n.totalPayable,
                           style: AppTypography.cardTitle.copyWith(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -334,28 +335,28 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
 
               // Payment Method Selector
               Text(
-                'Select Payment Gateway',
+                context.l10n.selectPaymentMethod,
                 style: AppTypography.sectionHeader.copyWith(fontSize: 15),
               ),
               const SizedBox(height: AppSpacing.sm),
 
               _buildPaymentOption(
                 id: 'upi',
-                title: 'UPI Instant (GPay / PhonePe / Paytm)',
+                title: context.l10n.payWithUpi,
                 subtitle: 'Zero fee direct simulated escrow transfer',
                 icon: Icons.qr_code_2_rounded,
               ),
               const SizedBox(height: AppSpacing.sm),
               _buildPaymentOption(
                 id: 'card',
-                title: 'Credit / Debit Card',
+                title: context.l10n.payWithCard,
                 subtitle: 'Visa, MasterCard, RuPay with 3D Secure sandbox',
                 icon: Icons.credit_card_rounded,
               ),
               const SizedBox(height: AppSpacing.sm),
               _buildPaymentOption(
                 id: 'netbanking',
-                title: 'Net Banking',
+                title: context.l10n.payWithNetbanking,
                 subtitle: 'Simulated major Indian scheduled banks',
                 icon: Icons.account_balance_rounded,
               ),
@@ -396,8 +397,8 @@ class _PaymentCheckoutScreenState extends ConsumerState<PaymentCheckoutScreen> {
 
               SahyanButton(
                 text: _isLoading
-                    ? 'Authorizing Secure Payment...'
-                    : 'Authorize ₹${_totalAmount.toStringAsFixed(0)} in Escrow',
+                    ? context.l10n.loading
+                    : '${context.l10n.authorizeAndHoldEscrow} (₹${_totalAmount.toStringAsFixed(0)})',
                 icon: Icons.lock_outline_rounded,
                 isFullWidth: true,
                 isLoading: _isLoading,

@@ -5,6 +5,7 @@ const Ride = require('../models/Ride');
 const User = require('../models/User');
 const PaymentTransaction = require('../models/PaymentTransaction');
 const AuditLog = require('../models/AuditLog');
+const Report = require('../models/Report');
 const FraudDetectionService = require('../services/fraudDetectionService');
 
 /**
@@ -1730,4 +1731,230 @@ exports.disputeUnpaidCash = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc    Submit a formal payment or ride dispute (Passenger or Driver)
+ * @route   POST /api/v1/bookings/:id/dispute
+ * @access  Private (Passenger or Driver)
+ */
+exports.disputeBooking = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      reason,
+      disputeType = 'service_issue',
+      claimType = 'refund_request',
+      evidenceUrls = [],
+    } = req.body;
+    const userId = (req.user._id || req.user.id).toString();
+
+    if (!reason || !String(reason).trim()) {
+      return res.status(400).json({ success: false, message: 'Dispute reason is required' });
+    }
+
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    const isPassenger = booking.passenger.toString() === userId;
+    const isDriver = booking.ride && booking.ride.driver.toString() === userId;
+
+    if (!isPassenger && !isDriver) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: You are neither passenger nor driver for this booking',
+      });
+    }
+
+    // Set dispute status on booking
+    booking.paymentStatus = 'disputed';
+    if (!booking.dispute) booking.dispute = {};
+    booking.dispute.status = 'under_review';
+
+    if (isPassenger) {
+      booking.dispute.passengerRespondedAt = new Date();
+      booking.dispute.passengerNotes = String(reason).trim();
+    } else {
+      booking.dispute.driverReportedAt = new Date();
+      booking.dispute.driverNotes = String(reason).trim();
+    }
+
+    if (Array.isArray(evidenceUrls) && evidenceUrls.length > 0) {
+      booking.dispute.evidenceUrls = evidenceUrls;
+    }
+
+    await booking.save();
+
+    // Mark linked PaymentTransaction as disputed if exists
+    let transaction = null;
+    if (booking.paymentTransactionId) {
+      transaction = await PaymentTransaction.findById(booking.paymentTransactionId);
+      if (transaction) {
+        transaction.status = 'disputed';
+        await transaction.save();
+      }
+    } else {
+      transaction = await PaymentTransaction.findOne({ bookingId: booking._id }).sort({ createdAt: -1 });
+      if (transaction) {
+        transaction.status = 'disputed';
+        await transaction.save();
+      }
+    }
+
+    // Create a formal administrative Report case
+    const report = await Report.create({
+      reporter: userId,
+      reportedUser: isPassenger ? booking.ride?.driver : booking.passenger,
+      ride: booking.ride ? booking.ride._id : null,
+      booking: booking._id,
+      transaction: transaction ? transaction._id : null,
+      type: 'payment_dispute',
+      title: `Dispute on Booking ${booking._id}: ${claimType}`,
+      description: String(reason).trim(),
+      severity: 'medium',
+      status: 'open',
+      evidence: Array.isArray(evidenceUrls)
+        ? evidenceUrls.map((url) => ({ url, type: 'document', description: 'User dispute evidence' }))
+        : [],
+    });
+
+    await AuditLog.create({
+      action: 'PAYMENT_DISPUTED',
+      actorRole: isPassenger ? 'passenger' : 'driver',
+      admin: userId,
+      targetUser: isPassenger ? booking.ride?.driver : booking.passenger,
+      bookingId: booking._id,
+      rideId: booking.ride ? booking.ride._id : null,
+      reason: `Dispute initiated (${claimType}): ${reason}`,
+      metadata: {
+        disputeType,
+        claimType,
+        evidenceCount: Array.isArray(evidenceUrls) ? evidenceUrls.length : 0,
+        reportId: report._id,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Dispute submitted successfully. Case initiated for administrative review.',
+      data: {
+        booking,
+        reportId: report._id,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Report passenger or driver no-show
+ *          Never bans user automatically without administrative investigation
+ * @route   POST /api/v1/bookings/:id/no-show
+ * @access  Private (Passenger or Driver)
+ */
+exports.reportNoShow = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason = 'Party did not show up at designated pickup location', evidenceUrls = [] } = req.body;
+    const userId = (req.user._id || req.user.id).toString();
+
+    const booking = await Booking.findById(id).populate('ride');
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    const isPassenger = booking.passenger.toString() === userId;
+    const isDriver = booking.ride && booking.ride.driver.toString() === userId;
+
+    if (!isPassenger && !isDriver) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: You are neither passenger nor driver for this booking',
+      });
+    }
+
+    if (booking.status === 'completed' || booking.status === 'cancelled') {
+      return res.status(400).json({ success: false, message: `Cannot report no-show on ${booking.status} booking` });
+    }
+
+    if (isDriver) {
+      // Driver reports passenger no-show
+      booking.status = 'cancelled';
+      if (!booking.dispute) booking.dispute = {};
+      booking.dispute.status = 'no_show';
+      booking.dispute.driverReportedAt = new Date();
+      booking.dispute.driverNotes = String(reason).trim();
+      if (Array.isArray(evidenceUrls)) booking.dispute.evidenceUrls = evidenceUrls;
+      await booking.save();
+
+      // Concurrency-safe seat release: If booking was accepted, release seat back to ride
+      if (booking.ride) {
+        await Ride.findByIdAndUpdate(booking.ride._id, {
+          $inc: { availableSeats: booking.requestedSeats, bookedSeats: -booking.requestedSeats },
+        });
+      }
+
+      await AuditLog.create({
+        action: 'NO_SHOW_REPORTED',
+        actorRole: 'driver',
+        admin: userId,
+        targetUser: booking.passenger,
+        bookingId: booking._id,
+        rideId: booking.ride ? booking.ride._id : null,
+        reason: `Driver reported passenger no-show: ${reason}`,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Passenger no-show recorded. Seat restored to ride capacity.',
+        data: booking,
+      });
+    } else {
+      // Passenger reports driver no-show: Flag for admin investigation
+      if (!booking.dispute) booking.dispute = {};
+      booking.dispute.status = 'under_review';
+      booking.dispute.passengerRespondedAt = new Date();
+      booking.dispute.passengerNotes = String(reason).trim();
+      if (Array.isArray(evidenceUrls)) booking.dispute.evidenceUrls = evidenceUrls;
+      await booking.save();
+
+      const report = await Report.create({
+        reporter: userId,
+        reportedUser: booking.ride?.driver,
+        ride: booking.ride ? booking.ride._id : null,
+        booking: booking._id,
+        type: 'no_show',
+        title: `Passenger reported Driver No-Show on Ride ${booking.ride?._id}`,
+        description: String(reason).trim(),
+        severity: 'high',
+        status: 'open',
+      });
+
+      await AuditLog.create({
+        action: 'NO_SHOW_REPORTED',
+        actorRole: 'passenger',
+        admin: userId,
+        targetUser: booking.ride?.driver,
+        bookingId: booking._id,
+        rideId: booking.ride ? booking.ride._id : null,
+        reason: `Passenger reported driver no-show: ${reason}`,
+        metadata: { reportId: report._id },
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Driver no-show reported. Case submitted for review without automatic penalties.',
+        data: {
+          booking,
+          reportId: report._id,
+        },
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
 

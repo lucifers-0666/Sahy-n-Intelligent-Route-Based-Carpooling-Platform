@@ -25,6 +25,12 @@ const paymentTransactionSchema = new mongoose.Schema(
       required: true,
       min: [0, 'Amount cannot be negative'],
     },
+    currency: {
+      type: String,
+      default: 'INR',
+      uppercase: true,
+      trim: true,
+    },
     platformFee: {
       type: Number,
       required: true,
@@ -32,16 +38,26 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ['upi', 'card', 'netbanking', 'sandbox'],
+      enum: ['upi', 'card', 'netbanking', 'sandbox', 'upi_mock'],
       default: 'sandbox',
+    },
+    isSandbox: {
+      type: Boolean,
+      default: true,
+      index: true,
     },
     status: {
       type: String,
-      enum: ['pending', 'escrow_held', 'settled_to_driver', 'refunded', 'failed'],
+      enum: ['pending', 'escrow_held', 'settled_to_driver', 'refunded', 'disputed', 'failed'],
       default: 'pending',
     },
+    gatewayOrderId: {
+      type: String,
+      sparse: true,
+      index: true,
+    },
     gatewayReference: {
-      type: String, // Mock transaction ID in sandbox mode or Razorpay/Stripe payment_id
+      type: String, // Authoritative payment ID from provider or sandbox audit ref
       sparse: true,
       index: true,
     },
@@ -63,8 +79,38 @@ const paymentTransactionSchema = new mongoose.Schema(
     },
     verifiedBy: {
       type: String,
-      enum: ['provider_webhook', 'admin_override', 'sandbox_mock', 'none'],
+      enum: [
+        'provider_webhook',
+        'razorpay_server',
+        'stripe_server',
+        'admin_override',
+        'sandbox_mock',
+        'sandbox_simulated',
+        'none',
+      ],
       default: 'none',
+    },
+    refundId: {
+      type: String,
+      default: null,
+    },
+    refundAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    refundedAt: {
+      type: Date,
+      default: null,
+    },
+    payoutStatus: {
+      type: String,
+      enum: ['none', 'ledger_settled', 'payout_pending', 'payout_transferred', 'payout_failed'],
+      default: 'none',
+    },
+    payoutTransferredAt: {
+      type: Date,
+      default: null,
     },
     failureReason: {
       type: String,

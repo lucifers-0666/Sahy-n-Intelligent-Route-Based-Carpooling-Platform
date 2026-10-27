@@ -1341,6 +1341,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Something went wrong. Please try again.'**
   String get errorUnknown;
+
+  /// No description provided for @tripPaymentEscrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip Payment & Escrow'**
+  String get tripPaymentEscrow;
+
+  /// No description provided for @sandboxSimulationCheckout.
+  ///
+  /// In en, this message translates to:
+  /// **'Sandbox Simulation Checkout'**
+  String get sandboxSimulationCheckout;
+
+  /// No description provided for @simulatedEscrowSandbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulated Escrow Sandbox'**
+  String get simulatedEscrowSandbox;
+
+  /// No description provided for @testMode.
+  ///
+  /// In en, this message translates to:
+  /// **'TEST MODE'**
+  String get testMode;
+
+  /// No description provided for @sandboxNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This transaction runs in sandbox prototype mode. No actual currency or bank account will be debited.'**
+  String get sandboxNotice;
+
+  /// No description provided for @paymentAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Authorized'**
+  String get paymentAuthorized;
+
+  /// No description provided for @paymentEscrowSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Funds placed securely in simulated escrow. Funds will only be released to the driver upon successful trip completion.'**
+  String get paymentEscrowSuccess;
+
+  /// No description provided for @viewBoardingPass.
+  ///
+  /// In en, this message translates to:
+  /// **'View Boarding Pass'**
+  String get viewBoardingPass;
+
+  /// No description provided for @fareBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Fare Breakdown'**
+  String get fareBreakdown;
+
+  /// No description provided for @baseContribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Base Contribution'**
+  String get baseContribution;
+
+  /// No description provided for @platformSafetyFee.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform & Safety Fee'**
+  String get platformSafetyFee;
+
+  /// No description provided for @tollSplitContribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Toll Split Contribution'**
+  String get tollSplitContribution;
+
+  /// No description provided for @totalPayable.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Payable'**
+  String get totalPayable;
+
+  /// No description provided for @selectPaymentMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Payment Method'**
+  String get selectPaymentMethod;
+
+  /// No description provided for @payWithUpi.
+  ///
+  /// In en, this message translates to:
+  /// **'UPI Instant (GPay / PhonePe / Paytm)'**
+  String get payWithUpi;
+
+  /// No description provided for @payWithCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit / Debit Card'**
+  String get payWithCard;
+
+  /// No description provided for @payWithNetbanking.
+  ///
+  /// In en, this message translates to:
+  /// **'Net Banking'**
+  String get payWithNetbanking;
+
+  /// No description provided for @payWithSandbox.
+  ///
+  /// In en, this message translates to:
+  /// **'Sandbox Simulated Escrow'**
+  String get payWithSandbox;
+
+  /// No description provided for @authorizeAndHoldEscrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorize & Hold Escrow'**
+  String get authorizeAndHoldEscrow;
+
+  /// No description provided for @reportDispute.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Dispute'**
+  String get reportDispute;
+
+  /// No description provided for @disputeCaseSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Dispute case submitted for administrative review'**
+  String get disputeCaseSubmitted;
+
+  /// No description provided for @reportNoShow.
+  ///
+  /// In en, this message translates to:
+  /// **'Report No-Show'**
+  String get reportNoShow;
+
+  /// No description provided for @noShowRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'No-show recorded and submitted for verification'**
+  String get noShowRecorded;
+
+  /// No description provided for @refundRequested.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund Requested'**
+  String get refundRequested;
 }
 
 class _AppLocalizationsDelegate

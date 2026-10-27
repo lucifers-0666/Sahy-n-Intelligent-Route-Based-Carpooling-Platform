@@ -689,4 +689,80 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get errorUnknown => 'कुछ गलत हो गया. कृपया पुनः प्रयास करें.';
+
+  @override
+  String get tripPaymentEscrow => 'ट्रिप भुगतान और एस्क्रो';
+
+  @override
+  String get sandboxSimulationCheckout => 'सैंडबॉक्स सिमुलेशन चेकआउट';
+
+  @override
+  String get simulatedEscrowSandbox => 'सिम्युलेटेड एस्क्रो सैंडबॉक्स';
+
+  @override
+  String get testMode => 'टेस्ट मोड';
+
+  @override
+  String get sandboxNotice =>
+      'यह लेनदेन सैंडबॉक्स मोड में चलता है। किसी भी वास्तविक बैंक खाते से पैसे नहीं कटेंगे।';
+
+  @override
+  String get paymentAuthorized => 'भुगतान अधिकृत हुआ';
+
+  @override
+  String get paymentEscrowSuccess =>
+      'राशि सुरक्षित रूप से एस्क्रो में रखी गई है। यात्रा पूरी होने पर ही ड्राइवर को जारी की जाएगी।';
+
+  @override
+  String get viewBoardingPass => 'बोर्डिंग पास देखें';
+
+  @override
+  String get fareBreakdown => 'किराया विवरण';
+
+  @override
+  String get baseContribution => 'मूल योगदान';
+
+  @override
+  String get platformSafetyFee => 'प्लेटफ़ॉर्म और सुरक्षा शुल्क';
+
+  @override
+  String get tollSplitContribution => 'टोल विभाजन योगदान';
+
+  @override
+  String get totalPayable => 'कुल देय राशि';
+
+  @override
+  String get selectPaymentMethod => 'भुगतान विधि चुनें';
+
+  @override
+  String get payWithUpi => 'UPI से भुगतान करें';
+
+  @override
+  String get payWithCard => 'क्रेडिट / डेबिट कार्ड';
+
+  @override
+  String get payWithNetbanking => 'नेट बैंकिंग';
+
+  @override
+  String get payWithSandbox => 'सैंडबॉक्स सिम्युलेटेड एस्क्रो';
+
+  @override
+  String get authorizeAndHoldEscrow => 'अधिकृत करें और एस्क्रो होल्ड करें';
+
+  @override
+  String get reportDispute => 'विवाद दर्ज करें';
+
+  @override
+  String get disputeCaseSubmitted =>
+      'प्रशासनिक समीक्षा के लिए विवाद मामला दर्ज किया गया';
+
+  @override
+  String get reportNoShow => 'अनुपस्थिति दर्ज करें';
+
+  @override
+  String get noShowRecorded =>
+      'अनुपस्थिति दर्ज की गई और सत्यापन के लिए भेजी गई';
+
+  @override
+  String get refundRequested => 'रिफंड का अनुरोध किया गया';
 }

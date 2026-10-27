@@ -689,4 +689,79 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get errorUnknown => 'કંઈક ખોટું થયું. કૃપા કરીને ફરી પ્રયાસ કરો.';
+
+  @override
+  String get tripPaymentEscrow => 'ટ્રીપ ચુકવણી અને એસ્ક્રો';
+
+  @override
+  String get sandboxSimulationCheckout => 'સેન્ડબોક્સ સિમ્યુલેશન ચેકઆઉટ';
+
+  @override
+  String get simulatedEscrowSandbox => 'સિમ્યુલેટેડ એસ્ક્રો સેન્ડબોક્સ';
+
+  @override
+  String get testMode => 'ટેસ્ટ મોડ';
+
+  @override
+  String get sandboxNotice =>
+      'આ ટ્રાન્ઝેક્શન સેન્ડબોક્સ મોડમાં ચાલે છે. કોઈ વાસ્તવિક બેંક ખાતામાંથી રકમ કપાશે નહીં.';
+
+  @override
+  String get paymentAuthorized => 'ચુકવણી પ્રમાણિત થઈ';
+
+  @override
+  String get paymentEscrowSuccess =>
+      'રકમ સુરક્ષિત રીતે એસ્ક્રોમાં રાખવામાં આવી છે. સફર પૂર્ણ થયા પછી જ ડ્રાઇવરને આપવામાં આવશે.';
+
+  @override
+  String get viewBoardingPass => 'બોર્ડિંગ પાસ જુઓ';
+
+  @override
+  String get fareBreakdown => 'ભાડાની વિગત';
+
+  @override
+  String get baseContribution => 'મૂળ યોગદાન';
+
+  @override
+  String get platformSafetyFee => 'પ્લેટફોર્મ અને સુરક્ષા ફી';
+
+  @override
+  String get tollSplitContribution => 'ટોલ વિભાજન યોગદાન';
+
+  @override
+  String get totalPayable => 'કુલ ચૂકવવાપાત્ર';
+
+  @override
+  String get selectPaymentMethod => 'ચુકવણી પદ્ધતિ પસંદ કરો';
+
+  @override
+  String get payWithUpi => 'UPI દ્વારા ચુકવણી';
+
+  @override
+  String get payWithCard => 'ક્રેડિટ / ડેબિટ કાર્ડ';
+
+  @override
+  String get payWithNetbanking => 'નેટ બેંકિંગ';
+
+  @override
+  String get payWithSandbox => 'સેન્ડબોક્સ સિમ્યુલેટેડ એસ્ક્રો';
+
+  @override
+  String get authorizeAndHoldEscrow => 'પ્રમાણિત કરો અને એસ્ક્રો હોલ્ડ કરો';
+
+  @override
+  String get reportDispute => 'વિવાદ નોંધાવો';
+
+  @override
+  String get disputeCaseSubmitted =>
+      'વહીવટી સમીક્ષા માટે વિવાદ કેસ સબમિટ કર્યો છે';
+
+  @override
+  String get reportNoShow => 'ગેરહાજરી નોંધાવો';
+
+  @override
+  String get noShowRecorded => 'ગેરહાજરી નોંધાઈ અને ચકાસણી માટે મોકલી છે';
+
+  @override
+  String get refundRequested => 'રિફંડ વિનંતી કરી';
 }

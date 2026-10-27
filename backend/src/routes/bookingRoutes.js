@@ -14,6 +14,8 @@ const {
   confirmCashPayment,
   reportUnpaidCash,
   disputeUnpaidCash,
+  disputeBooking,
+  reportNoShow,
 } = require('../controllers/bookingController');
 
 // All booking endpoints require authentication
@@ -55,5 +57,11 @@ router.post('/:id/report-unpaid', reportUnpaidCash);
 
 // Dispute unpaid cash report (Passenger)
 router.post('/:id/dispute-unpaid', disputeUnpaidCash);
+
+// Formal payment / ride dispute workflow (Passenger / Driver)
+router.post('/:id/dispute', disputeBooking);
+
+// No-show workflow (Driver reports passenger no-show / Passenger reports driver no-show)
+router.post('/:id/no-show', reportNoShow);
 
 module.exports = router;

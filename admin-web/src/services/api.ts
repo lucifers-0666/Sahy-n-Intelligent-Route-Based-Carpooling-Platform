@@ -237,4 +237,62 @@ export const adminApi = {
     });
     return handleResponse<any>(res);
   },
+
+  async getDisputeCases(params?: { status?: string; page?: number; limit?: number }): Promise<any> {
+    const searchParams = new URLSearchParams();
+    if (params?.status) searchParams.set('status', params.status);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const res = await fetch(`${BASE_URL}/admin/disputes${query}`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<any>(res);
+  },
+
+  async resolveDisputeCase(bookingId: string, resolution: string, notes?: string): Promise<any> {
+    const res = await fetch(`${BASE_URL}/admin/disputes/${bookingId}/resolve`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ resolution, notes: notes || '' }),
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getUserAppeals(): Promise<any[]> {
+    const res = await fetch(`${BASE_URL}/admin/appeals`, {
+      headers: { ...getAuthHeader() },
+    });
+    const payload = await handleResponse<any>(res);
+    return Array.isArray(payload) ? payload : [];
+  },
+
+  async reviewUserAppeal(userId: string, appealIndex: number, action: 'approve' | 'reject', reviewerNotes?: string): Promise<any> {
+    const res = await fetch(`${BASE_URL}/admin/appeals/${userId}/${appealIndex}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify({ action, reviewerNotes: reviewerNotes || '' }),
+    });
+    return handleResponse<any>(res);
+  },
+
+  async getFraudRiskSignals(params?: { riskTier?: string; page?: number; limit?: number }): Promise<any> {
+    const searchParams = new URLSearchParams();
+    if (params?.riskTier) searchParams.set('riskTier', params.riskTier);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const res = await fetch(`${BASE_URL}/admin/fraud/signals${query}`, {
+      headers: { ...getAuthHeader() },
+    });
+    return handleResponse<any>(res);
+  },
 };
