@@ -1,27 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <!-- Symbol Core Mint Gradient -->
-    <linearGradient id="icon_mint_grad" x1="180" y1="180" x2="380" y2="280" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#A7E8D2"/>
-      <stop offset="100%" stop-color="#5CC6A5"/>
-    </linearGradient>
-  </defs>
+  <!-- Sahyān Android Adaptive Foreground Safe Vector -->
+  <!-- Scaled & Centered within the Android Adaptive Safe Circle (diameter ~320dp / 66%) -->
+  <g transform="translate(136, 176) scale(0.80)">
+    <!-- Road Borders -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="#A7E8D2" stroke-width="26" stroke-linecap="round"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="#A7E8D2" stroke-width="26" stroke-linecap="round"/>
+    <path d="M 150 100 L 252 100" stroke="#A7E8D2" stroke-width="26" stroke-linecap="round"/>
+    <path d="M 244 80 L 272 100 L 244 120 Z" fill="#A7E8D2"/>
 
-  <!-- Centered Sahyān Converging Route Symbol inside Android Adaptive Safe Area -->
-  <g transform="translate(100, 100) scale(2.6)">
-    <!-- Upper Route Path in Pure White -->
-    <path d="M 22 28 C 36 28 52 40 64 54 L 88 54 C 92 54 94 57 92 60 L 76 74 C 73 76 69 74 69 70 L 69 66 C 58 56 46 44 22 44 C 18 44 16 40 16 36 C 16 32 18 28 22 28 Z" 
-          fill="#FFFFFF" fill-opacity="0.95"/>
+    <!-- Inner Road Surface -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="#084C3A" stroke-width="20" stroke-linecap="round"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="#084C3A" stroke-width="20" stroke-linecap="round"/>
+    <path d="M 150 100 L 250 100" stroke="#084C3A" stroke-width="20" stroke-linecap="round"/>
+    <path d="M 244 84 L 268 100 L 244 116 Z" fill="#084C3A"/>
 
-    <!-- Lower Route Path in Pure White -->
-    <path d="M 22 92 C 36 92 52 80 64 66 L 88 66 C 92 66 94 63 92 60 L 76 46 C 73 44 69 46 69 50 L 69 54 C 58 64 46 76 22 76 C 18 76 16 80 16 84 C 16 88 18 92 22 92 Z" 
-          fill="#FFFFFF" fill-opacity="0.95"/>
+    <!-- Dashed Center Lines -->
+    <path d="M 45 45 C 95 45, 120 78, 150 100" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="5 7"/>
+    <path d="M 45 155 C 95 155, 120 122, 150 100" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="5 7"/>
+    <path d="M 150 100 L 246 100" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="5 7"/>
 
-    <!-- Converging Match Apex in Luminous Soft Mint -->
-    <path d="M 58 60 L 78 43 C 81 40 86 42 86 47 L 86 73 C 86 78 81 80 78 77 L 58 60 Z" 
-          fill="url(#icon_mint_grad)"/>
+    <!-- Origin Nodes -->
+    <circle cx="45" cy="45" r="14" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+    <circle cx="45" cy="45" r="7" fill="#FFFFFF"/>
+    <circle cx="45" cy="155" r="14" fill="#A7E8D2" stroke="#084C3A" stroke-width="4"/>
+    <circle cx="45" cy="155" r="7" fill="#FFFFFF"/>
 
-    <!-- Optimal Sync Focal Node -->
-    <circle cx="68" cy="60" r="5" fill="#FFFFFF"/>
+    <!-- Central Hub -->
+    <circle cx="150" cy="100" r="22" fill="#A7E8D2" stroke="#0B5D4B" stroke-width="4"/>
+    <circle cx="150" cy="100" r="14" fill="#084C3A"/>
+    <circle cx="150" cy="100" r="6" fill="#FFFFFF"/>
   </g>
 </svg>

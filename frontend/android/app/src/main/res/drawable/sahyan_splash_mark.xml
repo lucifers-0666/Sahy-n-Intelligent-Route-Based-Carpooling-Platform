@@ -1,33 +1,99 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="100dp"
+    android:width="150dp"
     android:height="100dp"
-    android:viewportWidth="100"
-    android:viewportHeight="100">
-    <!-- Sahyān Master Route Convergence Symbol (Two origins, one convergence, shared destination) -->
-    <!-- Origin Node 1 -->
+    android:viewportWidth="300"
+    android:viewportHeight="200">
+    <!-- Sahyān Master Route Convergence Symbol (Different paths. One shared journey.) -->
+    <!-- Road Borders in Soft Mint (#A7E8D2) -->
     <path
-        android:pathData="M 16,20.5 A 7.5,7.5 0 1,1 15.99,20.5 Z"
-        android:fillColor="#3DDC97"/>
-    <!-- Origin Node 2 -->
+        android:pathData="M 45,45 C 95,45 120,78 150,100"
+        android:strokeColor="#A7E8D2"
+        android:strokeWidth="26"
+        android:strokeLineCap="round"/>
     <path
-        android:pathData="M 16,64.5 A 7.5,7.5 0 1,1 15.99,64.5 Z"
-        android:fillColor="#3DDC97"/>
-    <!-- Top-left Route Inlet -->
+        android:pathData="M 45,155 C 95,155 120,122 150,100"
+        android:strokeColor="#A7E8D2"
+        android:strokeWidth="26"
+        android:strokeLineCap="round"/>
     <path
-        android:pathData="M 16,28 C 42,28 50,50 66,50 L 82,50"
-        android:strokeColor="#3DDC97"
-        android:strokeWidth="10"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"/>
-    <!-- Bottom-left Route Inlet -->
+        android:pathData="M 150,100 L 252,100"
+        android:strokeColor="#A7E8D2"
+        android:strokeWidth="26"
+        android:strokeLineCap="round"/>
     <path
-        android:pathData="M 16,72 C 42,72 50,50 66,50 L 82,50"
-        android:strokeColor="#3DDC97"
-        android:strokeWidth="10"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"/>
-    <!-- Destination Node -->
+        android:pathData="M 244,80 L 272,100 L 244,120 Z"
+        android:fillColor="#A7E8D2"/>
+
+    <!-- Road Surfaces in Dark Emerald (#084C3A) -->
     <path
-        android:pathData="M 84,42.5 A 7.5,7.5 0 1,1 83.99,42.5 Z"
-        android:fillColor="#3DDC97"/>
+        android:pathData="M 45,45 C 95,45 120,78 150,100"
+        android:strokeColor="#084C3A"
+        android:strokeWidth="20"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M 45,155 C 95,155 120,122 150,100"
+        android:strokeColor="#084C3A"
+        android:strokeWidth="20"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M 150,100 L 250,100"
+        android:strokeColor="#084C3A"
+        android:strokeWidth="20"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M 244,84 L 268,100 L 244,116 Z"
+        android:fillColor="#084C3A"/>
+
+    <!-- Center Dashed Lines in White -->
+    <path
+        android:pathData="M 45,45 C 95,45 120,78 150,100"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M 45,155 C 95,155 120,122 150,100"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"/>
+    <path
+        android:pathData="M 150,100 L 246,100"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"/>
+
+    <!-- Top Origin Node -->
+    <path
+        android:pathData="M 45,31 A 14,14 0 1,1 44.99,31 Z"
+        android:fillColor="#A7E8D2"/>
+    <path
+        android:pathData="M 45,35 A 10,10 0 1,1 44.99,35 Z"
+        android:fillColor="#084C3A"/>
+    <path
+        android:pathData="M 45,39 A 6,6 0 1,1 44.99,39 Z"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Bottom Origin Node -->
+    <path
+        android:pathData="M 45,141 A 14,14 0 1,1 44.99,141 Z"
+        android:fillColor="#A7E8D2"/>
+    <path
+        android:pathData="M 45,145 A 10,10 0 1,1 44.99,145 Z"
+        android:fillColor="#084C3A"/>
+    <path
+        android:pathData="M 45,149 A 6,6 0 1,1 44.99,149 Z"
+        android:fillColor="#FFFFFF"/>
+
+    <!-- Central Hub Concentric Rings -->
+    <path
+        android:pathData="M 150,78 A 22,22 0 1,1 149.99,78 Z"
+        android:fillColor="#A7E8D2"/>
+    <path
+        android:pathData="M 150,84 A 16,16 0 1,1 149.99,84 Z"
+        android:fillColor="#0B5D4B"/>
+    <path
+        android:pathData="M 150,91 A 9,9 0 1,1 149.99,91 Z"
+        android:fillColor="#084C3A"/>
+    <path
+        android:pathData="M 150,95 A 5,5 0 1,1 149.99,95 Z"
+        android:fillColor="#FFFFFF"/>
 </vector>

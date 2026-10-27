@@ -18,6 +18,7 @@ class SahyanBrandMarkPainter extends CustomPainter {
   final double drawProgress; // 0.0 to 1.0 (roads draw in)
   final double vehicleProgress; // 0.0 to 1.0 (vehicles traverse roads)
   final double hubPulseProgress; // 0.0 to 1.0 (radial ripple on hub)
+  final double originProgress; // 0.0 to 1.0 (origin nodes appear)
   final bool showVehicles;
   final bool isDark;
   final Color? colorOverride;
@@ -26,6 +27,7 @@ class SahyanBrandMarkPainter extends CustomPainter {
     this.drawProgress = 1.0,
     this.vehicleProgress = 1.0,
     this.hubPulseProgress = 0.0,
+    this.originProgress = 1.0,
     this.showVehicles = false,
     this.isDark = true,
     this.colorOverride,
@@ -41,8 +43,8 @@ class SahyanBrandMarkPainter extends CustomPainter {
     canvas.save();
     canvas.translate(0, yOffset);
 
-    final effectiveRoadColor = colorOverride ??
-        (isDark ? AppColors.brand : AppColors.darkEmerald);
+    final effectiveRoadColor =
+        colorOverride ?? (isDark ? AppColors.brand : AppColors.darkEmerald);
     final effectiveBorderColor = colorOverride != null
         ? colorOverride!.withValues(alpha: 0.6)
         : AppColors.softMint;
@@ -91,7 +93,11 @@ class SahyanBrandMarkPainter extends CustomPainter {
         )
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3.0 * scale;
-      canvas.drawCircle(Offset(150 * scale, 100 * scale), pulseRadius, pulsePaint);
+      canvas.drawCircle(
+        Offset(150 * scale, 100 * scale),
+        pulseRadius,
+        pulsePaint,
+      );
 
       final mintPulsePaint = Paint()
         ..color = AppColors.softMint.withValues(
@@ -211,19 +217,19 @@ class SahyanBrandMarkPainter extends CustomPainter {
     }
 
     // 4. Origin Circle Nodes
-    final originScale = (clampedDraw / 0.35).clamp(0.0, 1.0);
-    if (originScale > 0.0) {
+    final effectiveOriginScale = originProgress.clamp(0.0, 1.0);
+    if (effectiveOriginScale > 0.0) {
       _drawOriginNode(
         canvas,
         Offset(45 * scale, 45 * scale),
-        14.0 * scale * originScale,
+        14.0 * scale * effectiveOriginScale,
         effectiveBorderColor,
         effectiveRoadColor,
       );
       _drawOriginNode(
         canvas,
         Offset(45 * scale, 155 * scale),
-        14.0 * scale * originScale,
+        14.0 * scale * effectiveOriginScale,
         effectiveBorderColor,
         effectiveRoadColor,
       );
@@ -244,13 +250,7 @@ class SahyanBrandMarkPainter extends CustomPainter {
 
     // ── Animated Vehicles ───────────────────────────────────────────────────
     if (showVehicles && clampedDraw > 0.25) {
-      _paintVehicles(
-        canvas,
-        topMetric,
-        bottomMetric,
-        rightMetric,
-        scale,
-      );
+      _paintVehicles(canvas, topMetric, bottomMetric, rightMetric, scale);
     }
 
     canvas.restore();
@@ -346,47 +346,79 @@ class SahyanBrandMarkPainter extends CustomPainter {
   ) {
     final vp = vehicleProgress.clamp(0.0, 1.0);
 
-    // Phase 1: Incoming Vehicles on Top and Bottom Paths (0.0 to 0.60)
-    if (vp <= 0.65) {
-      final inT = (vp / 0.60).clamp(0.0, 1.0);
+    // Phase 1: Incoming Vehicles on Top and Bottom Paths (0.0 to 0.65)
+    if (vp <= 0.68) {
+      final inT = (vp / 0.58).clamp(0.0, 1.0);
+      final alpha = inT > 0.82 ? ((1.0 - inT) / 0.18).clamp(0.0, 1.0) : 1.0;
 
       // Top Path: Compact Car traveling toward hub
-      if (topMetric != null) {
+      if (topMetric != null && alpha > 0.0) {
         final dist = topMetric.length * inT;
         final tangent = topMetric.getTangentForOffset(dist);
         if (tangent != null) {
           canvas.save();
           canvas.translate(tangent.position.dx, tangent.position.dy);
           canvas.rotate(tangent.angle);
+          if (alpha < 1.0) {
+            canvas.saveLayer(
+              null,
+              Paint()
+                ..color = Color.fromARGB((255 * alpha).round(), 255, 255, 255),
+            );
+          }
           _drawCompactCar(canvas, scale, isShared: false);
+          if (alpha < 1.0) {
+            canvas.restore();
+          }
           canvas.restore();
         }
       }
 
       // Bottom Path: Motorcycle traveling toward hub
-      if (bottomMetric != null) {
+      if (bottomMetric != null && alpha > 0.0) {
         final dist = bottomMetric.length * inT;
         final tangent = bottomMetric.getTangentForOffset(dist);
         if (tangent != null) {
           canvas.save();
           canvas.translate(tangent.position.dx, tangent.position.dy);
           canvas.rotate(tangent.angle);
+          if (alpha < 1.0) {
+            canvas.saveLayer(
+              null,
+              Paint()
+                ..color = Color.fromARGB((255 * alpha).round(), 255, 255, 255),
+            );
+          }
           _drawMotorcycle(canvas, scale);
+          if (alpha < 1.0) {
+            canvas.restore();
+          }
           canvas.restore();
         }
       }
     }
 
-    // Phase 2: Converged Shared Vehicle along Right Highway (0.55 to 1.0)
-    if (vp >= 0.55 && rightMetric != null) {
-      final outT = ((vp - 0.55) / 0.45).clamp(0.0, 1.0);
+    // Phase 2: Converged Shared Vehicle along Right Highway (0.50 to 1.0)
+    if (vp >= 0.50 && rightMetric != null) {
+      final outT = ((vp - 0.50) / 0.50).clamp(0.0, 1.0);
+      final alpha = outT < 0.20 ? (outT / 0.20).clamp(0.0, 1.0) : 1.0;
       final dist = rightMetric.length * outT;
       final tangent = rightMetric.getTangentForOffset(dist);
-      if (tangent != null) {
+      if (tangent != null && alpha > 0.0) {
         canvas.save();
         canvas.translate(tangent.position.dx, tangent.position.dy);
         canvas.rotate(tangent.angle);
+        if (alpha < 1.0) {
+          canvas.saveLayer(
+            null,
+            Paint()
+              ..color = Color.fromARGB((255 * alpha).round(), 255, 255, 255),
+          );
+        }
         _drawCompactCar(canvas, scale, isShared: true);
+        if (alpha < 1.0) {
+          canvas.restore();
+        }
         canvas.restore();
       }
     }
@@ -403,7 +435,11 @@ class SahyanBrandMarkPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(0, 1.5 * scale), width: w * 0.98, height: h * 0.95),
+        Rect.fromCenter(
+          center: Offset(0, 1.5 * scale),
+          width: w * 0.98,
+          height: h * 0.95,
+        ),
         Radius.circular(3.5 * scale),
       ),
       shadowPaint,
@@ -437,7 +473,11 @@ class SahyanBrandMarkPainter extends CustomPainter {
 
     // Cabin Roof Deck
     final roofRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: Offset(-1.5 * scale, 0), width: 9.0 * scale, height: 7.0 * scale),
+      Rect.fromCenter(
+        center: Offset(-1.5 * scale, 0),
+        width: 9.0 * scale,
+        height: 7.0 * scale,
+      ),
       Radius.circular(2.0 * scale),
     );
     canvas.drawRRect(
@@ -456,13 +496,29 @@ class SahyanBrandMarkPainter extends CustomPainter {
 
     // Dual Front Headlights (Amber / bright white)
     final lightPaint = Paint()..color = const Color(0xFFFEF08A);
-    canvas.drawCircle(Offset((w / 2) - (1.0 * scale), -3.5 * scale), 1.2 * scale, lightPaint);
-    canvas.drawCircle(Offset((w / 2) - (1.0 * scale), 3.5 * scale), 1.2 * scale, lightPaint);
+    canvas.drawCircle(
+      Offset((w / 2) - (1.0 * scale), -3.5 * scale),
+      1.2 * scale,
+      lightPaint,
+    );
+    canvas.drawCircle(
+      Offset((w / 2) - (1.0 * scale), 3.5 * scale),
+      1.2 * scale,
+      lightPaint,
+    );
 
     // Dual Rear Taillights (Red)
     final tailPaint = Paint()..color = const Color(0xFFEF4444);
-    canvas.drawCircle(Offset((-w / 2) + (1.0 * scale), -3.5 * scale), 1.0 * scale, tailPaint);
-    canvas.drawCircle(Offset((-w / 2) + (1.0 * scale), 3.5 * scale), 1.0 * scale, tailPaint);
+    canvas.drawCircle(
+      Offset((-w / 2) + (1.0 * scale), -3.5 * scale),
+      1.0 * scale,
+      tailPaint,
+    );
+    canvas.drawCircle(
+      Offset((-w / 2) + (1.0 * scale), 3.5 * scale),
+      1.0 * scale,
+      tailPaint,
+    );
   }
 
   /// Two-wheeler / Motorcycle with rider helmet (facing right: 0 rad)
@@ -475,7 +531,11 @@ class SahyanBrandMarkPainter extends CustomPainter {
       ..color = Colors.black.withValues(alpha: 0.30)
       ..style = PaintingStyle.fill;
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(0, 1.0 * scale), width: w * 0.95, height: h * 0.85),
+      Rect.fromCenter(
+        center: Offset(0, 1.0 * scale),
+        width: w * 0.95,
+        height: h * 0.85,
+      ),
       shadowPaint,
     );
 
@@ -483,14 +543,22 @@ class SahyanBrandMarkPainter extends CustomPainter {
     final tirePaint = Paint()..color = const Color(0xFF0F172A);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(7.0 * scale, 0), width: 3.5 * scale, height: 2.2 * scale),
+        Rect.fromCenter(
+          center: Offset(7.0 * scale, 0),
+          width: 3.5 * scale,
+          height: 2.2 * scale,
+        ),
         Radius.circular(1.0 * scale),
       ),
       tirePaint,
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(-6.5 * scale, 0), width: 3.5 * scale, height: 2.5 * scale),
+        Rect.fromCenter(
+          center: Offset(-6.5 * scale, 0),
+          width: 3.5 * scale,
+          height: 2.5 * scale,
+        ),
         Radius.circular(1.0 * scale),
       ),
       tirePaint,
@@ -531,16 +599,28 @@ class SahyanBrandMarkPainter extends CustomPainter {
     // Dark Visor pointing forward
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(1.5 * scale, 0), width: 1.2 * scale, height: 2.8 * scale),
+        Rect.fromCenter(
+          center: Offset(1.5 * scale, 0),
+          width: 1.2 * scale,
+          height: 2.8 * scale,
+        ),
         Radius.circular(0.5 * scale),
       ),
       Paint()..color = const Color(0xFF0F172A),
     );
 
     // Front Headlight
-    canvas.drawCircle(Offset(8.0 * scale, 0), 1.2 * scale, Paint()..color = const Color(0xFFFEF08A));
+    canvas.drawCircle(
+      Offset(8.0 * scale, 0),
+      1.2 * scale,
+      Paint()..color = const Color(0xFFFEF08A),
+    );
     // Rear Taillight
-    canvas.drawCircle(Offset(-8.0 * scale, 0), 1.0 * scale, Paint()..color = const Color(0xFFEF4444));
+    canvas.drawCircle(
+      Offset(-8.0 * scale, 0),
+      1.0 * scale,
+      Paint()..color = const Color(0xFFEF4444),
+    );
   }
 
   @override
@@ -548,6 +628,7 @@ class SahyanBrandMarkPainter extends CustomPainter {
     return oldDelegate.drawProgress != drawProgress ||
         oldDelegate.vehicleProgress != vehicleProgress ||
         oldDelegate.hubPulseProgress != hubPulseProgress ||
+        oldDelegate.originProgress != originProgress ||
         oldDelegate.showVehicles != showVehicles ||
         oldDelegate.isDark != isDark ||
         oldDelegate.colorOverride != colorOverride;

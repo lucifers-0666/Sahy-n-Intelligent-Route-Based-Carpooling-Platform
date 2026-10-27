@@ -7,15 +7,15 @@ import 'sahyan_logo.dart';
 /// Animated master brand reveal for the Sahyān splash screen.
 /// Implements the concept: "Different paths. One shared journey."
 ///
-/// Choreographed 2.4s sequence:
-/// 1. Fade in emerald background and subtle route ambient glow.
-/// 2. Draw curved roads from separate origins toward the central hub (0 - 1320 ms).
-/// 3. Animate car along top path and motorcycle along bottom path with tangent rotation (150 - 1650 ms).
-/// 4. Roads converge at central hub, emitting a soft champagne-gold & mint pulse wave (1150 - 1630 ms).
+/// Choreographed 3.0s sequence:
+/// 1. Fade in emerald background, origin nodes appear (0 - 300 ms).
+/// 2. Draw curved roads from separate origins toward the central hub (150 - 1650 ms = 1500 ms).
+/// 3. Animate car along top path and motorcycle along bottom path with tangent rotation (150 - 1650 ms = 1500 ms).
+/// 4. Roads converge at central hub, emitting a soft champagne-gold & mint pulse wave (1450 - 1800 ms = 350 ms).
 /// 5. Shared vehicle travels forward along the shared horizontal highway.
-/// 6. Reveal the Sahyān wordmark with leaf motif using subtle scale and fade (1320 - 2040 ms).
-/// 7. Fade in the tagline: "Different paths. One shared journey." (1720 - 2400 ms).
-/// 8. Smooth completion callback to trigger seamless route transition.
+/// 6. Reveal the Sahyān wordmark with leaf motif using subtle scale and fade (1750 - 2250 ms = 500 ms).
+/// 7. Fade in the tagline: "Different paths. One shared journey." (2200 - 2600 ms = 400 ms).
+/// 8. Hold final composition (2600 - 3000 ms = 400 ms) before triggering onComplete.
 class SahyanAnimatedRouteLogo extends StatefulWidget {
   final double size;
   final bool isDark;
@@ -46,6 +46,7 @@ class SahyanAnimatedRouteLogo extends StatefulWidget {
 class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
     with SingleTickerProviderStateMixin {
   late final AnimationController _masterController;
+  late final Animation<double> _originAnimation;
   late final Animation<double> _drawAnimation;
   late final Animation<double> _vehicleAnimation;
   late final Animation<double> _hubPulseAnimation;
@@ -58,40 +59,46 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
   void initState() {
     super.initState();
 
-    // 2.4-second coordinated brand reveal animation
+    // 3.0-second coordinated brand reveal animation
     _masterController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2400),
+      duration: const Duration(milliseconds: 3000),
     );
 
-    // 1. Path drawing (0.00 to 0.55 = 0ms to 1320ms)
+    // 1. Origin nodes appear (0 to 300 ms)
+    _originAnimation = CurvedAnimation(
+      parent: _masterController,
+      curve: const Interval(0.00, 0.10, curve: Curves.easeOutCubic),
+    );
+
+    // 2. Road drawing (150 to 1650 ms = 1500 ms)
     _drawAnimation = CurvedAnimation(
       parent: _masterController,
-      curve: const Interval(0.0, 0.55, curve: Curves.easeInOutCubic),
+      curve: const Interval(0.05, 0.55, curve: Curves.easeInOutCubic),
     );
 
-    // 2. Vehicles moving along tangent paths (0.06 to 0.72 = 140ms to 1720ms)
+    // 3. Vehicles moving along tangent paths (150 to 1650 ms = 1500 ms)
     _vehicleAnimation = CurvedAnimation(
       parent: _masterController,
-      curve: const Interval(0.06, 0.72, curve: Curves.easeInOutSine),
+      curve: const Interval(0.05, 0.55, curve: Curves.easeInOutCubic),
     );
 
-    // 3. Central Hub pulse ring when vehicles meet (0.48 to 0.68 = 1150ms to 1630ms)
+    // 4. Central Hub pulse ring when vehicles meet (1450 to 1800 ms = 350 ms)
     _hubPulseAnimation = CurvedAnimation(
       parent: _masterController,
-      curve: const Interval(0.48, 0.68, curve: Curves.easeOutQuad),
+      curve: const Interval(0.483, 0.600, curve: Curves.easeOutQuad),
     );
 
-    // 4. Sahyān wordmark scale and fade in (0.55 to 0.85 = 1320ms to 2040ms)
+    // 5. Sahyān wordmark scale and fade in (1750 to 2250 ms = 500 ms)
     _wordmarkAnimation = CurvedAnimation(
       parent: _masterController,
-      curve: const Interval(0.55, 0.85, curve: Curves.easeOutCubic),
+      curve: const Interval(0.583, 0.750, curve: Curves.easeOutCubic),
     );
 
-    // 5. Tagline fade in (0.72 to 1.00 = 1720ms to 2400ms)
+    // 6. Tagline fade in (2200 to 2600 ms = 400 ms)
     _taglineAnimation = CurvedAnimation(
       parent: _masterController,
-      curve: const Interval(0.72, 1.00, curve: Curves.easeOut),
+      curve: const Interval(0.733, 0.867, curve: Curves.easeOut),
     );
 
     _masterController.addStatusListener((status) {
@@ -125,9 +132,11 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
 
   @override
   Widget build(BuildContext context) {
-    final wordmarkColor = widget.wordmarkColor ??
+    final wordmarkColor =
+        widget.wordmarkColor ??
         (widget.isDark ? Colors.white : AppColors.brand);
-    final taglineColor = widget.taglineColor ??
+    final taglineColor =
+        widget.taglineColor ??
         (widget.isDark
             ? AppColors.softMint.withValues(alpha: 0.95)
             : AppColors.mutedLight);
@@ -155,6 +164,7 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
                 height: markHeight,
                 child: CustomPaint(
                   painter: SahyanBrandMarkPainter(
+                    originProgress: _originAnimation.value,
                     drawProgress: _drawAnimation.value,
                     vehicleProgress: _vehicleAnimation.value,
                     hubPulseProgress: _hubPulseAnimation.value,
@@ -208,11 +218,15 @@ class _SahyanAnimatedRouteLogoState extends State<SahyanAnimatedRouteLogo>
                           top: -widget.size * 0.08,
                           right: widget.size * 0.40,
                           child: Opacity(
-                            opacity: (val > 0.4 ? (val - 0.4) / 0.6 : 0.0).clamp(0.0, 1.0),
+                            opacity: (val > 0.4 ? (val - 0.4) / 0.6 : 0.0)
+                                .clamp(0.0, 1.0),
                             child: Transform.rotate(
                               angle: -0.15,
                               child: CustomPaint(
-                                size: Size(widget.size * 0.12, widget.size * 0.12),
+                                size: Size(
+                                  widget.size * 0.12,
+                                  widget.size * 0.12,
+                                ),
                                 painter: _SahyanLeafPainter(
                                   color: widget.isDark
                                       ? AppColors.softMint

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sahyan/app/theme/app_theme.dart';
 import 'package:sahyan/features/auth/presentation/screens/splash_screen.dart';
 import 'package:sahyan/l10n/generated/app_localizations.dart';
@@ -33,6 +34,59 @@ Widget _buildSplashApp({
   );
 }
 
+Widget _buildSplashRouterApp({
+  GoRouter? router,
+  double width = 390,
+  double height = 844,
+  bool disableAnimations = false,
+  List<Override> overrides = const [],
+}) {
+  final testRouter =
+      router ??
+      GoRouter(
+        initialLocation: '/splash',
+        routes: [
+          GoRoute(
+            path: '/splash',
+            builder: (context, state) => const SplashScreen(),
+          ),
+          GoRoute(
+            path: '/welcome',
+            builder: (context, state) =>
+                const Scaffold(body: Text('Welcome Screen')),
+          ),
+          GoRoute(
+            path: '/home',
+            builder: (context, state) =>
+                const Scaffold(body: Text('Home Screen')),
+          ),
+          GoRoute(
+            path: '/onboarding',
+            builder: (context, state) =>
+                const Scaffold(body: Text('Onboarding Screen')),
+          ),
+        ],
+      );
+
+  return ProviderScope(
+    overrides: overrides,
+    child: MaterialApp.router(
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      routerConfig: testRouter,
+      builder: (context, child) => MediaQuery(
+        data: MediaQueryData(
+          size: Size(width, height),
+          disableAnimations: disableAnimations,
+        ),
+        child: child ?? const SizedBox(),
+      ),
+    ),
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -56,28 +110,31 @@ void main() {
       expect(find.byType(CustomPaint), findsWidgets);
     });
 
-    testWidgets('CustomPainter paints correctly across different progress steps', (
-      tester,
-    ) async {
-      final painterFull = const SahyanBrandMarkPainter(
-        drawProgress: 1.0,
-        vehicleProgress: 1.0,
-        hubPulseProgress: 0.5,
-        showVehicles: true,
-        isDark: true,
-      );
+    testWidgets(
+      'CustomPainter paints correctly across different progress steps',
+      (tester) async {
+        final painterFull = const SahyanBrandMarkPainter(
+          originProgress: 1.0,
+          drawProgress: 1.0,
+          vehicleProgress: 1.0,
+          hubPulseProgress: 0.5,
+          showVehicles: true,
+          isDark: true,
+        );
 
-      final painterHalf = const SahyanBrandMarkPainter(
-        drawProgress: 0.5,
-        vehicleProgress: 0.4,
-        hubPulseProgress: 0.0,
-        showVehicles: true,
-        isDark: false,
-      );
+        final painterHalf = const SahyanBrandMarkPainter(
+          originProgress: 0.5,
+          drawProgress: 0.5,
+          vehicleProgress: 0.4,
+          hubPulseProgress: 0.0,
+          showVehicles: true,
+          isDark: false,
+        );
 
-      expect(painterFull.shouldRepaint(painterHalf), isTrue);
-      expect(painterFull.shouldRepaint(painterFull), isFalse);
-    });
+        expect(painterFull.shouldRepaint(painterHalf), isTrue);
+        expect(painterFull.shouldRepaint(painterFull), isFalse);
+      },
+    );
   });
 
   group('SahyanAnimatedRouteLogo Tests', () {
@@ -106,37 +163,12 @@ void main() {
       }
     });
 
-    testWidgets('Fires onComplete after animation finishes', (tester) async {
-      bool completed = false;
-      await tester.pumpWidget(
-        _buildSplashApp(
-          child: Scaffold(
-            body: Center(
-              child: SahyanAnimatedRouteLogo(
-                size: 110,
-                onComplete: () => completed = true,
-              ),
-            ),
-          ),
-        ),
-      );
-
-      // Advance through the 2.4s animation
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(completed, isFalse);
-
-      await tester.pump(const Duration(milliseconds: 2000));
-      await tester.pumpAndSettle();
-      expect(completed, isTrue);
-    });
-
-    testWidgets('Respects system reduced-motion (disableAnimations) immediately', (
+    testWidgets('Fires onComplete after 3.0s animation finishes', (
       tester,
     ) async {
       bool completed = false;
       await tester.pumpWidget(
         _buildSplashApp(
-          disableAnimations: true,
           child: Scaffold(
             body: Center(
               child: SahyanAnimatedRouteLogo(
@@ -148,11 +180,45 @@ void main() {
         ),
       );
 
-      // PostFrameCallback triggers on first frame
-      await tester.pump();
+      // Advance through the calibrated 3.0s animation sequence
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(completed, isFalse);
+
+      await tester.pump(const Duration(milliseconds: 1500));
+      expect(completed, isFalse);
+
+      await tester.pump(const Duration(milliseconds: 1100));
+      await tester.pumpAndSettle();
       expect(completed, isTrue);
-      expect(find.text('Different paths. One shared journey.'), findsOneWidget);
     });
+
+    testWidgets(
+      'Respects system reduced-motion (disableAnimations) immediately',
+      (tester) async {
+        bool completed = false;
+        await tester.pumpWidget(
+          _buildSplashApp(
+            disableAnimations: true,
+            child: Scaffold(
+              body: Center(
+                child: SahyanAnimatedRouteLogo(
+                  size: 110,
+                  onComplete: () => completed = true,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        // PostFrameCallback triggers on first frame
+        await tester.pump();
+        expect(completed, isTrue);
+        expect(
+          find.text('Different paths. One shared journey.'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 
   group('SplashScreen Screen-Size Responsiveness Tests', () {
@@ -163,11 +229,7 @@ void main() {
         tester,
       ) async {
         await tester.pumpWidget(
-          _buildSplashApp(
-            width: width,
-            height: 800,
-            child: const SplashScreen(),
-          ),
+          _buildSplashRouterApp(width: width, height: 800),
         );
         await tester.pump();
 
@@ -179,6 +241,26 @@ void main() {
         expect(tester.takeException(), isNull);
       });
     }
+
+    testWidgets(
+      'SplashScreen handles safety timeout (4200ms) and navigates cleanly',
+      (tester) async {
+        await tester.pumpWidget(_buildSplashRouterApp());
+        await tester.pump();
+
+        expect(find.byType(SplashScreen), findsOneWidget);
+
+        // Advance through 3000ms animation
+        await tester.pump(const Duration(milliseconds: 3000));
+        expect(tester.takeException(), isNull);
+
+        // Advance past 4200ms safety timeout
+        await tester.pump(const Duration(milliseconds: 1300));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.text('Welcome Screen'), findsOneWidget);
+      },
+    );
   });
 
   group('SahyanLogo Variant Tests', () {

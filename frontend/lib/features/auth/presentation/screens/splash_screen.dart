@@ -31,8 +31,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Safety fallback: Never block user indefinitely if storage or backend is slow
-    _safetyTimeoutTimer = Timer(const Duration(milliseconds: 3500), () {
+    // Safety fallback: Never block user indefinitely if storage or backend is slow (4.2s allows 3.0s animation to complete)
+    _safetyTimeoutTimer = Timer(const Duration(milliseconds: 4200), () {
       if (mounted && !_hasNavigated) {
         _isAnimationFinished = true;
         _evaluateAndNavigate(force: true);
