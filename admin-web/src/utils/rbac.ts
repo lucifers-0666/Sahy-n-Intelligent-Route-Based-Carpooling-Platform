@@ -76,7 +76,10 @@ export function isTabAuthorized(tabKey: string, role: string | undefined | null)
     case 'platform':
       return hasCapability(role, 'MANAGE_PLATFORM_SETTINGS');
     case 'bookings':
+    case 'disputes':
       return hasCapability(role, 'VIEW_DISPUTES');
+    case 'fraud':
+      return hasCapability(role, 'MANAGE_DRIVER_SUSPENSION');
     case 'settings':
       return hasCapability(role, 'VIEW_SYSTEM_HEALTH');
     case 'audit':

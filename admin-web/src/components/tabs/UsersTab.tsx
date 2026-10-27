@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { UserItem } from '../../types/admin';
 import { adminApi } from '../../services/api';
 import { UnmaskModal } from '../UnmaskModal';
+import { PageHeader } from '../ui/PageHeader';
+import { Badge } from '../ui/Badge';
+import { EmptyState } from '../ui/EmptyState';
+import { ErrorState } from '../ui/ErrorState';
+import { Pagination } from '../ui/Pagination';
 import {
   Users,
   Search,
@@ -13,11 +18,12 @@ import {
   AlertTriangle,
   RotateCcw,
   Info,
-  Eye,
   Phone,
   MessageSquare,
   Mail,
   Copy,
+  Car,
+  Filter,
 } from 'lucide-react';
 
 export const UsersTab: React.FC = () => {
@@ -28,6 +34,8 @@ export const UsersTab: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState<'all' | 'driver' | 'passenger'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
 
   // PII Unmasking state
   const [unmaskOpen, setUnmaskOpen] = useState(false);
@@ -96,6 +104,7 @@ export const UsersTab: React.FC = () => {
       }
 
       setUsers(filtered);
+      setPage(1);
     } catch (err: any) {
       setError(err.message || 'Failed to load user accounts.');
       setUsers([]);
@@ -151,7 +160,7 @@ export const UsersTab: React.FC = () => {
       }
       setFeedback({
         type: 'success',
-        message: `Driver account for ${suspendingUser.name} has been suspended. All capabilities are blocked.`,
+        message: `Account for ${suspendingUser.name} has been suspended with audit logging.`,
       });
       setSuspendingUser(null);
     } catch (err: any) {
@@ -188,22 +197,66 @@ export const UsersTab: React.FC = () => {
     }
   };
 
+  // Pagination slice
+  const totalUsers = users.length;
+  const paginatedUsers = users.slice((page - 1) * pageSize, page * pageSize);
+
   return (
     <div className="space-y-6">
-      {/* Header and filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-black text-gray-950 uppercase tracking-tight font-mono">
-            User Directory & Access Control
-          </h1>
-          <p className="text-xs text-gray-600 font-mono mt-0.5">
-            Audit registered accounts, driver eligibility, and execute fail-closed suspensions.
-          </p>
-        </div>
+      {/* Header */}
+      <PageHeader
+        title="User Directory & Access Control"
+        subtitle="Audit registered accounts, driver eligibility, and execute fail-closed suspensions with DPDP-compliant PII protection."
+        breadcrumbs={[
+          { label: 'Operations' },
+          { label: 'User Directory' },
+        ]}
+      />
 
-        {/* Status & Role Filters with Brutalist borders */}
+      {/* Global Feedback Banner */}
+      {feedback && (
+        <div
+          className={`p-3.5 rounded-xl text-xs font-semibold flex items-center justify-between border shadow-xs animate-in fade-in ${
+            feedback.type === 'success'
+              ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950'
+              : 'bg-rose-50/90 border-rose-200 text-rose-950'
+          }`}
+        >
+          <div className="flex items-center space-x-2">
+            {feedback.type === 'success' ? (
+              <CheckCircle className="w-4 h-4 text-emerald-700 shrink-0" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-rose-700 shrink-0" />
+            )}
+            <span>{feedback.message}</span>
+          </div>
+          <button
+            onClick={() => setFeedback(null)}
+            className="p-1 rounded-lg hover:bg-black/5 cursor-pointer text-textMuted"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Search and Filters Toolbar */}
+      <div className="card p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+        {/* Search */}
+        <form onSubmit={handleSearchSubmit} className="relative flex-1">
+          <Search className="w-4 h-4 text-textMuted absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search by name, email, or mobile number..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-xs bg-surface rounded-xl border border-surface-subtle text-textMain placeholder-textMuted focus:outline-none focus:ring-2 focus:ring-forest/20 focus:border-forest transition-all"
+          />
+        </form>
+
+        {/* Filter Pills */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center space-x-1 bg-gray-100 p-1 border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          {/* Role Filter */}
+          <div className="flex items-center bg-surface p-1 rounded-xl border border-surface-subtle">
             {[
               { id: 'all', label: 'All Roles' },
               { id: 'driver', label: 'Drivers' },
@@ -212,10 +265,10 @@ export const UsersTab: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setRoleFilter(tab.id as any)}
-                className={`px-3 py-1 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   roleFilter === tab.id
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-700 hover:bg-gray-200'
+                    ? 'bg-forest text-white shadow-xs'
+                    : 'text-textMuted hover:text-textMain hover:bg-white/50'
                 }`}
               >
                 {tab.label}
@@ -223,7 +276,8 @@ export const UsersTab: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex items-center space-x-1 bg-gray-100 p-1 border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          {/* Status Filter */}
+          <div className="flex items-center bg-surface p-1 rounded-xl border border-surface-subtle">
             {[
               { id: 'all', label: 'All Status' },
               { id: 'active', label: 'Active' },
@@ -232,10 +286,10 @@ export const UsersTab: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setStatusFilter(tab.id as any)}
-                className={`px-3 py-1 text-[11px] font-bold uppercase transition-colors cursor-pointer ${
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
                   statusFilter === tab.id
-                    ? 'bg-gray-900 text-white'
-                    : 'text-gray-700 hover:bg-gray-200'
+                    ? 'bg-forest text-white shadow-xs'
+                    : 'text-textMuted hover:text-textMain hover:bg-white/50'
                 }`}
               >
                 {tab.label}
@@ -245,86 +299,47 @@ export const UsersTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Global Feedback Banner */}
-      {feedback && (
-        <div
-          className={`p-3 border-2 text-xs font-mono font-bold flex items-center justify-between shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-            feedback.type === 'success'
-              ? 'bg-emerald-50 border-emerald-900 text-emerald-950'
-              : 'bg-rose-50 border-rose-900 text-rose-950'
-          }`}
-        >
-          <div className="flex items-center space-x-2">
-            {feedback.type === 'success' ? (
-              <CheckCircle className="w-4 h-4 text-emerald-800 shrink-0" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 text-rose-800 shrink-0" />
-            )}
-            <span>{feedback.message}</span>
-          </div>
-          <button
-            onClick={() => setFeedback(null)}
-            className="p-1 hover:bg-black/10 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* Search Input */}
-      <form onSubmit={handleSearchSubmit} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search by name, email, or mobile number..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white pl-10 pr-4 py-2 text-xs border-2 border-gray-900 font-mono text-gray-950 focus:outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-          />
-        </div>
-        <button
-          type="submit"
-          className="px-5 py-2 bg-gray-900 text-white text-xs font-black uppercase font-mono hover:bg-gray-800 transition-colors border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer"
-        >
-          Search
-        </button>
-      </form>
-
-      {/* Table Content */}
+      {/* Main Table / State View */}
       {loading ? (
-        <div className="bg-white border-2 border-gray-900 p-12 text-center text-gray-600 font-mono text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          QUERYING ACCOUNTS FROM DATABASE...
+        <div className="card p-12 text-center">
+          <div className="w-8 h-8 border-2 border-forest border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-xs font-semibold text-textMuted">Querying accounts from database...</p>
         </div>
       ) : error ? (
-        <div className="bg-rose-50 border-2 border-rose-900 p-6 text-center text-rose-950 font-mono text-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          {error}
-        </div>
+        <ErrorState
+          title="Failed to Load Accounts"
+          message={error}
+          onRetry={fetchUsers}
+        />
       ) : users.length === 0 ? (
-        <div className="bg-white border-2 border-gray-900 p-12 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <Users className="w-10 h-10 text-gray-900 mx-auto mb-2" />
-          <h3 className="text-sm font-black uppercase font-mono text-gray-950">No Accounts Found</h3>
-          <p className="text-xs text-gray-600 font-mono mt-1">
-            No community accounts matched the active filter criteria.
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No Accounts Found"
+          description="No community accounts matched the active filter criteria or search query."
+          actionLabel="Clear Filters"
+          onAction={() => {
+            setRoleFilter('all');
+            setStatusFilter('all');
+            setSearch('');
+          }}
+        />
       ) : (
-        <div className="bg-white border-2 border-gray-900 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+        <div className="card p-0 overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-gray-100 text-gray-950 font-black uppercase tracking-wider border-b-2 border-gray-900">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-surface/60 text-textMuted font-bold uppercase tracking-wider text-[11px] border-b border-surface-subtle">
                 <tr>
-                  <th className="py-3 px-4">Member Name</th>
-                  <th className="py-3 px-4">Contact Info</th>
-                  <th className="py-3 px-4">Role & Eligibility</th>
-                  <th className="py-3 px-4">Account Status</th>
-                  <th className="py-3 px-4">Community Rating</th>
-                  <th className="py-3 px-4">Journeys</th>
-                  <th className="py-3 px-4 text-right">Access Controls</th>
+                  <th className="py-3.5 px-4">Member Name</th>
+                  <th className="py-3.5 px-4">Contact Info</th>
+                  <th className="py-3.5 px-4">Role & Eligibility</th>
+                  <th className="py-3.5 px-4">Account Status</th>
+                  <th className="py-3.5 px-4">Rating</th>
+                  <th className="py-3.5 px-4">Total Trips</th>
+                  <th className="py-3.5 px-4 text-right">Access Controls</th>
                 </tr>
               </thead>
-              <tbody className="divide-y-2 divide-gray-200">
-                {(Array.isArray(users) ? users : []).map((u) => {
+              <tbody className="divide-y divide-surface-subtle">
+                {paginatedUsers.map((u) => {
                   const isEligibleDriver =
                     u?.capabilities?.canDrive ||
                     u?.driverProfile?.onboardingStatus === 'approved' ||
@@ -343,18 +358,21 @@ export const UsersTab: React.FC = () => {
                     <tr
                       key={userIdStr || Math.random()}
                       onClick={() => setInspectedUser(u)}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="hover:bg-surface/50 transition-colors cursor-pointer"
                     >
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-gray-950 flex items-center space-x-1.5">
+                        <div className="font-bold text-textMain flex items-center space-x-1.5">
                           <span>{u?.name || 'Unnamed Member'}</span>
-                          {u?.isVerified && <ShieldCheck className="w-3.5 h-3.5 text-gray-900" />}
+                          {u?.isVerified && (
+                            <span title="Government KYC Verified">
+                              <ShieldCheck className="w-3.5 h-3.5 text-forest" />
+                            </span>
+                          )}
                         </div>
-                        <div className="text-[11px] text-gray-500 font-mono">ID: {shortId}</div>
+                        <div className="text-[11px] text-textMuted font-mono mt-0.5">ID: {shortId}</div>
                       </td>
 
-                      <td className="py-3.5 px-4 font-medium" onClick={(e) => e.stopPropagation()}>
-                        {/* Email Row */}
+                      <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
                         {(() => {
                           const unmaskedEmail = unmaskedValues[`email_${userIdStr}`];
                           const unmaskedPhone = unmaskedValues[`phone_${userIdStr}`];
@@ -362,9 +380,10 @@ export const UsersTab: React.FC = () => {
                           const digitsOnly = cleanPhone.replace(/\D/g, '');
 
                           return (
-                            <>
+                            <div className="space-y-1">
+                              {/* Email Row */}
                               <div className="flex items-center justify-between space-x-2">
-                                <span className={`truncate max-w-[150px] ${unmaskedEmail ? 'text-gray-950 font-black' : 'text-gray-950 font-bold'}`}>
+                                <span className={`truncate max-w-[160px] text-xs ${unmaskedEmail ? 'text-textMain font-bold' : 'text-textMuted'}`}>
                                   {unmaskedEmail || u?.email || 'N/A'}
                                 </span>
                                 {unmaskedEmail ? (
@@ -372,17 +391,17 @@ export const UsersTab: React.FC = () => {
                                     <a
                                       href={`mailto:${unmaskedEmail}`}
                                       title="Send Email"
-                                      className="p-1 hover:bg-gray-200 border border-gray-900 text-gray-900 transition-colors"
+                                      className="p-1 rounded-md hover:bg-surface text-textMuted hover:text-textMain transition-colors"
                                     >
-                                      <Mail className="w-3 h-3" />
+                                      <Mail className="w-3.5 h-3.5" />
                                     </a>
                                     <button
                                       type="button"
                                       onClick={() => copyToClipboard(unmaskedEmail, 'Email')}
                                       title="Copy Email"
-                                      className="p-1 hover:bg-gray-200 border border-gray-900 text-gray-900 transition-colors cursor-pointer"
+                                      className="p-1 rounded-md hover:bg-surface text-textMuted hover:text-textMain transition-colors cursor-pointer"
                                     >
-                                      <Copy className="w-3 h-3" />
+                                      <Copy className="w-3.5 h-3.5" />
                                     </button>
                                   </div>
                                 ) : (
@@ -393,7 +412,7 @@ export const UsersTab: React.FC = () => {
                                         setUnmaskTarget({ id: userIdStr, field: 'email', label: 'Email Address' });
                                         setUnmaskOpen(true);
                                       }}
-                                      className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
+                                      className="text-[10px] font-bold text-forest hover:text-forest-dark hover:underline shrink-0"
                                     >
                                       Unmask
                                     </button>
@@ -401,9 +420,9 @@ export const UsersTab: React.FC = () => {
                                 )}
                               </div>
 
-                              {/* Phone Row with Direct Communication Mediums */}
-                              <div className="flex items-center justify-between space-x-2 text-[11px] font-mono mt-0.5">
-                                <span className={unmaskedPhone ? 'text-emerald-950 font-black' : 'text-gray-500'}>
+                              {/* Phone Row */}
+                              <div className="flex items-center justify-between space-x-2 text-[11px]">
+                                <span className={`font-mono ${unmaskedPhone ? 'text-forest font-bold' : 'text-textMuted'}`}>
                                   {unmaskedPhone || u?.phone || 'N/A'}
                                 </span>
                                 {unmaskedPhone ? (
@@ -411,7 +430,7 @@ export const UsersTab: React.FC = () => {
                                     <a
                                       href={`tel:${cleanPhone}`}
                                       title="Direct Phone Call"
-                                      className="px-1.5 py-0.5 bg-emerald-100 hover:bg-emerald-200 border border-emerald-900 text-emerald-950 text-[10px] font-bold flex items-center space-x-1 transition-colors"
+                                      className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded text-[10px] font-semibold flex items-center space-x-1 transition-colors"
                                     >
                                       <Phone className="w-2.5 h-2.5" />
                                       <span>Call</span>
@@ -421,7 +440,7 @@ export const UsersTab: React.FC = () => {
                                       target="_blank"
                                       rel="noopener noreferrer"
                                       title="WhatsApp Direct Message"
-                                      className="px-1.5 py-0.5 bg-green-100 hover:bg-green-200 border border-green-900 text-green-950 text-[10px] font-bold flex items-center space-x-1 transition-colors"
+                                      className="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded text-[10px] font-semibold flex items-center space-x-1 transition-colors"
                                     >
                                       <MessageSquare className="w-2.5 h-2.5" />
                                       <span>Chat</span>
@@ -430,7 +449,7 @@ export const UsersTab: React.FC = () => {
                                       type="button"
                                       onClick={() => copyToClipboard(unmaskedPhone, 'Phone number')}
                                       title="Copy Phone Number"
-                                      className="p-1 hover:bg-gray-200 border border-gray-900 text-gray-900 transition-colors cursor-pointer"
+                                      className="p-1 rounded-md hover:bg-surface text-textMuted hover:text-textMain transition-colors cursor-pointer"
                                     >
                                       <Copy className="w-3 h-3" />
                                     </button>
@@ -443,31 +462,29 @@ export const UsersTab: React.FC = () => {
                                         setUnmaskTarget({ id: userIdStr, field: 'phone', label: 'Phone Number' });
                                         setUnmaskOpen(true);
                                       }}
-                                      className="text-[9px] uppercase font-bold text-forest hover:underline shrink-0"
+                                      className="text-[10px] font-bold text-forest hover:text-forest-dark hover:underline shrink-0"
                                     >
                                       Unmask
                                     </button>
                                   )
                                 )}
                               </div>
-                            </>
+                            </div>
                           );
                         })()}
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <span
-                          className={`inline-block px-2 py-0.5 text-[10px] font-black uppercase border-2 ${
-                            isEligibleDriver
-                              ? 'bg-blue-50 text-blue-950 border-blue-900'
-                              : 'bg-gray-100 text-gray-800 border-gray-900'
-                          }`}
-                        >
+                        <Badge variant={isEligibleDriver ? 'blue' : 'gray'}>
                           {isEligibleDriver ? 'Eligible Driver' : 'Passenger Only'}
-                        </span>
+                        </Badge>
                         {u?.vehicle && typeof u.vehicle === 'object' && (
-                          <div className="text-[10px] text-gray-700 font-bold mt-1">
-                            {u.vehicle.make || ''} {u.vehicle.model || ''} {u.vehicle.registrationNumber ? `(${u.vehicle.registrationNumber})` : ''}
+                          <div className="text-[11px] text-textMuted flex items-center space-x-1 mt-1 font-medium">
+                            <Car className="w-3 h-3 text-textLight shrink-0" />
+                            <span>
+                              {u.vehicle.make || ''} {u.vehicle.model || ''}{' '}
+                              {u.vehicle.registrationNumber ? `(${u.vehicle.registrationNumber})` : ''}
+                            </span>
                           </div>
                         )}
                       </td>
@@ -475,34 +492,29 @@ export const UsersTab: React.FC = () => {
                       <td className="py-3.5 px-4">
                         {isSuspended ? (
                           <div>
-                            <span className="inline-flex items-center space-x-1 px-2.5 py-1 bg-red-600 text-white font-black text-[10px] uppercase border-2 border-red-950 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]">
-                              <AlertOctagon className="w-3 h-3" />
-                              <span>SUSPENDED</span>
-                            </span>
+                            <Badge variant="rose">Suspended</Badge>
                             {u.suspensionReason && (
                               <div
                                 title={u.suspensionReason}
-                                className="text-[10px] text-red-700 font-bold truncate max-w-[160px] mt-1"
+                                className="text-[11px] text-rose-700 truncate max-w-[150px] mt-1 font-medium"
                               >
                                 {u.suspensionReason}
                               </div>
                             )}
                           </div>
                         ) : (
-                          <span className="inline-block px-2.5 py-1 bg-emerald-100 text-emerald-950 font-black text-[10px] uppercase border-2 border-emerald-900">
-                            ACTIVE
-                          </span>
+                          <Badge variant="emerald">Active</Badge>
                         )}
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center space-x-1 font-bold text-gray-950">
-                          <Star className="w-3.5 h-3.5 text-gray-900 fill-gray-900" />
+                        <div className="flex items-center space-x-1 font-semibold text-textMain">
+                          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                           <span>{displayRating}</span>
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 font-bold text-gray-950">
+                      <td className="py-3.5 px-4 font-semibold text-textMain">
                         {u.totalRides || 0}
                       </td>
 
@@ -513,7 +525,7 @@ export const UsersTab: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={(e) => handleOpenReactivateModal(u, e)}
-                                className="px-3 py-1.5 bg-gray-900 hover:bg-gray-800 text-white text-[11px] font-black uppercase font-mono border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer flex items-center space-x-1"
+                                className="px-2.5 py-1.5 bg-forest/10 hover:bg-forest/20 text-forest rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center space-x-1"
                               >
                                 <RotateCcw className="w-3 h-3" />
                                 <span>Reactivate</span>
@@ -522,15 +534,15 @@ export const UsersTab: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={(e) => handleOpenSuspendModal(u, e)}
-                                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] font-black uppercase font-mono border-2 border-red-950 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer flex items-center space-x-1"
+                                className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center space-x-1"
                               >
                                 <AlertOctagon className="w-3 h-3" />
-                                <span>Suspend Driver</span>
+                                <span>Suspend</span>
                               </button>
                             )
                           ) : (
-                            <span className="text-[10px] text-gray-500 font-bold uppercase">
-                              Passenger Account
+                            <span className="text-[11px] text-textMuted font-medium">
+                              Passenger
                             </span>
                           )}
                         </div>
@@ -541,36 +553,48 @@ export const UsersTab: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          <div className="p-4 border-t border-surface-subtle">
+            <Pagination
+              page={page}
+              totalPages={Math.ceil(totalUsers / pageSize)}
+              totalItems={totalUsers}
+              pageSize={pageSize}
+              onPageChange={setPage}
+            />
+          </div>
         </div>
       )}
 
-      {/* Driver Inspection Drawer */}
+      {/* Account Inspection Drawer */}
       {inspectedUser && (
-        <div className="bg-white border-2 border-gray-900 p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] font-mono space-y-4">
-          <div className="flex items-center justify-between border-b-2 border-gray-900 pb-3">
+        <div className="card p-6 shadow-md border-forest/20 space-y-4 animate-in fade-in">
+          <div className="flex items-center justify-between border-b border-surface-subtle pb-3">
             <div className="flex items-center space-x-2">
-              <Info className="w-4 h-4 text-gray-950" />
-              <h2 className="text-sm font-black uppercase tracking-tight text-gray-950">
+              <Info className="w-4 h-4 text-forest" />
+              <h2 className="text-sm font-bold text-textMain">
                 Account Inspection: {inspectedUser.name || 'Unnamed Member'}
               </h2>
             </div>
             <button
               type="button"
               onClick={() => setInspectedUser(null)}
-              className="p-1 border border-gray-900 hover:bg-gray-100 cursor-pointer"
+              className="p-1 rounded-lg hover:bg-surface text-textMuted hover:text-textMain cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs">
-            <div className="p-3 bg-gray-50 border border-gray-900">
-              <span className="text-gray-500 block uppercase text-[10px]">Account ID</span>
-              <span className="font-bold text-gray-950 select-all">{inspectedUser._id || 'N/A'}</span>
+            <div className="p-3 bg-surface rounded-xl border border-surface-subtle">
+              <span className="text-textMuted block text-[10px] font-bold uppercase tracking-wider">Account ID</span>
+              <span className="font-mono font-semibold text-textMain select-all">{inspectedUser._id || 'N/A'}</span>
             </div>
-            <div className="p-3 bg-gray-50 border border-gray-900">
+
+            <div className="p-3 bg-surface rounded-xl border border-surface-subtle">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-gray-500 uppercase text-[10px]">Email & Mobile</span>
+                <span className="text-textMuted text-[10px] font-bold uppercase tracking-wider">Contact</span>
                 {(!unmaskedValues[`phone_${inspectedUser._id}`] || !unmaskedValues[`email_${inspectedUser._id}`]) && (
                   <button
                     type="button"
@@ -578,17 +602,17 @@ export const UsersTab: React.FC = () => {
                       setUnmaskTarget({ id: String(inspectedUser._id), field: 'phone', label: 'Phone Number' });
                       setUnmaskOpen(true);
                     }}
-                    className="text-[9px] uppercase font-bold text-forest hover:underline"
+                    className="text-[10px] font-bold text-forest hover:underline"
                   >
                     Unmask PII
                   </button>
                 )}
               </div>
-              <span className="font-bold text-gray-950 block">
+              <span className="font-semibold text-textMain block truncate">
                 {unmaskedValues[`email_${inspectedUser._id}`] || inspectedUser.email || 'N/A'}
               </span>
-              <div className="flex items-center justify-between mt-1">
-                <span className={unmaskedValues[`phone_${inspectedUser._id}`] ? 'text-emerald-950 font-black' : 'text-gray-600'}>
+              <div className="flex items-center justify-between mt-1 text-[11px] font-mono">
+                <span className={unmaskedValues[`phone_${inspectedUser._id}`] ? 'text-forest font-bold' : 'text-textMuted'}>
                   {unmaskedValues[`phone_${inspectedUser._id}`] || inspectedUser.phone || 'N/A'}
                 </span>
                 {unmaskedValues[`phone_${inspectedUser._id}`] && (
@@ -596,61 +620,56 @@ export const UsersTab: React.FC = () => {
                     <a
                       href={`tel:${(unmaskedValues[`phone_${inspectedUser._id}`] || '').replace(/[\s\-]/g, '')}`}
                       title="Direct Phone Call"
-                      className="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 border border-emerald-900 text-emerald-950 text-[10px] font-bold flex items-center space-x-1"
+                      className="px-1.5 py-0.5 bg-emerald-100 text-emerald-900 rounded text-[10px] font-semibold"
                     >
-                      <Phone className="w-2.5 h-2.5" />
-                      <span>Call</span>
+                      Call
                     </a>
                     <a
                       href={`https://wa.me/${(unmaskedValues[`phone_${inspectedUser._id}`] || '').replace(/\D/g, '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       title="Direct WhatsApp"
-                      className="px-2 py-0.5 bg-green-100 hover:bg-green-200 border border-green-900 text-green-950 text-[10px] font-bold flex items-center space-x-1"
+                      className="px-1.5 py-0.5 bg-emerald-100 text-emerald-900 rounded text-[10px] font-semibold"
                     >
-                      <MessageSquare className="w-2.5 h-2.5" />
-                      <span>WhatsApp</span>
+                      Chat
                     </a>
                   </div>
                 )}
               </div>
             </div>
-            <div className="p-3 bg-gray-50 border border-gray-900">
-              <span className="text-gray-500 block uppercase text-[10px]">Access Status</span>
-              <span
-                className={`font-black uppercase inline-block mt-0.5 px-2 py-0.5 text-[10px] border ${
-                  inspectedUser.accountStatus === 'suspended'
-                    ? 'bg-red-600 text-white border-red-950'
-                    : 'bg-emerald-100 text-emerald-950 border-emerald-900'
-                }`}
-              >
-                {inspectedUser.accountStatus === 'suspended' ? 'SUSPENDED' : 'ACTIVE'}
-              </span>
+
+            <div className="p-3 bg-surface rounded-xl border border-surface-subtle">
+              <span className="text-textMuted block text-[10px] font-bold uppercase tracking-wider">Access Status</span>
+              <div className="mt-1">
+                <Badge variant={inspectedUser.accountStatus === 'suspended' ? 'rose' : 'emerald'}>
+                  {inspectedUser.accountStatus === 'suspended' ? 'SUSPENDED' : 'ACTIVE'}
+                </Badge>
+              </div>
             </div>
-            <div className="p-3 bg-gray-50 border border-gray-900">
-              <span className="text-gray-500 block uppercase text-[10px]">Registration Date</span>
-              <span className="font-bold text-gray-950">
+
+            <div className="p-3 bg-surface rounded-xl border border-surface-subtle">
+              <span className="text-textMuted block text-[10px] font-bold uppercase tracking-wider">Registration Date</span>
+              <span className="font-semibold text-textMain mt-1 block">
                 {inspectedUser.createdAt && !isNaN(new Date(inspectedUser.createdAt).getTime())
-                  ? new Date(inspectedUser.createdAt).toLocaleString()
+                  ? new Date(inspectedUser.createdAt).toLocaleDateString()
                   : 'N/A'}
               </span>
             </div>
           </div>
 
           {inspectedUser.accountStatus === 'suspended' && (
-            <div className="p-4 bg-red-50 border-2 border-red-950 space-y-2">
-              <div className="text-xs font-black uppercase text-red-950 flex items-center space-x-1.5">
-                <AlertOctagon className="w-4 h-4 text-red-700" />
+            <div className="p-4 bg-rose-50/80 rounded-xl border border-rose-200 space-y-1.5">
+              <div className="text-xs font-bold text-rose-950 flex items-center space-x-1.5">
+                <AlertOctagon className="w-4 h-4 text-rose-700" />
                 <span>Active Suspension Audit Record</span>
               </div>
-              <div className="text-xs text-red-900 font-bold">
-                <span className="text-red-700">Reason: </span>
+              <div className="text-xs text-rose-900 font-medium">
+                <span className="text-rose-700 font-semibold">Reason: </span>
                 {inspectedUser.suspensionReason || 'No reason specified'}
               </div>
               {inspectedUser.suspendedAt && !isNaN(new Date(inspectedUser.suspendedAt).getTime()) && (
-                <div className="text-[11px] text-red-800">
-                  <span className="text-red-700">Enforced At: </span>
-                  {new Date(inspectedUser.suspendedAt).toLocaleString()}
+                <div className="text-[11px] text-rose-800 font-mono">
+                  Enforced At: {new Date(inspectedUser.suspendedAt).toLocaleString()}
                 </div>
               )}
             </div>
@@ -658,85 +677,81 @@ export const UsersTab: React.FC = () => {
         </div>
       )}
 
-      {/* Minimal Brutalism Suspension Confirmation Dialog */}
+      {/* Suspension Confirmation Dialog */}
       {suspendingUser && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="w-full max-w-lg bg-white border-4 border-gray-950 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 space-y-5 font-mono">
-            {/* Header */}
-            <div className="border-b-2 border-gray-950 pb-3 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-6 space-y-5 border border-surface-subtle">
+            <div className="border-b border-surface-subtle pb-3 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <AlertOctagon className="w-6 h-6 text-red-600 shrink-0" />
-                <h3 className="text-base font-black uppercase tracking-tight text-gray-950">
+                <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
+                  <AlertOctagon className="w-5 h-5 text-rose-600" />
+                </div>
+                <h3 className="text-base font-bold text-textMain">
                   Suspend Driver Account
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSuspendingUser(null)}
-                className="p-1 hover:bg-gray-100 border border-gray-900 cursor-pointer"
+                className="p-1 rounded-lg hover:bg-surface text-textMuted cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Target Account Summary */}
-            <div className="p-3 bg-gray-100 border-2 border-gray-900 space-y-1 text-xs">
-              <div className="font-bold text-gray-950">
-                Target Driver: <span className="font-black">{suspendingUser.name}</span>
+            <div className="p-3.5 bg-surface rounded-xl border border-surface-subtle space-y-1 text-xs">
+              <div className="font-semibold text-textMain">
+                Target Driver: <span className="font-bold">{suspendingUser.name}</span>
               </div>
-              <div className="text-gray-700">Email: {suspendingUser.email}</div>
-              <div className="text-gray-700">Mobile: {suspendingUser.phone}</div>
+              <div className="text-textMuted">Email: {suspendingUser.email}</div>
+              <div className="text-textMuted">Mobile: {suspendingUser.phone}</div>
               {suspendingUser.vehicle && (
-                <div className="text-gray-700 font-bold">
+                <div className="text-textMuted font-medium">
                   Vehicle: {suspendingUser.vehicle.make} {suspendingUser.vehicle.model} ({suspendingUser.vehicle.registrationNumber})
                 </div>
               )}
             </div>
 
-            {/* Critical Warning Box */}
-            <div className="p-3 bg-red-100 border-2 border-red-900 text-xs text-red-950 font-bold space-y-1">
-              <div className="flex items-center space-x-1.5 uppercase tracking-wider text-red-900 font-black">
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-700" />
-                <span>Critical Access Enforcement Warning</span>
+            <div className="p-3.5 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-950 font-medium space-y-1">
+              <div className="flex items-center space-x-1.5 uppercase font-bold text-rose-900 tracking-wider text-[11px]">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-rose-700" />
+                <span>Fail-Closed Access Enforcement</span>
               </div>
-              <p className="text-[11px] leading-relaxed">
-                Suspending this driver blocks the <strong>entire user account</strong>. The driver will be immediately disconnected from Socket.IO telematics, existing JWTs will be rejected with HTTP 403, and they will be barred from both driver operations and passenger bookings.
+              <p className="text-[11px] leading-relaxed text-rose-900">
+                Suspending this driver terminates active Socket.IO telemetry, revokes JWT permissions immediately, and prevents booking or driving operations across all corridors.
               </p>
             </div>
 
-            {/* Reason Input */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-black uppercase text-gray-950">
+              <label className="block text-xs font-bold text-textMain">
                 Mandatory Suspension Reason (Min 5 characters)
               </label>
               <textarea
                 required
                 rows={3}
-                placeholder="Specify regulatory violation, safety report, or verification reason..."
+                placeholder="Specify regulatory violation, safety report, or verification issue..."
                 value={suspensionReason}
                 onChange={(e) => setSuspensionReason(e.target.value)}
-                className="w-full p-2.5 text-xs bg-white border-2 border-gray-950 font-mono text-gray-950 focus:outline-none focus:ring-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="w-full p-3 text-xs bg-surface rounded-xl border border-surface-subtle text-textMain focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
               />
-              <div className="flex justify-between text-[10px] text-gray-600 font-bold">
-                <span>Trimming enforced. Will be recorded in persistent immutable audit logs.</span>
-                <span>{suspensionReason.trim().length}/500</span>
+              <div className="flex justify-between text-[11px] text-textMuted">
+                <span>Recorded in persistent immutable audit ledger.</span>
+                <span className="font-mono">{suspensionReason.trim().length}/500</span>
               </div>
             </div>
 
-            {/* Dialog Error Banner */}
             {suspensionError && (
-              <div className="p-2.5 bg-rose-50 border-2 border-rose-900 text-xs text-rose-950 font-bold">
+              <div className="p-2.5 bg-rose-50 rounded-lg border border-rose-200 text-xs text-rose-950 font-semibold">
                 {suspensionError}
               </div>
             )}
 
-            {/* Actions */}
-            <div className="flex items-center justify-end space-x-3 pt-2 border-t-2 border-gray-950">
+            <div className="flex items-center justify-end space-x-3 pt-2 border-t border-surface-subtle">
               <button
                 type="button"
                 disabled={suspensionSubmitting}
                 onClick={() => setSuspendingUser(null)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-950 text-xs font-bold uppercase border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 bg-surface hover:bg-surface-subtle text-textMain text-xs font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -744,10 +759,10 @@ export const UsersTab: React.FC = () => {
                 type="button"
                 disabled={suspensionSubmitting || suspensionReason.trim().length < 5}
                 onClick={handleConfirmSuspend}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase border-2 border-red-950 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer disabled:opacity-50 flex items-center space-x-1.5"
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center space-x-1.5"
               >
                 {suspensionSubmitting ? (
-                  <span>Enforcing Block...</span>
+                  <span>Enforcing...</span>
                 ) : (
                   <>
                     <AlertOctagon className="w-3.5 h-3.5" />
@@ -760,44 +775,46 @@ export const UsersTab: React.FC = () => {
         </div>
       )}
 
-      {/* Minimal Brutalism Reactivation Confirmation Dialog */}
+      {/* Reactivation Confirmation Dialog */}
       {reactivatingUser && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="w-full max-w-md bg-white border-4 border-gray-950 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-6 space-y-4 font-mono">
-            <div className="border-b-2 border-gray-950 pb-3 flex items-center justify-between">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 space-y-4 border border-surface-subtle">
+            <div className="border-b border-surface-subtle pb-3 flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <RotateCcw className="w-5 h-5 text-gray-950 shrink-0" />
-                <h3 className="text-base font-black uppercase tracking-tight text-gray-950">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
+                  <RotateCcw className="w-5 h-5 text-forest" />
+                </div>
+                <h3 className="text-base font-bold text-textMain">
                   Reactivate Account
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setReactivatingUser(null)}
-                className="p-1 hover:bg-gray-100 border border-gray-900 cursor-pointer"
+                className="p-1 rounded-lg hover:bg-surface text-textMuted cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-3 bg-gray-100 border-2 border-gray-900 space-y-1 text-xs">
-              <div className="font-bold text-gray-950">
-                Driver: <span className="font-black">{reactivatingUser.name}</span>
+            <div className="p-3 bg-surface rounded-xl border border-surface-subtle space-y-1 text-xs">
+              <div className="font-semibold text-textMain">
+                Driver: <span className="font-bold">{reactivatingUser.name}</span>
               </div>
-              <div className="text-gray-700">Email: {reactivatingUser.email}</div>
+              <div className="text-textMuted">Email: {reactivatingUser.email}</div>
               {reactivatingUser.suspensionReason && (
-                <div className="text-red-700 text-[11px] font-bold mt-1">
-                  Prior Suspension Reason: {reactivatingUser.suspensionReason}
+                <div className="text-rose-700 text-[11px] font-medium mt-1">
+                  Prior Reason: {reactivatingUser.suspensionReason}
                 </div>
               )}
             </div>
 
-            <div className="text-xs text-gray-800 leading-relaxed">
+            <p className="text-xs text-textMuted leading-relaxed">
               Confirming reactivation will immediately restore full platform access, enabling ride publication, booking capabilities, and telematics participation.
-            </div>
+            </p>
 
             <div className="space-y-1">
-              <label className="block text-[11px] font-black uppercase text-gray-950">
+              <label className="block text-xs font-bold text-textMain">
                 Reactivation Reason or Note (Optional)
               </label>
               <input
@@ -805,22 +822,22 @@ export const UsersTab: React.FC = () => {
                 placeholder="Compliance verified, documentation updated, etc."
                 value={reactivationReason}
                 onChange={(e) => setReactivationReason(e.target.value)}
-                className="w-full p-2 text-xs bg-white border-2 border-gray-950 font-mono text-gray-950 focus:outline-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                className="w-full p-2.5 text-xs bg-surface rounded-xl border border-surface-subtle text-textMain focus:outline-none focus:ring-2 focus:ring-forest/20 focus:border-forest transition-all"
               />
             </div>
 
             {reactivationError && (
-              <div className="p-2.5 bg-rose-50 border-2 border-rose-900 text-xs text-rose-950 font-bold">
+              <div className="p-2.5 bg-rose-50 rounded-lg border border-rose-200 text-xs text-rose-950 font-semibold">
                 {reactivationError}
               </div>
             )}
 
-            <div className="flex items-center justify-end space-x-3 pt-2 border-t-2 border-gray-950">
+            <div className="flex items-center justify-end space-x-3 pt-2 border-t border-surface-subtle">
               <button
                 type="button"
                 disabled={reactivationSubmitting}
                 onClick={() => setReactivatingUser(null)}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-950 text-xs font-bold uppercase border-2 border-gray-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 bg-surface hover:bg-surface-subtle text-textMain text-xs font-bold rounded-xl transition-colors cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -828,7 +845,7 @@ export const UsersTab: React.FC = () => {
                 type="button"
                 disabled={reactivationSubmitting}
                 onClick={handleConfirmReactivate}
-                className="px-5 py-2 bg-gray-950 hover:bg-gray-800 text-white text-xs font-black uppercase border-2 border-gray-950 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none cursor-pointer disabled:opacity-50 flex items-center space-x-1.5"
+                className="px-5 py-2 bg-forest hover:bg-forest-dark text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center space-x-1.5"
               >
                 {reactivationSubmitting ? (
                   <span>Reactivating...</span>

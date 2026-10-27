@@ -10,6 +10,8 @@ import {
   IndianRupee,
   ScrollText,
   SlidersHorizontal,
+  Scale,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isTabAuthorized } from '../utils/rbac';
@@ -19,6 +21,8 @@ export type TabKey =
   | 'verifications'
   | 'rides'
   | 'bookings'
+  | 'disputes'
+  | 'fraud'
   | 'reports'
   | 'users'
   | 'monetization'
@@ -74,8 +78,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
     },
     {
       key: 'bookings',
-      label: 'Bookings & Disputes',
+      label: 'Bookings',
       icon: Bookmark,
+      badge: null,
+      group: 'ops',
+    },
+    {
+      key: 'disputes',
+      label: 'Dispute Cases',
+      icon: Scale,
+      badge: null,
+      group: 'ops',
+    },
+    {
+      key: 'fraud',
+      label: 'Fraud & Risk',
+      icon: ShieldAlert,
       badge: null,
       group: 'ops',
     },

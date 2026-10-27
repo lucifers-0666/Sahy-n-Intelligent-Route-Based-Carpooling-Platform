@@ -6,6 +6,8 @@ import { OverviewTab } from '../components/tabs/OverviewTab';
 import { VerificationsTab } from '../components/tabs/VerificationsTab';
 import { RidesTab } from '../components/tabs/RidesTab';
 import { BookingsTab } from '../components/tabs/BookingsTab';
+import { DisputesTab } from '../components/tabs/DisputesTab';
+import { FraudCenterTab } from '../components/tabs/FraudCenterTab';
 import { ReportsTab } from '../components/tabs/ReportsTab';
 import { UsersTab } from '../components/tabs/UsersTab';
 import { SettingsTab } from '../components/tabs/SettingsTab';
@@ -14,7 +16,7 @@ import { AuditLogsTab } from '../components/tabs/AuditLogsTab';
 import { PlatformSettingsTab } from '../components/tabs/PlatformSettingsTab';
 import { SosIncidentModal } from '../components/SosIncidentModal';
 import { AdminStats, SosIncident } from '../types/admin';
-import { adminApi } from '../services/api';
+import { adminApi, SOCKET_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { isTabAuthorized, hasCapability } from '../utils/rbac';
 import { ShieldAlert, X, Radio } from 'lucide-react';
@@ -24,6 +26,8 @@ const VALID_TABS: TabKey[] = [
   'verifications',
   'rides',
   'bookings',
+  'disputes',
+  'fraud',
   'reports',
   'users',
   'monetization',
@@ -119,7 +123,7 @@ export const DashboardScreen: React.FC = () => {
     if (!canManageSos) return;
 
     const token = localStorage.getItem('sahyan_admin_token');
-    const s = io('http://127.0.0.1:5000', {
+    const s = io(SOCKET_URL, {
       auth: { token },
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
@@ -264,11 +268,18 @@ export const DashboardScreen: React.FC = () => {
             )}
 
             {activeTab === 'overview' && (
-              <OverviewTab stats={stats} onNavigateTab={setActiveTab} />
+              <OverviewTab
+                stats={stats}
+                onNavigateTab={setActiveTab}
+                onRefresh={fetchStats}
+                refreshing={refreshing}
+              />
             )}
             {activeTab === 'verifications' && <VerificationsTab />}
             {activeTab === 'rides' && <RidesTab />}
             {activeTab === 'bookings' && <BookingsTab />}
+            {activeTab === 'disputes' && <DisputesTab />}
+            {activeTab === 'fraud' && <FraudCenterTab />}
             {activeTab === 'reports' && <ReportsTab />}
             {activeTab === 'users' && <UsersTab />}
             {activeTab === 'monetization' && <MonetizationTab />}

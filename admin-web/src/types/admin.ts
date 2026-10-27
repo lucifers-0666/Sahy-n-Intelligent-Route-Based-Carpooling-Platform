@@ -275,6 +275,86 @@ export interface PlatformConfig {
   co2SavedKgPerBooking: number;
 }
 
+export interface FraudUser {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  accountStatus: 'active' | 'suspended';
+  capabilities?: {
+    canDrive?: boolean;
+    canRide?: boolean;
+    canBookCash?: boolean;
+  };
+  fraudMetrics?: {
+    riskScore?: number;
+    riskTier?: 'low' | 'medium' | 'high' | 'critical';
+    unpaidReportsCount?: number;
+    cancellationsCount?: number;
+    disputesLostCount?: number;
+  };
+  rating?: number | { average?: number; count?: number };
+  createdAt: string;
+}
+
+export interface DisputeCase {
+  _id: string;
+  passenger?: {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+    rating?: number;
+    fraudMetrics?: any;
+  };
+  ride?: {
+    _id: string;
+    origin?: { name: string };
+    destination?: { name: string };
+    departureTime?: string;
+    status?: string;
+    driver?: {
+      _id: string;
+      name: string;
+      email: string;
+      phone: string;
+      rating?: number;
+    };
+  };
+  totalContribution: number;
+  status: string;
+  paymentStatus: string;
+  dispute?: {
+    status: string;
+    driverReportedAt?: string;
+    driverReason?: string;
+    driverEvidenceUrl?: string;
+    passengerRespondedAt?: string;
+    passengerResponse?: string;
+    passengerProofUrl?: string;
+    resolvedAt?: string;
+    resolvedBy?: any;
+    resolutionNotes?: string;
+  };
+  createdAt: string;
+}
+
+export interface UserAppeal {
+  userId: string;
+  userName: string;
+  userPhone: string;
+  accountStatus: string;
+  canBookCash?: boolean;
+  appealIndex: number;
+  appealId?: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedAt?: string;
+  reviewerNotes?: string;
+}
+
 export interface AuthState {
   token: string | null;
   adminUser: {
@@ -285,3 +365,4 @@ export interface AuthState {
   } | null;
   isAuthenticated: boolean;
 }
+
