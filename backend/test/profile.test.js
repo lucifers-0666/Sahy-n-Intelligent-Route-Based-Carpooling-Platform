@@ -137,6 +137,87 @@ test('PROFILE: PUT /users/profile strictly rejects/ignores protected fields', as
   assert.strictEqual(dbUser.driverProfile.onboardingStatus, 'not_started');
 });
 
+test('PROFILE: PUT /users/profile updates profile image / avatar successfully', async () => {
+  const avatarUrl = 'https://api.dicebear.com/7.x/adventurer/png?seed=Ahmedabad';
+  const res = await fetch(`${baseUrl}/users/profile`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenA}`,
+    },
+    body: JSON.stringify({
+      profileImage: avatarUrl,
+    }),
+  });
+
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+  assert.strictEqual(data.data.profileImage, avatarUrl);
+
+  const dbUser = await User.findById(userA._id);
+  assert.strictEqual(dbUser.profileImage, avatarUrl);
+});
+
+test('PROFILE: PUT /users/profile-image dedicated endpoint updates avatar', async () => {
+  const customAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=256';
+  const res = await fetch(`${baseUrl}/users/profile-image`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenA}`,
+    },
+    body: JSON.stringify({
+      avatar: customAvatar,
+    }),
+  });
+
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+  assert.strictEqual(data.data.profileImage, customAvatar);
+});
+
+test('PROFILE: PUT /users/profile-image accepts default preset avatar for driver', async () => {
+  // Give userB driver capability
+  await User.findByIdAndUpdate(userB._id, { 'capabilities.canDrive': true, 'driverProfile.onboardingStatus': 'approved' });
+
+  const driverAvatar = 'https://api.dicebear.com/7.x/bottts/png?seed=SahyanDriver';
+  const res = await fetch(`${baseUrl}/users/profile/image`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenB}`,
+    },
+    body: JSON.stringify({
+      profilePhoto: driverAvatar,
+    }),
+  });
+
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+  assert.strictEqual(data.data.profileImage, driverAvatar);
+});
+
+test('PROFILE: PUT /users/profile-image clears profile image when empty', async () => {
+  const res = await fetch(`${baseUrl}/users/profile-image`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${tokenA}`,
+    },
+    body: JSON.stringify({
+      profileImage: '',
+    }),
+  });
+
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.success, true);
+  assert.strictEqual(data.data.profileImage, '');
+});
+
 test('PROFILE: PUT /users/profile rejects empty name or city and oversized bio', async () => {
   const emptyNameRes = await fetch(`${baseUrl}/users/profile`, {
     method: 'PUT',

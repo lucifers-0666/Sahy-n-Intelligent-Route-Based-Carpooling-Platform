@@ -6,6 +6,7 @@ import 'package:sahyan/core/widgets/app_text_field.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/profile/presentation/profile_provider.dart';
+import 'package:sahyan/features/profile/presentation/widgets/avatar_selection_sheet.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -20,6 +21,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _nameController;
   late final TextEditingController _cityController;
   late final TextEditingController _bioController;
+  String? _profilePhotoUrl;
 
   late bool _notifications;
   late bool _allowSmoking;
@@ -32,6 +34,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _nameController = TextEditingController(text: user?.name ?? '');
     _cityController = TextEditingController(text: user?.city ?? '');
     _bioController = TextEditingController(text: user?.bio ?? '');
+    _profilePhotoUrl = user?.profilePhoto;
 
     _notifications = user?.preferences.notifications ?? true;
     _allowSmoking = user?.preferences.allowSmoking ?? false;
@@ -57,6 +60,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       name: _nameController.text.trim(),
       city: _cityController.text.trim(),
       bio: _bioController.text.trim(),
+      profilePhoto: _profilePhotoUrl,
     );
 
     final successPrefs = await profileNotifier.updatePreferences(
@@ -111,51 +115,100 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Photo Foundation
+                      // Photo Foundation & Avatar Picker
                       Center(
-                        child: Stack(
-                          alignment: Alignment.bottomRight,
-                          children: [
-                            CircleAvatar(
-                              radius: 46,
-                              backgroundColor: AppColors.softForest,
-                              backgroundImage: (user?.profilePhoto != null &&
-                                      user!.profilePhoto!.isNotEmpty)
-                                  ? NetworkImage(user.profilePhoto!)
-                                  : null,
-                              child: (user?.profilePhoto != null &&
-                                      user!.profilePhoto!.isNotEmpty)
-                                  ? null
-                                  : const Icon(
-                                      Icons.person_rounded,
-                                      size: 46,
-                                      color: AppColors.primaryForest,
+                        child: GestureDetector(
+                          onTap: () async {
+                            final chosenUrl = await AvatarSelectionSheet.show(
+                              context,
+                              currentUrl: _profilePhotoUrl,
+                              userName: _nameController.text.trim(),
+                            );
+                            if (chosenUrl != null) {
+                              setState(() {
+                                _profilePhotoUrl = chosenUrl;
+                              });
+                            }
+                          },
+                          child: Stack(
+                            alignment: Alignment.bottomRight,
+                            children: [
+                              CircleAvatar(
+                                radius: 48,
+                                backgroundColor: AppColors.softForest,
+                                backgroundImage: (_profilePhotoUrl != null &&
+                                        _profilePhotoUrl!.isNotEmpty)
+                                    ? NetworkImage(_profilePhotoUrl!)
+                                    : null,
+                                child: (_profilePhotoUrl != null &&
+                                        _profilePhotoUrl!.isNotEmpty)
+                                    ? null
+                                    : const Icon(
+                                        Icons.person_rounded,
+                                        size: 48,
+                                        color: AppColors.primaryForest,
+                                      ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryForest,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.15),
+                                      blurRadius: 6,
                                     ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primaryForest,
-                                shape: BoxShape.circle,
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.person_outline_rounded,
-                                size: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Center(
-                        child: Text(
-                          'Profile initials displayed. Custom photo upload will be available in upcoming release.',
-                          style: AppTypography.caption.copyWith(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
+                        child: InkWell(
+                          onTap: () async {
+                            final chosenUrl = await AvatarSelectionSheet.show(
+                              context,
+                              currentUrl: _profilePhotoUrl,
+                              userName: _nameController.text.trim(),
+                            );
+                            if (chosenUrl != null) {
+                              setState(() {
+                                _profilePhotoUrl = chosenUrl;
+                              });
+                            }
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.edit_outlined,
+                                  size: 14,
+                                  color: AppColors.primaryForest,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Change Photo / Choose Avatar',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.primaryForest,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          textAlign: TextAlign.center,
                         ),
                       ),
 

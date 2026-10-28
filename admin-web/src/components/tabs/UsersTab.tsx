@@ -501,15 +501,33 @@ export const UsersTab: React.FC = () => {
                         />
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-textMain flex items-center space-x-1.5">
-                          <span>{u?.name || 'Unnamed Member'}</span>
-                          {u?.isVerified && (
-                            <span title="Government KYC Verified">
-                              <ShieldCheck className="w-3.5 h-3.5 text-forest" />
-                            </span>
+                        <div className="flex items-center space-x-3">
+                          {u?.profileImage ? (
+                            <img
+                              src={u.profileImage}
+                              alt={u?.name || 'User'}
+                              className="w-8 h-8 rounded-full object-cover ring-2 ring-forest-mint/40 shrink-0"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-forest-light text-forest font-bold text-xs flex items-center justify-center ring-2 ring-forest-mint/30 shrink-0">
+                              {u?.name ? u.name[0].toUpperCase() : 'U'}
+                            </div>
                           )}
+                          <div>
+                            <div className="font-bold text-textMain flex items-center space-x-1.5">
+                              <span>{u?.name || 'Unnamed Member'}</span>
+                              {u?.isVerified && (
+                                <span title="Government KYC Verified">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-forest" />
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-textMuted font-mono mt-0.5">ID: {shortId}</div>
+                          </div>
                         </div>
-                        <div className="text-[11px] text-textMuted font-mono mt-0.5">ID: {shortId}</div>
                       </td>
 
                       <td className="py-3.5 px-4" onClick={(e) => e.stopPropagation()}>
@@ -732,11 +750,27 @@ export const UsersTab: React.FC = () => {
       {inspectedUser && (
         <div className="card p-6 shadow-md border-forest/20 space-y-4 animate-in fade-in">
           <div className="flex items-center justify-between border-b border-surface-subtle pb-3">
-            <div className="flex items-center space-x-2">
-              <Info className="w-4 h-4 text-forest" />
-              <h2 className="text-sm font-bold text-textMain">
-                Account Inspection: {inspectedUser.name || 'Unnamed Member'}
-              </h2>
+            <div className="flex items-center space-x-3">
+              {inspectedUser.profileImage ? (
+                <img
+                  src={inspectedUser.profileImage}
+                  alt={inspectedUser.name || 'User'}
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-forest-mint shrink-0"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-forest-light text-forest font-bold text-sm flex items-center justify-center ring-2 ring-forest-mint shrink-0">
+                  {inspectedUser.name ? inspectedUser.name[0].toUpperCase() : 'U'}
+                </div>
+              )}
+              <div>
+                <h2 className="text-sm font-bold text-textMain">
+                  Account Inspection: {inspectedUser.name || 'Unnamed Member'}
+                </h2>
+                <div className="text-[11px] text-textMuted font-mono">ID: {inspectedUser._id}</div>
+              </div>
             </div>
             <button
               type="button"

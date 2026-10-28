@@ -77,8 +77,12 @@ const updateProfile = async (req, res, next) => {
       user.bio = bio.trim();
     }
 
-    if (profileImage !== undefined) {
-      user.profileImage = typeof profileImage === 'string' ? profileImage.trim() : '';
+    const incomingImage = profileImage !== undefined
+      ? profileImage
+      : (req.body.profilePhoto !== undefined ? req.body.profilePhoto : req.body.avatar);
+
+    if (incomingImage !== undefined) {
+      user.profileImage = typeof incomingImage === 'string' ? incomingImage.trim() : '';
     }
 
     await user.save();
@@ -86,6 +90,42 @@ const updateProfile = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
+      data: user.toJSON(),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * PUT or PATCH /api/v1/users/profile-image
+ * Dedicated endpoint to update user or driver profile picture / default avatar
+ */
+const updateProfileImage = async (req, res, next) => {
+  try {
+    const { profileImage, profilePhoto, avatar } = req.body;
+    const incoming = profileImage !== undefined
+      ? profileImage
+      : (profilePhoto !== undefined ? profilePhoto : avatar);
+
+    if (incoming === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: 'profileImage, profilePhoto, or avatar is required',
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User profile not found' });
+    }
+
+    user.profileImage = typeof incoming === 'string' ? incoming.trim() : '';
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile image updated successfully',
       data: user.toJSON(),
     });
   } catch (error) {
@@ -606,5 +646,6 @@ module.exports = {
   anonymizeUserData,
   submitDriverApplication,
   getDriverStatus,
+  updateProfileImage,
 };
 

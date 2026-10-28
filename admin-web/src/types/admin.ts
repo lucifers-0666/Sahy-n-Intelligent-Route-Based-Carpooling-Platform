@@ -53,6 +53,8 @@ export interface UserItem {
   name: string;
   email: string;
   phone: string;
+  profileImage?: string;
+  avatar?: string;
   role: 'user' | 'admin' | 'super_admin' | 'safety_officer' | 'support_lead';
   isVerified: boolean;
   city?: string;

@@ -118,39 +118,46 @@ class ProfileScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(20.0),
                         child: Column(
                           children: [
-                            Stack(
-                              alignment: Alignment.bottomRight,
-                              children: [
-                                CircleAvatar(
-                                  radius: 36,
-                                  backgroundColor: AppColors.softForest,
-                                  backgroundImage: (user.profilePhoto != null &&
-                                          user.profilePhoto!.isNotEmpty)
-                                      ? NetworkImage(user.profilePhoto!)
-                                      : null,
-                                  child: (user.profilePhoto != null &&
-                                          user.profilePhoto!.isNotEmpty)
-                                      ? null
-                                      : const Icon(
-                                          Icons.person_rounded,
-                                          size: 38,
-                                          color: AppColors.primaryForest,
-                                        ),
-                                ),
-                                if (user.isVerified)
+                            GestureDetector(
+                              onTap: () => context.push('/edit-profile'),
+                              child: Stack(
+                                alignment: Alignment.bottomRight,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 38,
+                                    backgroundColor: AppColors.softForest,
+                                    backgroundImage: (user.profilePhoto != null &&
+                                            user.profilePhoto!.isNotEmpty)
+                                        ? NetworkImage(user.profilePhoto!)
+                                        : null,
+                                    child: (user.profilePhoto != null &&
+                                            user.profilePhoto!.isNotEmpty)
+                                        ? null
+                                        : const Icon(
+                                            Icons.person_rounded,
+                                            size: 40,
+                                            color: AppColors.primaryForest,
+                                          ),
+                                  ),
                                   Container(
                                     padding: const EdgeInsets.all(4),
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.primaryForest,
+                                    decoration: BoxDecoration(
+                                      color: user.isVerified
+                                          ? AppColors.primaryForest
+                                          : AppColors.darkEmerald,
                                       shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white, width: 1.5),
                                     ),
-                                    child: const Icon(
-                                      Icons.verified_user_rounded,
-                                      size: 14,
+                                    child: Icon(
+                                      user.isVerified
+                                          ? Icons.verified_user_rounded
+                                          : Icons.camera_alt_rounded,
+                                      size: 13,
                                       color: Colors.white,
                                     ),
                                   ),
-                              ],
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Wrap(

@@ -7,6 +7,10 @@ const { authenticate } = require('../middleware/authMiddleware');
 router.get('/profile', authenticate, userController.getProfile);
 router.put('/profile', authenticate, userController.updateProfile);
 router.patch('/profile', authenticate, userController.updateProfile);
+router.put('/profile/image', authenticate, userController.updateProfileImage);
+router.patch('/profile/image', authenticate, userController.updateProfileImage);
+router.put('/profile-image', authenticate, userController.updateProfileImage);
+router.put('/avatar', authenticate, userController.updateProfileImage);
 
 // Preferences Endpoints
 router.put('/preferences', authenticate, userController.updatePreferences);

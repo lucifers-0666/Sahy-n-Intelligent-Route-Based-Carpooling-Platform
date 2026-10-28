@@ -9,6 +9,7 @@ import 'package:sahyan/core/widgets/verification_badge.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/profile/presentation/profile_provider.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
+import 'package:sahyan/features/profile/presentation/widgets/avatar_selection_sheet.dart';
 import 'package:sahyan/shared/models/user_model.dart';
 
 class DriverOnboardingScreen extends ConsumerStatefulWidget {
@@ -324,6 +325,53 @@ class _DriverOnboardingScreenState
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: AppColors.softForest,
+                      backgroundImage: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
+                          ? NetworkImage(user.profilePhoto!)
+                          : null,
+                      child: (user.profilePhoto == null || user.profilePhoto!.isEmpty)
+                          ? const Icon(Icons.person_rounded, size: 26, color: AppColors.primaryForest)
+                          : null,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Driver Profile Photo', style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            user.profilePhoto != null && user.profilePhoto!.isNotEmpty
+                                ? 'Photo active for passenger pickup match'
+                                : 'Choose a clear face photo or default avatar',
+                            style: AppTypography.caption.copyWith(color: AppColors.textSecondary, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final chosen = await AvatarSelectionSheet.show(
+                          context,
+                          currentUrl: user.profilePhoto,
+                          userName: user.name,
+                        );
+                        if (chosen != null) {
+                          await ref.read(profileProvider.notifier).updateProfile(
+                            name: user.name,
+                            city: user.city,
+                            profilePhoto: chosen,
+                          );
+                        }
+                      },
+                      child: const Text('Change'),
+                    ),
+                  ],
+                ),
+                const Divider(color: AppColors.border, height: 20),
                 _buildInfoRow(
                   icon: Icons.person_outline_rounded,
                   title: 'Full Name',
