@@ -252,3 +252,4 @@ export const CorridorMapWidget: React.FC = () => {
     </div>
   );
 };
+

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sahyan/core/network/api_client.dart';
 import 'package:sahyan/core/localization/app_locale_provider.dart';
@@ -883,8 +884,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 // Global Providers
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient();
-  final locale = ref.watch(appLocaleProvider);
-  client.setLanguageCode(locale.languageCode);
+  final initialLocale = ref.read(appLocaleProvider);
+  client.setLanguageCode(initialLocale.languageCode);
+
+  // Dynamically update language header without recreating the client instance
+  ref.listen<Locale>(appLocaleProvider, (previous, next) {
+    client.setLanguageCode(next.languageCode);
+  });
+
   return client;
 });
 
