@@ -765,4 +765,203 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refundRequested => 'Refund Requested';
+
+  @override
+  String get transactionHistoryTitle => 'Transaction History';
+
+  @override
+  String get escrowLedgerSubtitle => 'Contribution & Escrow Ledger';
+
+  @override
+  String get totalContributionsLabel => 'TOTAL FUEL CONTRIBUTIONS';
+
+  @override
+  String get heldInEscrowLabel => 'Held in Escrow';
+
+  @override
+  String get escrowExplanationShort =>
+      'Safeguarded until passenger drop-off PIN verification';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterInEscrow => 'In Escrow';
+
+  @override
+  String get filterSettled => 'Settled';
+
+  @override
+  String get filterRefunded => 'Refunded';
+
+  @override
+  String get filterFailed => 'Failed';
+
+  @override
+  String get filterOpen => 'Open';
+
+  @override
+  String get filterInProgress => 'In Progress';
+
+  @override
+  String get filterResolved => 'Resolved';
+
+  @override
+  String get errorLoadingTransactions => 'Failed to Load Transactions';
+
+  @override
+  String get noTransactionsFound => 'No Transactions Found';
+
+  @override
+  String get noTransactionsFoundSubtitle =>
+      'You have no payment contributions or ledger entries matching this status.';
+
+  @override
+  String get corridorContributionLabel => 'Corridor Contribution';
+
+  @override
+  String get sandboxSimulatedBadge => 'Sandbox Simulated';
+
+  @override
+  String get liveClearingBadge => 'Live Clearing';
+
+  @override
+  String get refLabel => 'Ref';
+
+  @override
+  String get viewReceiptAction => 'Receipt';
+
+  @override
+  String get statusInEscrow => 'In Escrow';
+
+  @override
+  String get statusSettled => 'Settled';
+
+  @override
+  String get statusRefunded => 'Refunded';
+
+  @override
+  String get statusDisputed => 'Disputed';
+
+  @override
+  String get statusFailed => 'Failed';
+
+  @override
+  String get statusPending => 'Pending';
+
+  @override
+  String get statusOpen => 'Open';
+
+  @override
+  String get statusInProgress => 'In Progress';
+
+  @override
+  String get statusResolved => 'Resolved';
+
+  @override
+  String get statusClosed => 'Closed';
+
+  @override
+  String get supportTicketsTitle => 'Support Tickets';
+
+  @override
+  String get supportTicketsSubtitle => 'Priority Member Help Desk';
+
+  @override
+  String get newTicketButton => 'New Ticket';
+
+  @override
+  String get errorLoadingTickets => 'Failed to Load Tickets';
+
+  @override
+  String get noTicketsFound => 'No Support Tickets';
+
+  @override
+  String get noTicketsFoundSubtitle =>
+      'You have not submitted any help desk requests yet.';
+
+  @override
+  String get createTicketPromptAction => 'Submit a Request';
+
+  @override
+  String get messagesCountSuffix => 'messages';
+
+  @override
+  String get createTicketSheetTitle => 'Create Support Request';
+
+  @override
+  String get createTicketSheetSubtitle =>
+      'Our community desk responds within 2-4 hours.';
+
+  @override
+  String get categoryLabel => 'Category';
+
+  @override
+  String get categoryRideIssue => 'Ride Issue';
+
+  @override
+  String get categoryPaymentInquiry => 'Payment Inquiry';
+
+  @override
+  String get categoryDriverBehavior => 'Driver Behavior';
+
+  @override
+  String get categoryTechBug => 'Technical Bug';
+
+  @override
+  String get categoryAccountAccess => 'Account Access';
+
+  @override
+  String get categoryOther => 'Other / Inquiry';
+
+  @override
+  String get subjectLabel => 'Subject';
+
+  @override
+  String get subjectHint => 'Brief summary of the issue...';
+
+  @override
+  String get subjectRequired => 'Please enter a subject';
+
+  @override
+  String get descriptionLabel => 'Detailed Description';
+
+  @override
+  String get descriptionHint =>
+      'Explain the circumstances, corridor location, or question in detail...';
+
+  @override
+  String get descriptionRequired => 'Please enter a detailed description';
+
+  @override
+  String get submitTicketButton => 'Submit Support Request';
+
+  @override
+  String get ticketCreatedSuccess => 'Support ticket opened';
+
+  @override
+  String get ticketCreateFailed =>
+      'Failed to create support ticket. Please retry.';
+
+  @override
+  String get ticketDetailTitle => 'Ticket Conversation';
+
+  @override
+  String get corridorLabel => 'Corridor';
+
+  @override
+  String get markResolvedAction => 'Mark Resolved';
+
+  @override
+  String get supportTeamSender => 'Sahyān Support Specialist';
+
+  @override
+  String get replyMessageHint => 'Type your message to support...';
+
+  @override
+  String get ticketClosedNotice =>
+      'This support ticket is closed. For new inquiries, please create a new ticket.';
+
+  @override
+  String get retryAction => 'Retry';
 }

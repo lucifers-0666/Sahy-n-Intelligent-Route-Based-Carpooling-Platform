@@ -14,6 +14,8 @@ import { SettingsTab } from '../components/tabs/SettingsTab';
 import { MonetizationTab } from '../components/tabs/MonetizationTab';
 import { AuditLogsTab } from '../components/tabs/AuditLogsTab';
 import { PlatformSettingsTab } from '../components/tabs/PlatformSettingsTab';
+import { TicketsTab } from '../components/tabs/TicketsTab';
+import { OperationalTab } from '../components/tabs/OperationalTab';
 import { SosIncidentModal } from '../components/SosIncidentModal';
 import { CorridorBroadcastModal } from '../components/CorridorBroadcastModal';
 import { AdminStats, SosIncident } from '../types/admin';
@@ -30,9 +32,11 @@ const VALID_TABS: TabKey[] = [
   'disputes',
   'fraud',
   'reports',
+  'tickets',
   'users',
   'monetization',
   'audit',
+  'operational',
   'platform',
   'settings',
 ];
@@ -256,23 +260,23 @@ export const DashboardScreen: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-6 sm:p-8 min-h-0 h-full">
           <div className="max-w-7xl mx-auto space-y-4">
             {/* Action buttons bar for quick reviewer inspection & safety broadcast */}
-            <div className="flex items-center justify-end space-x-2">
+            <div className="flex items-center justify-end space-x-2.5">
               <button
                 onClick={() => setBroadcastModalOpen(true)}
-                className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-forest-light hover:bg-forest text-forest hover:text-white border border-forest/20 text-[11px] font-bold transition-colors cursor-pointer shadow-2xs"
+                className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-forest-light/60 hover:bg-forest text-forest hover:text-white border border-forest-mint/50 text-xs font-bold transition-all duration-200 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
                 title="Broadcast real-time emergency alert across corridors"
               >
-                <Radio className="w-3 h-3 text-forest animate-pulse" />
+                <Radio className="w-3.5 h-3.5 text-forest animate-pulse" />
                 <span>Corridor Safety Broadcast</span>
               </button>
 
               {canManageSos && (
                 <button
                   onClick={triggerMockSos}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition-colors cursor-pointer shadow-2xs"
+                  className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-rose-50/80 hover:bg-rose-100 text-rose-800 border border-rose-200 text-xs font-bold transition-all duration-200 cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
                   title="Simulate Mobile SOS Trigger"
                 >
-                  <Radio className="w-3 h-3 text-rose-600 animate-pulse" />
+                  <Radio className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
                   <span>Simulate Real-Time Mobile SOS Dispatch</span>
                 </button>
               )}
@@ -292,9 +296,11 @@ export const DashboardScreen: React.FC = () => {
             {activeTab === 'disputes' && <DisputesTab />}
             {activeTab === 'fraud' && <FraudCenterTab />}
             {activeTab === 'reports' && <ReportsTab />}
+            {activeTab === 'tickets' && <TicketsTab />}
             {activeTab === 'users' && <UsersTab />}
             {activeTab === 'monetization' && <MonetizationTab />}
             {activeTab === 'audit' && <AuditLogsTab />}
+            {activeTab === 'operational' && <OperationalTab />}
             {activeTab === 'platform' && <PlatformSettingsTab />}
             {activeTab === 'settings' && <SettingsTab dbConnected={dbConnected} />}
           </div>

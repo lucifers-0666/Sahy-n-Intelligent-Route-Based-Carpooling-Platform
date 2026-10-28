@@ -619,3 +619,86 @@ exports.reconcilePayment = async (req, res) => {
     res.status(500).json({ success: false, error: error.message || 'Server error' });
   }
 };
+
+/**
+ * @route   GET /api/v1/payments/my-transactions
+ * @desc    Get current user transaction ledger (as passenger or driver)
+ * @access  Private
+ */
+exports.getMyTransactions = async (req, res) => {
+  try {
+    const userId = (req.user._id || req.user.id);
+    const { status = 'all', page = 1, limit = 20, type = 'all' } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const query = {};
+
+    if (type === 'paid') {
+      query.passengerId = userId;
+    } else if (type === 'received') {
+      query.driverId = userId;
+    } else {
+      query.$or = [{ passengerId: userId }, { driverId: userId }];
+    }
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    const [transactions, total, stats] = await Promise.all([
+      PaymentTransaction.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .populate('bookingId', 'pickup drop departureTime seats status totalContribution paymentMethod paymentStatus')
+        .populate('driverId', 'name rating')
+        .populate('passengerId', 'name rating')
+        .lean(),
+      PaymentTransaction.countDocuments(query),
+      PaymentTransaction.aggregate([
+        {
+          $match: {
+            $or: [{ passengerId: userId }, { driverId: userId }],
+            status: { $in: ['escrow_held', 'settled_to_driver'] },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalAmount: { $sum: '$amount' },
+            escrowHeld: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'escrow_held'] }, '$amount', 0],
+              },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const aggregateMetrics = stats[0] || { totalAmount: 0, escrowHeld: 0 };
+
+    return res.status(200).json({
+      success: true,
+      data: transactions,
+      metrics: {
+        totalAmount: aggregateMetrics.totalAmount,
+        escrowHeld: aggregateMetrics.escrowHeld,
+      },
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to retrieve transactions ledger',
+    });
+  }
+};

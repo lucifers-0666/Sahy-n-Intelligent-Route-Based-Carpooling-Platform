@@ -6,6 +6,7 @@ import '../../../../app/theme/app_spacing.dart';
 import '../../../../app/theme/app_typography.dart';
 import '../../../../core/widgets/sahyan_app_bar.dart';
 import '../../../../core/widgets/sahyan_card.dart';
+import '../widgets/create_ticket_sheet.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -184,13 +185,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                     const Divider(color: AppColors.border, height: 20),
                     InkWell(
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Opening support ticket for recent trip',
-                            ),
-                            backgroundColor: AppColors.primaryForest,
-                          ),
+                        CreateTicketSheet.show(
+                          context,
+                          bookingSummary: 'Ahmedabad to Rajkot Express Corridor',
                         );
                       },
                       child: Row(
@@ -217,6 +214,51 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                           ),
                         ],
                       ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: AppSpacing.md),
+
+              // Active Support Desk Inquiries Card
+              SahyanCard(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                onTap: () => context.push('/support-tickets'),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: AppColors.softForest,
+                        borderRadius: BorderRadius.circular(AppRadii.md),
+                      ),
+                      child: const Icon(
+                        Icons.confirmation_number_outlined,
+                        color: AppColors.primaryForest,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'My Support Tickets',
+                            style: AppTypography.cardTitle.copyWith(fontSize: 14),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Track open requests, responses, and resolution history',
+                            style: AppTypography.caption,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textSecondary,
                     ),
                   ],
                 ),

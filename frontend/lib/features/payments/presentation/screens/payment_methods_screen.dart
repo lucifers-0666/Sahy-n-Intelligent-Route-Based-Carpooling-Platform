@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/design_system.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
@@ -276,6 +277,66 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     );
                   },
                 ),
+
+              const SizedBox(height: AppSpacing.lg),
+
+              Text(
+                'TRANSACTION AUDIT',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+
+              SahyanCard(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                onTap: () => context.push('/transaction-history'),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.softForest,
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
+                      ),
+                      child: const Icon(
+                        Icons.history_rounded,
+                        color: AppColors.primaryForest,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Transaction History & Ledger',
+                            style: AppTypography.cardTitle.copyWith(
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'View past contributions, receipts, and refund statuses.',
+                            style: AppTypography.caption.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
 
               const SizedBox(height: AppSpacing.lg),
 

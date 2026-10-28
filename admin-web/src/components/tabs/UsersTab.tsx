@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserItem } from '../../types/admin';
 import { adminApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { UnmaskModal } from '../UnmaskModal';
 import { PageHeader } from '../ui/PageHeader';
 import { Badge } from '../ui/Badge';
@@ -38,6 +39,15 @@ export const UsersTab: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 15;
+
+  const { user: currentAdmin } = useAuth();
+  const isSuperAdmin = currentAdmin?.role === 'super_admin';
+
+  // Role Management Modal State
+  const [roleModalUser, setRoleModalUser] = useState<UserItem | null>(null);
+  const [targetRole, setTargetRole] = useState<string>('user');
+  const [roleSubmitting, setRoleSubmitting] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
 
   // PII Unmasking state
   const [unmaskOpen, setUnmaskOpen] = useState(false);
@@ -177,6 +187,22 @@ export const UsersTab: React.FC = () => {
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchUsers();
+  };
+
+  const handleSaveRole = async () => {
+    if (!roleModalUser) return;
+    setRoleSubmitting(true);
+    setRoleError(null);
+    try {
+      await adminApi.updateUserRole(roleModalUser._id, targetRole);
+      setFeedback({ type: 'success', message: `Role updated to ${targetRole} for ${roleModalUser.name}` });
+      setRoleModalUser(null);
+      fetchUsers();
+    } catch (err: any) {
+      setRoleError(err.message || 'Failed to update user role');
+    } finally {
+      setRoleSubmitting(false);
+    }
   };
 
   const handleOpenSuspendModal = (user: UserItem, e: React.MouseEvent) => {
@@ -589,18 +615,25 @@ export const UsersTab: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <Badge variant={isEligibleDriver ? 'blue' : 'gray'}>
-                          {isEligibleDriver ? 'Eligible Driver' : 'Passenger Only'}
-                        </Badge>
-                        {u?.vehicle && typeof u.vehicle === 'object' && (
-                          <div className="text-[11px] text-textMuted flex items-center space-x-1 mt-1 font-medium">
-                            <Car className="w-3 h-3 text-textLight shrink-0" />
-                            <span>
-                              {u.vehicle.make || ''} {u.vehicle.model || ''}{' '}
-                              {u.vehicle.registrationNumber ? `(${u.vehicle.registrationNumber})` : ''}
+                        <div className="flex flex-col gap-1">
+                          {u.role && u.role !== 'user' && (
+                            <span className="px-2 py-0.5 text-[10px] font-bold rounded-full w-fit bg-purple-100 text-purple-900 border border-purple-300 capitalize">
+                              {u.role.replace('_', ' ')}
                             </span>
-                          </div>
-                        )}
+                          )}
+                          <Badge variant={isEligibleDriver ? 'blue' : 'gray'}>
+                            {isEligibleDriver ? 'Eligible Driver' : 'Passenger Only'}
+                          </Badge>
+                          {u?.vehicle && typeof u.vehicle === 'object' && (
+                            <div className="text-[11px] text-textMuted flex items-center space-x-1 mt-1 font-medium">
+                              <Car className="w-3 h-3 text-textLight shrink-0" />
+                              <span>
+                                {u.vehicle.make || ''} {u.vehicle.model || ''}{' '}
+                                {u.vehicle.registrationNumber ? `(${u.vehicle.registrationNumber})` : ''}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -634,6 +667,20 @@ export const UsersTab: React.FC = () => {
 
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end space-x-2">
+                          {isSuperAdmin && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setRoleModalUser(u);
+                                setTargetRole(u.role || 'user');
+                              }}
+                              className="px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                              title="Assign staff / administrative role"
+                            >
+                              Role
+                            </button>
+                          )}
                           {isEligibleDriver ? (
                             isSuspended ? (
                               <button
@@ -969,6 +1016,78 @@ export const UsersTab: React.FC = () => {
                     <span>Confirm Reactivation</span>
                   </>
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Role Assignment Modal (Super Admin only) */}
+      {roleModalUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in">
+          <div className="card max-w-md w-full p-6 space-y-4 shadow-xl border border-surface-subtle animate-scale-in">
+            <div className="flex items-center justify-between border-b border-surface-subtle pb-3">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-purple-900">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-textMain">Manage Administrative Role</h3>
+                  <p className="text-[11px] text-textMuted font-medium">{roleModalUser.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRoleModalUser(null)}
+                className="p-1 rounded-lg hover:bg-surface text-textMuted hover:text-textMain transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-textMuted font-bold mb-1">Select Role & Permissions</label>
+                <select
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  className="input w-full text-xs py-2"
+                >
+                  <option value="user">Member (Standard Carpooler)</option>
+                  <option value="support_lead">Support Lead (Tickets, Verifications, Rides)</option>
+                  <option value="safety_officer">Safety Officer (SOS, Suspensions, Reports, Config)</option>
+                  <option value="admin">Operations Admin (Full Administrative Desk)</option>
+                  <option value="super_admin">Super Administrator (Authoritative Supreme Access)</option>
+                </select>
+              </div>
+
+              <div className="p-3 bg-gray-50 rounded-xl border border-border text-[11px] text-textMuted leading-relaxed">
+                Role modifications take effect immediately upon subsequent API calls and are permanently logged in the audit ledger. Super Administrator permissions include force refunds, policy modifications, and staff role assignment.
+              </div>
+
+              {roleError && (
+                <div className="p-2.5 bg-rose-50 rounded-lg border border-rose-200 text-xs text-rose-950 font-semibold">
+                  {roleError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-surface-subtle">
+              <button
+                type="button"
+                disabled={roleSubmitting}
+                onClick={() => setRoleModalUser(null)}
+                className="btn-secondary text-xs py-2 px-4"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={roleSubmitting}
+                onClick={handleSaveRole}
+                className="btn-primary text-xs py-2 px-5 flex items-center space-x-1"
+              >
+                {roleSubmitting ? <span>Updating...</span> : <span>Save Role Assignment</span>}
               </button>
             </div>
           </div>

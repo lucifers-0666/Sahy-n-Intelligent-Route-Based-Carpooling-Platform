@@ -25,6 +25,12 @@ const {
   getUserAppeals,
   reviewUserAppeal,
   broadcastCorridorAlert,
+  getAdminTickets,
+  getAdminTicketById,
+  updateAdminTicket,
+  getAdminTransactions,
+  getSystemHealthTelemetry,
+  updateUserRole,
 } = require('../controllers/adminController');
 
 // All admin routes require authentication and admin role
@@ -75,5 +81,19 @@ router.post('/corridor-broadcast', requireRole(['super_admin', 'safety_officer']
 // Platform configuration
 router.get('/config', getPlatformConfig);
 router.patch('/config', requireRole(['super_admin', 'safety_officer']), updatePlatformConfig);
+
+// Support ticket queue management
+router.get('/tickets', maskAdminPii, getAdminTickets);
+router.get('/tickets/:id', maskAdminPii, getAdminTicketById);
+router.patch('/tickets/:id', requireRole(['super_admin', 'safety_officer', 'support_lead', 'admin']), updateAdminTicket);
+
+// Payment transaction reconciliation ledger
+router.get('/transactions', maskAdminPii, getAdminTransactions);
+
+// Real-time subsystem operational telemetry
+router.get('/system/health-telemetry', getSystemHealthTelemetry);
+
+// RBAC: Staff and administrator role assignments (Super Admin only)
+router.patch('/users/:id/role', requireRole(['super_admin']), updateUserRole);
 
 module.exports = router;

@@ -765,4 +765,203 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get refundRequested => 'रिफंड का अनुरोध किया गया';
+
+  @override
+  String get transactionHistoryTitle => 'लेन-देन इतिहास';
+
+  @override
+  String get escrowLedgerSubtitle => 'योगदान और एस्क्रो बहीखाता';
+
+  @override
+  String get totalContributionsLabel => 'कुल ईंधन योगदान';
+
+  @override
+  String get heldInEscrowLabel => 'एस्क्रो में सुरक्षित';
+
+  @override
+  String get escrowExplanationShort =>
+      'यात्री ड्रॉप-ऑफ पिन सत्यापन तक सुरक्षित रखा गया';
+
+  @override
+  String get filterAll => 'सभी';
+
+  @override
+  String get filterInEscrow => 'एस्क्रो में';
+
+  @override
+  String get filterSettled => 'निपटाया गया';
+
+  @override
+  String get filterRefunded => 'रिफंड किया गया';
+
+  @override
+  String get filterFailed => 'विफल';
+
+  @override
+  String get filterOpen => 'खुला';
+
+  @override
+  String get filterInProgress => 'प्रगति में';
+
+  @override
+  String get filterResolved => 'हल किया गया';
+
+  @override
+  String get errorLoadingTransactions => 'लेन-देन लोड करने में विफल';
+
+  @override
+  String get noTransactionsFound => 'कोई लेन-देन नहीं मिला';
+
+  @override
+  String get noTransactionsFoundSubtitle =>
+      'इस स्थिति से मेल खाने वाला कोई भुगतान योगदान या बहीखाता प्रविष्टि नहीं है।';
+
+  @override
+  String get corridorContributionLabel => 'कॉरिडोर योगदान';
+
+  @override
+  String get sandboxSimulatedBadge => 'सैंडबॉक्स सिम्युलेटेड';
+
+  @override
+  String get liveClearingBadge => 'लाइव क्लीयरिंग';
+
+  @override
+  String get refLabel => 'संदर्भ';
+
+  @override
+  String get viewReceiptAction => 'रसीद';
+
+  @override
+  String get statusInEscrow => 'एस्क्रो में';
+
+  @override
+  String get statusSettled => 'निपटाया गया';
+
+  @override
+  String get statusRefunded => 'रिफंड किया गया';
+
+  @override
+  String get statusDisputed => 'विवादित';
+
+  @override
+  String get statusFailed => 'विफल';
+
+  @override
+  String get statusPending => 'लंबित';
+
+  @override
+  String get statusOpen => 'खुला';
+
+  @override
+  String get statusInProgress => 'प्रगति में';
+
+  @override
+  String get statusResolved => 'हल किया गया';
+
+  @override
+  String get statusClosed => 'बंद';
+
+  @override
+  String get supportTicketsTitle => 'सहायता टिकट';
+
+  @override
+  String get supportTicketsSubtitle => 'प्राथमिकता सदस्य हेल्प डेस्क';
+
+  @override
+  String get newTicketButton => 'नया टिकट';
+
+  @override
+  String get errorLoadingTickets => 'टिकट लोड करने में विफल';
+
+  @override
+  String get noTicketsFound => 'कोई सहायता टिकट नहीं';
+
+  @override
+  String get noTicketsFoundSubtitle =>
+      'आपने अभी तक कोई हेल्प डेस्क अनुरोध सबमिट नहीं किया है।';
+
+  @override
+  String get createTicketPromptAction => 'अनुरोध सबमिट करें';
+
+  @override
+  String get messagesCountSuffix => 'संदेश';
+
+  @override
+  String get createTicketSheetTitle => 'सहायता अनुरोध बनाएं';
+
+  @override
+  String get createTicketSheetSubtitle =>
+      'हमारा समुदाय डेस्क 2-4 घंटों के भीतर उत्तर देता है।';
+
+  @override
+  String get categoryLabel => 'श्रेणी';
+
+  @override
+  String get categoryRideIssue => 'यात्रा समस्या';
+
+  @override
+  String get categoryPaymentInquiry => 'भुगतान पूछताछ';
+
+  @override
+  String get categoryDriverBehavior => 'ड्राइवर का व्यवहार';
+
+  @override
+  String get categoryTechBug => 'तकनीकी समस्या';
+
+  @override
+  String get categoryAccountAccess => 'खाता पहुंच';
+
+  @override
+  String get categoryOther => 'अन्य / पूछताछ';
+
+  @override
+  String get subjectLabel => 'विषय';
+
+  @override
+  String get subjectHint => 'समस्या का संक्षिप्त सारांश...';
+
+  @override
+  String get subjectRequired => 'कृपया एक विषय दर्ज करें';
+
+  @override
+  String get descriptionLabel => 'विस्तृत विवरण';
+
+  @override
+  String get descriptionHint =>
+      'परिस्थितियों, कॉरिडोर स्थान या प्रश्न को विस्तार से समझाएं...';
+
+  @override
+  String get descriptionRequired => 'कृपया विस्तृत विवरण दर्ज करें';
+
+  @override
+  String get submitTicketButton => 'सहायता अनुरोध सबमिट करें';
+
+  @override
+  String get ticketCreatedSuccess => 'सहायता टिकट खोला गया';
+
+  @override
+  String get ticketCreateFailed =>
+      'सहायता टिकट बनाने में विफल। कृपया पुनः प्रयास करें।';
+
+  @override
+  String get ticketDetailTitle => 'टिकट बातचीत';
+
+  @override
+  String get corridorLabel => 'कॉरिडोर';
+
+  @override
+  String get markResolvedAction => 'हल हुआ चिह्नित करें';
+
+  @override
+  String get supportTeamSender => 'सह्यान सहायता विशेषज्ञ';
+
+  @override
+  String get replyMessageHint => 'सहायता के लिए अपना संदेश लिखें...';
+
+  @override
+  String get ticketClosedNotice =>
+      'यह सहायता टिकट बंद है। नई पूछताछ के लिए, कृपया एक नया टिकट बनाएं।';
+
+  @override
+  String get retryAction => 'पुनः प्रयास करें';
 }

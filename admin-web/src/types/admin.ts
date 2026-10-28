@@ -366,3 +366,119 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
+export interface SupportTicketMessage {
+  _id?: string;
+  sender: 'user' | 'admin';
+  senderId: string;
+  senderName: string;
+  senderRole?: string;
+  message: string;
+  createdAt: string;
+}
+
+export interface SupportTicketItem {
+  _id: string;
+  ticketNumber: string;
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+    rating?: number;
+    isVerified?: boolean;
+  };
+  booking?: {
+    _id: string;
+    pickup?: { name: string };
+    drop?: { name: string };
+    status?: string;
+    totalContribution?: number;
+    departureTime?: string;
+  } | null;
+  ride?: {
+    _id: string;
+    origin?: { name: string };
+    destination?: { name: string };
+    departureTime?: string;
+    status?: string;
+  } | null;
+  category: 'ride_issue' | 'payment_inquiry' | 'driver_behavior' | 'technical_bug' | 'account_access' | 'other';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  subject: string;
+  description: string;
+  messages: SupportTicketMessage[];
+  assignedTo?: {
+    _id: string;
+    name: string;
+    email: string;
+    role?: string;
+  } | null;
+  resolutionNotes?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransactionLedgerItem {
+  _id: string;
+  bookingId?: {
+    _id: string;
+    pickup?: { name: string };
+    drop?: { name: string };
+    departureTime?: string;
+    seats?: number;
+    status?: string;
+    paymentStatus?: string;
+    totalContribution?: number;
+  };
+  passengerId?: {
+    _id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  driverId?: {
+    _id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  amount: number;
+  currency: string;
+  platformFee: number;
+  paymentMethod: string;
+  isSandbox: boolean;
+  status: 'pending' | 'escrow_held' | 'settled_to_driver' | 'refunded' | 'disputed' | 'failed';
+  gatewayOrderId?: string;
+  gatewayReference?: string;
+  verifiedBy?: string;
+  createdAt: string;
+}
+
+export interface SystemTelemetryData {
+  serverTime: string;
+  uptimeSeconds: number;
+  database: {
+    status: 'healthy' | 'degraded' | 'disconnected';
+    readyState: number;
+    latencyMs: number | null;
+    host: string;
+  };
+  telematics: {
+    activeSocketRooms: number;
+    protocol: string;
+    status: string;
+  };
+  services: {
+    smsGateway: string;
+    firebaseAuth: string;
+    jwtSignature: boolean;
+  };
+  memory: {
+    rssMb: number;
+    heapUsedMb: number;
+    heapTotalMb: number;
+  };
+}
+

@@ -48,43 +48,66 @@ body {
 @layer components {
   /* Cards */
   .card {
-    @apply bg-white rounded-2xl p-5;
-    border: 1px solid #E8F0EC;
-    box-shadow: 0 1px 3px 0 rgba(11, 93, 75, 0.08), 0 1px 2px -1px rgba(11, 93, 75, 0.08);
+    @apply bg-white rounded-2xl p-5 transition-all duration-300;
+    border: 1px solid rgba(232, 240, 236, 0.9);
+    box-shadow: 0 1px 3px 0 rgba(11, 93, 75, 0.05), 0 10px 25px -5px rgba(11, 93, 75, 0.03);
+  }
+  .card:hover {
+    border-color: rgba(167, 232, 210, 0.5);
+    box-shadow: 0 12px 30px -4px rgba(11, 93, 75, 0.09);
   }
   .card-sm {
-    @apply bg-white rounded-xl p-4;
+    @apply bg-white rounded-xl p-4 transition-all duration-200;
     border: 1px solid #E8F0EC;
-    box-shadow: 0 1px 2px 0 rgba(11, 93, 75, 0.05);
+    box-shadow: 0 1px 2px 0 rgba(11, 93, 75, 0.04);
+  }
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(167, 232, 210, 0.35);
+    box-shadow: 0 8px 32px 0 rgba(11, 93, 75, 0.07);
+  }
+  .glass-dark-card {
+    background: linear-gradient(135deg, rgba(8, 76, 58, 0.95) 0%, rgba(6, 61, 46, 0.98) 100%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(167, 232, 210, 0.2);
+    box-shadow: 0 20px 40px -10px rgba(6, 61, 46, 0.4);
   }
 
   /* Badges */
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wide;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide transition-all;
   }
-  .badge-green  { @apply bg-emerald-50 text-emerald-800 border border-emerald-200; }
-  .badge-red    { @apply bg-rose-50 text-rose-800 border border-rose-200; }
-  .badge-amber  { @apply bg-amber-50 text-amber-800 border border-amber-200; }
-  .badge-blue   { @apply bg-blue-50 text-blue-800 border border-blue-200; }
-  .badge-purple { @apply bg-purple-50 text-purple-800 border border-purple-200; }
-  .badge-gray   { @apply bg-gray-100 text-gray-700 border border-gray-200; }
+  .badge-green  { @apply bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs; }
+  .badge-red    { @apply bg-rose-50 text-rose-800 border border-rose-200/80 shadow-2xs; }
+  .badge-amber  { @apply bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs; }
+  .badge-blue   { @apply bg-blue-50 text-blue-800 border border-blue-200/80 shadow-2xs; }
+  .badge-purple { @apply bg-purple-50 text-purple-800 border border-purple-200/80 shadow-2xs; }
+  .badge-gray   { @apply bg-gray-100 text-gray-700 border border-gray-200/80 shadow-2xs; }
 
   /* Buttons */
   .btn-primary {
-    @apply px-4 py-2 rounded-xl text-white font-semibold text-sm transition-colors cursor-pointer shadow-sm;
-    background-color: #0B5D4B;
+    @apply px-4 py-2.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 cursor-pointer shadow-sm active:scale-[0.98];
+    background: linear-gradient(135deg, #0B5D4B 0%, #084C3A 100%);
+    box-shadow: 0 4px 14px 0 rgba(11, 93, 75, 0.25);
   }
   .btn-primary:hover {
-    background-color: #084C3A;
+    background: linear-gradient(135deg, #0D6F59 0%, #0A5A45 100%);
+    box-shadow: 0 6px 20px 0 rgba(11, 93, 75, 0.35);
+    transform: translateY(-1px);
   }
   .btn-secondary {
-    @apply px-4 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer;
+    @apply px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200 cursor-pointer active:scale-[0.98];
     background-color: #F2F7F4;
     border: 1px solid #E8F0EC;
     color: #12352E;
   }
   .btn-secondary:hover {
     background-color: #E8F0EC;
+    border-color: #D0EDE3;
+    transform: translateY(-1px);
   }
   .btn-danger {
     @apply px-4 py-2 rounded-xl bg-rose-600 text-white font-semibold text-sm hover:bg-rose-700 transition-colors cursor-pointer;

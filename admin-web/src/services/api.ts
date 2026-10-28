@@ -7,6 +7,9 @@ import {
   AuditLogItem,
   RevenueStats,
   PlatformConfig,
+  SupportTicketItem,
+  TransactionLedgerItem,
+  SystemTelemetryData,
 } from '../types/admin';
 
 export const BASE_URL = (import.meta as any).env?.VITE_API_URL || '/api/v1';
@@ -463,6 +466,130 @@ export const adminApi = {
       page: res?.page || (params?.page || 1),
       totalPages: res?.totalPages || 1,
     };
+  },
+
+  // Support Tickets Queue
+  async getTickets(params?: {
+    status?: string;
+    category?: string;
+    priority?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: SupportTicketItem[];
+    counts: { open: number; in_progress: number; resolved: number; closed: number };
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.status && params.status !== 'all') searchParams.set('status', params.status);
+    if (params?.category && params.category !== 'all') searchParams.set('category', params.category);
+    if (params?.priority && params.priority !== 'all') searchParams.set('priority', params.priority);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const res = await requestWithTimeout<any>(`${BASE_URL}/admin/tickets${query}`);
+    return {
+      data: res?.data || [],
+      counts: res?.counts || { open: 0, in_progress: 0, resolved: 0, closed: 0 },
+      total: res?.pagination?.total || 0,
+      page: res?.pagination?.page || 1,
+      totalPages: res?.pagination?.totalPages || 1,
+    };
+  },
+
+  async getTicketById(ticketId: string): Promise<SupportTicketItem> {
+    const res = await requestWithTimeout<any>(`${BASE_URL}/admin/tickets/${ticketId}`);
+    return res?.data || res;
+  },
+
+  async updateTicket(
+    ticketId: string,
+    payload: {
+      status?: string;
+      priority?: string;
+      assignedTo?: string | null;
+      resolutionNotes?: string;
+      replyMessage?: string;
+    }
+  ): Promise<SupportTicketItem> {
+    const res = await requestWithTimeout<any>(`${BASE_URL}/admin/tickets/${ticketId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res?.data || res;
+  },
+
+  // Payment Reconciliation Ledger
+  async reconcilePayment(bookingId: string): Promise<any> {
+    return requestWithTimeout<any>(`${BASE_URL}/payments/reconcile/${bookingId}`);
+  },
+
+  async getAdminTransactions(params?: {
+    status?: string;
+    isSandbox?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    data: TransactionLedgerItem[];
+    metrics: {
+      totalVolume: number;
+      platformFees: number;
+      escrowHeld: number;
+      settled: number;
+      refunded: number;
+      sandboxCount: number;
+      liveCount: number;
+    };
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const searchParams = new URLSearchParams();
+    if (params?.status && params.status !== 'all') searchParams.set('status', params.status);
+    if (params?.isSandbox && params.isSandbox !== 'all') searchParams.set('isSandbox', params.isSandbox);
+    if (params?.search) searchParams.set('search', params.search);
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.limit) searchParams.set('limit', String(params.limit));
+
+    const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const res = await requestWithTimeout<any>(`${BASE_URL}/admin/transactions${query}`);
+    return {
+      data: res?.data || [],
+      metrics: res?.metrics || {
+        totalVolume: 0,
+        platformFees: 0,
+        escrowHeld: 0,
+        settled: 0,
+        refunded: 0,
+        sandboxCount: 0,
+        liveCount: 0,
+      },
+      total: res?.pagination?.total || 0,
+      page: res?.pagination?.page || 1,
+      totalPages: res?.pagination?.totalPages || 1,
+    };
+  },
+
+  // Operational Subsystem Telemetry
+  async getSystemTelemetry(): Promise<SystemTelemetryData> {
+    const res = await requestWithTimeout<any>(`${BASE_URL}/admin/system/health-telemetry`);
+    return res?.data || res;
+  },
+
+  // RBAC User Role Management
+  async updateUserRole(userId: string, role: string): Promise<any> {
+    return requestWithTimeout<any>(`${BASE_URL}/admin/users/${userId}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
   },
 
   // Developer aliases

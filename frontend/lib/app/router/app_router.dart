@@ -50,6 +50,10 @@ import 'package:sahyan/features/payments/presentation/screens/payment_methods_sc
 import 'package:sahyan/features/payments/presentation/screens/payment_checkout_screen.dart';
 import 'package:sahyan/features/payments/presentation/screens/driver_payout_screen.dart';
 import 'package:sahyan/features/payments/presentation/screens/payout_account_screen.dart';
+import 'package:sahyan/features/payments/presentation/screens/transaction_history_screen.dart';
+import 'package:sahyan/features/settings/domain/support_ticket_model.dart';
+import 'package:sahyan/features/settings/presentation/screens/support_tickets_screen.dart';
+import 'package:sahyan/features/settings/presentation/screens/ticket_detail_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/auth_success_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/personal_details_screen.dart';
 import 'package:sahyan/features/rides/presentation/screens/filter_rides_screen.dart';
@@ -486,6 +490,25 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/help-support',
       builder: (context, state) => const HelpSupportScreen(),
+    ),
+    GoRoute(
+      path: '/support-tickets',
+      builder: (context, state) => const SupportTicketsScreen(),
+    ),
+    GoRoute(
+      path: '/support-tickets/:id',
+      builder: (context, state) {
+        final ticketId = state.pathParameters['id'] ?? '';
+        final extra = state.extra as SupportTicketModel?;
+        return TicketDetailScreen(
+          ticketId: ticketId,
+          initialTicket: extra,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/transaction-history',
+      builder: (context, state) => const TransactionHistoryScreen(),
     ),
     GoRoute(
       path: '/system-states',

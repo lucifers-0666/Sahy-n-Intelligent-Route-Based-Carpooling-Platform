@@ -1485,6 +1485,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Refund Requested'**
   String get refundRequested;
+
+  /// No description provided for @transactionHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction History'**
+  String get transactionHistoryTitle;
+
+  /// No description provided for @escrowLedgerSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contribution & Escrow Ledger'**
+  String get escrowLedgerSubtitle;
+
+  /// No description provided for @totalContributionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL FUEL CONTRIBUTIONS'**
+  String get totalContributionsLabel;
+
+  /// No description provided for @heldInEscrowLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Held in Escrow'**
+  String get heldInEscrowLabel;
+
+  /// No description provided for @escrowExplanationShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Safeguarded until passenger drop-off PIN verification'**
+  String get escrowExplanationShort;
+
+  /// No description provided for @filterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
+  /// No description provided for @filterInEscrow.
+  ///
+  /// In en, this message translates to:
+  /// **'In Escrow'**
+  String get filterInEscrow;
+
+  /// No description provided for @filterSettled.
+  ///
+  /// In en, this message translates to:
+  /// **'Settled'**
+  String get filterSettled;
+
+  /// No description provided for @filterRefunded.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded'**
+  String get filterRefunded;
+
+  /// No description provided for @filterFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get filterFailed;
+
+  /// No description provided for @filterOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get filterOpen;
+
+  /// No description provided for @filterInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get filterInProgress;
+
+  /// No description provided for @filterResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get filterResolved;
+
+  /// No description provided for @errorLoadingTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to Load Transactions'**
+  String get errorLoadingTransactions;
+
+  /// No description provided for @noTransactionsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No Transactions Found'**
+  String get noTransactionsFound;
+
+  /// No description provided for @noTransactionsFoundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You have no payment contributions or ledger entries matching this status.'**
+  String get noTransactionsFoundSubtitle;
+
+  /// No description provided for @corridorContributionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Corridor Contribution'**
+  String get corridorContributionLabel;
+
+  /// No description provided for @sandboxSimulatedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Sandbox Simulated'**
+  String get sandboxSimulatedBadge;
+
+  /// No description provided for @liveClearingBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Live Clearing'**
+  String get liveClearingBadge;
+
+  /// No description provided for @refLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Ref'**
+  String get refLabel;
+
+  /// No description provided for @viewReceiptAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt'**
+  String get viewReceiptAction;
+
+  /// No description provided for @statusInEscrow.
+  ///
+  /// In en, this message translates to:
+  /// **'In Escrow'**
+  String get statusInEscrow;
+
+  /// No description provided for @statusSettled.
+  ///
+  /// In en, this message translates to:
+  /// **'Settled'**
+  String get statusSettled;
+
+  /// No description provided for @statusRefunded.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded'**
+  String get statusRefunded;
+
+  /// No description provided for @statusDisputed.
+  ///
+  /// In en, this message translates to:
+  /// **'Disputed'**
+  String get statusDisputed;
+
+  /// No description provided for @statusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get statusFailed;
+
+  /// No description provided for @statusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get statusPending;
+
+  /// No description provided for @statusOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get statusOpen;
+
+  /// No description provided for @statusInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'In Progress'**
+  String get statusInProgress;
+
+  /// No description provided for @statusResolved.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolved'**
+  String get statusResolved;
+
+  /// No description provided for @statusClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Closed'**
+  String get statusClosed;
+
+  /// No description provided for @supportTicketsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Support Tickets'**
+  String get supportTicketsTitle;
+
+  /// No description provided for @supportTicketsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority Member Help Desk'**
+  String get supportTicketsSubtitle;
+
+  /// No description provided for @newTicketButton.
+  ///
+  /// In en, this message translates to:
+  /// **'New Ticket'**
+  String get newTicketButton;
+
+  /// No description provided for @errorLoadingTickets.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to Load Tickets'**
+  String get errorLoadingTickets;
+
+  /// No description provided for @noTicketsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No Support Tickets'**
+  String get noTicketsFound;
+
+  /// No description provided for @noTicketsFoundSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not submitted any help desk requests yet.'**
+  String get noTicketsFoundSubtitle;
+
+  /// No description provided for @createTicketPromptAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit a Request'**
+  String get createTicketPromptAction;
+
+  /// No description provided for @messagesCountSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'messages'**
+  String get messagesCountSuffix;
+
+  /// No description provided for @createTicketSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Support Request'**
+  String get createTicketSheetTitle;
+
+  /// No description provided for @createTicketSheetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Our community desk responds within 2-4 hours.'**
+  String get createTicketSheetSubtitle;
+
+  /// No description provided for @categoryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get categoryLabel;
+
+  /// No description provided for @categoryRideIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Ride Issue'**
+  String get categoryRideIssue;
+
+  /// No description provided for @categoryPaymentInquiry.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Inquiry'**
+  String get categoryPaymentInquiry;
+
+  /// No description provided for @categoryDriverBehavior.
+  ///
+  /// In en, this message translates to:
+  /// **'Driver Behavior'**
+  String get categoryDriverBehavior;
+
+  /// No description provided for @categoryTechBug.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical Bug'**
+  String get categoryTechBug;
+
+  /// No description provided for @categoryAccountAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Access'**
+  String get categoryAccountAccess;
+
+  /// No description provided for @categoryOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other / Inquiry'**
+  String get categoryOther;
+
+  /// No description provided for @subjectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subject'**
+  String get subjectLabel;
+
+  /// No description provided for @subjectHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Brief summary of the issue...'**
+  String get subjectHint;
+
+  /// No description provided for @subjectRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a subject'**
+  String get subjectRequired;
+
+  /// No description provided for @descriptionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed Description'**
+  String get descriptionLabel;
+
+  /// No description provided for @descriptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Explain the circumstances, corridor location, or question in detail...'**
+  String get descriptionHint;
+
+  /// No description provided for @descriptionRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a detailed description'**
+  String get descriptionRequired;
+
+  /// No description provided for @submitTicketButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Support Request'**
+  String get submitTicketButton;
+
+  /// No description provided for @ticketCreatedSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Support ticket opened'**
+  String get ticketCreatedSuccess;
+
+  /// No description provided for @ticketCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create support ticket. Please retry.'**
+  String get ticketCreateFailed;
+
+  /// No description provided for @ticketDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ticket Conversation'**
+  String get ticketDetailTitle;
+
+  /// No description provided for @corridorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Corridor'**
+  String get corridorLabel;
+
+  /// No description provided for @markResolvedAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark Resolved'**
+  String get markResolvedAction;
+
+  /// No description provided for @supportTeamSender.
+  ///
+  /// In en, this message translates to:
+  /// **'Sahyān Support Specialist'**
+  String get supportTeamSender;
+
+  /// No description provided for @replyMessageHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type your message to support...'**
+  String get replyMessageHint;
+
+  /// No description provided for @ticketClosedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'This support ticket is closed. For new inquiries, please create a new ticket.'**
+  String get ticketClosedNotice;
+
+  /// No description provided for @retryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retryAction;
 }
 
 class _AppLocalizationsDelegate

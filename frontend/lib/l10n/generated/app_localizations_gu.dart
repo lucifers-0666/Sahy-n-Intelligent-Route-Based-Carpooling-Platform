@@ -764,4 +764,203 @@ class AppLocalizationsGu extends AppLocalizations {
 
   @override
   String get refundRequested => 'રિફંડ વિનંતી કરી';
+
+  @override
+  String get transactionHistoryTitle => 'લવડદેવડ ઇતિહાસ';
+
+  @override
+  String get escrowLedgerSubtitle => 'યોગદાન અને એસ્ક્રો ખાતાવહી';
+
+  @override
+  String get totalContributionsLabel => 'કુલ ઇંધણ યોગદાન';
+
+  @override
+  String get heldInEscrowLabel => 'એસ્ક્રોમાં સુરક્ષિત';
+
+  @override
+  String get escrowExplanationShort =>
+      'મુસાફરના ડ્રોપ-ઓફ પિન ચકાસણી સુધી સુરક્ષિત રાખવામાં આવે છે';
+
+  @override
+  String get filterAll => 'બધા';
+
+  @override
+  String get filterInEscrow => 'એસ્ક્રોમાં';
+
+  @override
+  String get filterSettled => 'ચૂકવાયેલ';
+
+  @override
+  String get filterRefunded => 'રિફંડ થયેલ';
+
+  @override
+  String get filterFailed => 'નિષ્ફળ';
+
+  @override
+  String get filterOpen => 'ખુલ્લું';
+
+  @override
+  String get filterInProgress => 'પ્રગતિમાં';
+
+  @override
+  String get filterResolved => 'ઉકેલાયેલ';
+
+  @override
+  String get errorLoadingTransactions => 'ટ્રાન્ઝેક્શન્સ લોડ કરવામાં નિષ્ફળ';
+
+  @override
+  String get noTransactionsFound => 'કોઈ ટ્રાન્ઝેક્શન મળ્યા નથી';
+
+  @override
+  String get noTransactionsFoundSubtitle =>
+      'આ સ્થિતિ સાથે મેળ ખાતી તમારી પાસે કોઈ ચૂકવણી યોગદાન અથવા ખાતાવહી એન્ટ્રી નથી.';
+
+  @override
+  String get corridorContributionLabel => 'કોરિડોર યોગદાન';
+
+  @override
+  String get sandboxSimulatedBadge => 'સેન્ડબોક્સ સિમ્યુલેટેડ';
+
+  @override
+  String get liveClearingBadge => 'લાઇવ ક્લિયરિંગ';
+
+  @override
+  String get refLabel => 'સંદર્ભ';
+
+  @override
+  String get viewReceiptAction => 'રસીદ';
+
+  @override
+  String get statusInEscrow => 'એસ્ક્રોમાં';
+
+  @override
+  String get statusSettled => 'ચૂકવાયેલ';
+
+  @override
+  String get statusRefunded => 'રિફંડ થયેલ';
+
+  @override
+  String get statusDisputed => 'વિવાદિત';
+
+  @override
+  String get statusFailed => 'નિષ્ફળ';
+
+  @override
+  String get statusPending => 'બાકી';
+
+  @override
+  String get statusOpen => 'ખુલ્લું';
+
+  @override
+  String get statusInProgress => 'પ્રગતિમાં';
+
+  @override
+  String get statusResolved => 'ઉકેલાયેલ';
+
+  @override
+  String get statusClosed => 'બંધ';
+
+  @override
+  String get supportTicketsTitle => 'સપોર્ટ ટિકિટ્સ';
+
+  @override
+  String get supportTicketsSubtitle => 'પ્રાથમિકતા સભ્ય હેલ્પ ડેસ્ક';
+
+  @override
+  String get newTicketButton => 'નવી ટિકિટ';
+
+  @override
+  String get errorLoadingTickets => 'ટિકિટ્સ લોડ કરવામાં નિષ્ફળ';
+
+  @override
+  String get noTicketsFound => 'કોઈ સપોર્ટ ટિકિટ નથી';
+
+  @override
+  String get noTicketsFoundSubtitle =>
+      'તમે હજી સુધી કોઈ હેલ્પ ડેસ્ક વિનંતી સબમિટ કરી નથી.';
+
+  @override
+  String get createTicketPromptAction => 'વિનંતી સબમિટ કરો';
+
+  @override
+  String get messagesCountSuffix => 'સંદેશાઓ';
+
+  @override
+  String get createTicketSheetTitle => 'સપોર્ટ વિનંતી બનાવો';
+
+  @override
+  String get createTicketSheetSubtitle =>
+      'અમારું સમુદાય ડેસ્ક 2-4 કલાકમાં જવાબ આપે છે.';
+
+  @override
+  String get categoryLabel => 'શ્રેણી';
+
+  @override
+  String get categoryRideIssue => 'સફર સમસ્યા';
+
+  @override
+  String get categoryPaymentInquiry => 'ચુકવણી પૂછપરછ';
+
+  @override
+  String get categoryDriverBehavior => 'ડ્રાઇવરનું વર્તન';
+
+  @override
+  String get categoryTechBug => 'તકનીકી ખામી';
+
+  @override
+  String get categoryAccountAccess => 'ખાતા પ્રવેશ';
+
+  @override
+  String get categoryOther => 'અન્ય / પૂછપરછ';
+
+  @override
+  String get subjectLabel => 'વિષય';
+
+  @override
+  String get subjectHint => 'સમસ્યાનો સંક્ષિપ્ત સારાંશ...';
+
+  @override
+  String get subjectRequired => 'કૃપા કરીને વિષય દાખલ કરો';
+
+  @override
+  String get descriptionLabel => 'વિગતવાર વર્ણન';
+
+  @override
+  String get descriptionHint =>
+      'સંજોગો, કોરિડોર સ્થાન અથવા પ્રશ્ન વિગતવાર સમજાવો...';
+
+  @override
+  String get descriptionRequired => 'કૃપા કરીને વિગતવાર વર્ણન દાખલ કરો';
+
+  @override
+  String get submitTicketButton => 'સપોર્ટ વિનંતી સબમિટ કરો';
+
+  @override
+  String get ticketCreatedSuccess => 'સપોર્ટ ટિકિટ ખોલવામાં આવી';
+
+  @override
+  String get ticketCreateFailed =>
+      'સપોર્ટ ટિકિટ બનાવવામાં નિષ્ફળ. કૃપા કરીને ફરી પ્રયાસ કરો.';
+
+  @override
+  String get ticketDetailTitle => 'ટિકિટ વાતચીત';
+
+  @override
+  String get corridorLabel => 'કોરિડોર';
+
+  @override
+  String get markResolvedAction => 'ઉકેલાયેલ ચિહ્નિત કરો';
+
+  @override
+  String get supportTeamSender => 'સહ્યાન સપોર્ટ નિષ્ણાત';
+
+  @override
+  String get replyMessageHint => 'સપોર્ટ માટે તમારો સંદેશ લખો...';
+
+  @override
+  String get ticketClosedNotice =>
+      'આ સપોર્ટ ટિકિટ બંધ છે. નવી પૂછપરછ માટે, કૃપા કરીને નવી ટિકિટ બનાવો.';
+
+  @override
+  String get retryAction => 'ફરી પ્રયાસ કરો';
 }

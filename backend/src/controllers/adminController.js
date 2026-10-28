@@ -7,6 +7,7 @@ const Report = require('../models/Report');
 const Notification = require('../models/Notification');
 const AuditLog = require('../models/AuditLog');
 const PaymentTransaction = require('../models/PaymentTransaction');
+const Ticket = require('../models/Ticket');
 const socketService = require('../services/socketService');
 
 /**
@@ -1371,3 +1372,405 @@ exports.broadcastCorridorAlert = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * @desc Get paginated support tickets queue for admin dashboard
+ * @route GET /api/v1/admin/tickets
+ * @access Private (Admin)
+ */
+exports.getAdminTickets = async (req, res, next) => {
+  try {
+    const { status = 'all', category, priority, search, page = 1, limit = 20 } = req.query;
+
+    const query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+    if (priority && priority !== 'all') {
+      query.priority = priority;
+    }
+    if (search && search.trim().length > 0) {
+      const term = search.trim();
+      query.$or = [
+        { ticketNumber: { $regex: term, $options: 'i' } },
+        { subject: { $regex: term, $options: 'i' } },
+      ];
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [tickets, total, countsByStatus] = await Promise.all([
+      Ticket.find(query)
+        .sort({ updatedAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .populate('user', 'name email phone rating isVerified')
+        .populate('assignedTo', 'name email role')
+        .populate('booking', 'pickup drop status totalContribution')
+        .lean(),
+      Ticket.countDocuments(query),
+      Ticket.aggregate([
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
+
+    const statusCounts = {
+      open: 0,
+      in_progress: 0,
+      resolved: 0,
+      closed: 0,
+    };
+    countsByStatus.forEach((item) => {
+      if (statusCounts[item._id] !== undefined) {
+        statusCounts[item._id] = item.count;
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: tickets,
+      counts: statusCounts,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Get ticket details for admin
+ * @route GET /api/v1/admin/tickets/:id
+ * @access Private (Admin)
+ */
+exports.getAdminTicketById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const ticket = await Ticket.findById(id)
+      .populate('user', 'name email phone rating isVerified')
+      .populate('assignedTo', 'name email role')
+      .populate('booking', 'pickup drop status totalContribution seats departureTime paymentStatus')
+      .populate('ride', 'origin destination departureTime status availableSeats');
+
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: ticket,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Update support ticket from admin (reply, status change, assign, resolve)
+ * @route PATCH /api/v1/admin/tickets/:id
+ * @access Private (Admin)
+ */
+exports.updateAdminTicket = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status, priority, assignedTo, resolutionNotes, replyMessage } = req.body;
+    const adminId = req.user._id;
+    const adminRole = req.user.role || 'admin';
+
+    const ticket = await Ticket.findById(id);
+    if (!ticket) {
+      return res.status(404).json({ success: false, message: 'Ticket not found' });
+    }
+
+    if (status && ['open', 'in_progress', 'resolved', 'closed'].includes(status)) {
+      ticket.status = status;
+      if (status === 'resolved' || status === 'closed') {
+        ticket.resolvedAt = new Date();
+      }
+    }
+
+    if (priority && ['low', 'medium', 'high', 'urgent'].includes(priority)) {
+      ticket.priority = priority;
+    }
+
+    if (assignedTo !== undefined) {
+      ticket.assignedTo = assignedTo || null;
+    }
+
+    if (resolutionNotes !== undefined) {
+      ticket.resolutionNotes = resolutionNotes;
+    }
+
+    if (replyMessage && typeof replyMessage === 'string' && replyMessage.trim().length > 0) {
+      ticket.messages.push({
+        sender: 'admin',
+        senderId: adminId,
+        senderName: req.user.name || 'Support Specialist',
+        senderRole: adminRole,
+        message: replyMessage.trim(),
+        createdAt: new Date(),
+      });
+      if (ticket.status === 'open') {
+        ticket.status = 'in_progress';
+      }
+    }
+
+    await ticket.save();
+
+    await AuditLog.create({
+      action: 'TICKET_UPDATED',
+      admin: adminId,
+      actorRole: adminRole,
+      targetUser: ticket.user,
+      reason: `Ticket ${ticket.ticketNumber} updated to status: ${ticket.status}${replyMessage ? ' with reply dispatched' : ''}`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Support ticket updated successfully',
+      data: ticket,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Get payment transaction ledger for reconciliation
+ * @route GET /api/v1/admin/transactions
+ * @access Private (Admin)
+ */
+exports.getAdminTransactions = async (req, res, next) => {
+  try {
+    const { status = 'all', isSandbox, search, page = 1, limit = 20 } = req.query;
+
+    const query = {};
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    if (isSandbox !== undefined && isSandbox !== 'all') {
+      query.isSandbox = isSandbox === 'true';
+    }
+    if (search && search.trim().length > 0) {
+      const term = search.trim();
+      query.$or = [
+        { gatewayOrderId: { $regex: term, $options: 'i' } },
+        { gatewayReference: { $regex: term, $options: 'i' } },
+      ];
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [transactions, total, summary] = await Promise.all([
+      PaymentTransaction.find(query)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .populate('bookingId', 'pickup drop departureTime seats status paymentStatus totalContribution')
+        .populate('passengerId', 'name email phone')
+        .populate('driverId', 'name email phone')
+        .lean(),
+      PaymentTransaction.countDocuments(query),
+      PaymentTransaction.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalVolume: { $sum: '$amount' },
+            platformFees: { $sum: '$platformFee' },
+            escrowHeld: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'escrow_held'] }, '$amount', 0],
+              },
+            },
+            settled: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'settled_to_driver'] }, '$amount', 0],
+              },
+            },
+            refunded: {
+              $sum: {
+                $cond: [{ $eq: ['$status', 'refunded'] }, '$amount', 0],
+              },
+            },
+            sandboxCount: {
+              $sum: {
+                $cond: [{ $eq: ['$isSandbox', true] }, 1, 0],
+              },
+            },
+            liveCount: {
+              $sum: {
+                $cond: [{ $eq: ['$isSandbox', false] }, 1, 0],
+              },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const metrics = summary[0] || {
+      totalVolume: 0,
+      platformFees: 0,
+      escrowHeld: 0,
+      settled: 0,
+      refunded: 0,
+      sandboxCount: 0,
+      liveCount: 0,
+    };
+
+    return res.status(200).json({
+      success: true,
+      data: transactions,
+      metrics,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Get real-time operational subsystem telemetry
+ * @route GET /api/v1/admin/system/health-telemetry
+ * @access Private (Admin)
+ */
+exports.getSystemHealthTelemetry = async (req, res, next) => {
+  try {
+    const dbStart = Date.now();
+    let dbStatus = 'disconnected';
+    let dbLatencyMs = null;
+
+    try {
+      if (mongoose.connection.readyState === 1) {
+        await mongoose.connection.db.admin().ping();
+        dbLatencyMs = Date.now() - dbStart;
+        dbStatus = 'healthy';
+      }
+    } catch {
+      dbStatus = 'degraded';
+    }
+
+    const memory = process.memoryUsage();
+    const uptimeSec = Math.floor(process.uptime());
+
+    const activeRoomsCount = socketService.getActiveRooms ? socketService.getActiveRooms().length : 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        serverTime: new Date().toISOString(),
+        uptimeSeconds: uptimeSec,
+        database: {
+          status: dbStatus,
+          readyState: mongoose.connection.readyState,
+          latencyMs: dbLatencyMs,
+          host: mongoose.connection.host || 'cluster-primary',
+        },
+        telematics: {
+          activeSocketRooms: activeRoomsCount,
+          protocol: 'Socket.IO / TLS WSS',
+          status: 'operational',
+        },
+        services: {
+          smsGateway: process.env.FAST2SMS_API_KEY ? 'live_fast2sms' : 'mock_development',
+          firebaseAuth: process.env.FIREBASE_PROJECT_ID ? 'configured' : 'mock_development',
+          jwtSignature: Boolean(process.env.JWT_SECRET),
+        },
+        memory: {
+          rssMb: Math.round(memory.rss / (1024 * 1024)),
+          heapUsedMb: Math.round(memory.heapUsed / (1024 * 1024)),
+          heapTotalMb: Math.round(memory.heapTotal / (1024 * 1024)),
+        },
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Assign or update user/staff administrative role (Super Admin only)
+ * @route PATCH /api/v1/admin/users/:id/role
+ * @access Private (Super Admin only)
+ */
+exports.updateUserRole = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    const adminId = req.user._id;
+
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Security constraint: Only super administrators can modify administrative roles.',
+      });
+    }
+
+    const validRoles = ['user', 'admin', 'super_admin', 'safety_officer', 'support_lead'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role specified. Allowed roles: ${validRoles.join(', ')}`,
+      });
+    }
+
+    if (id.toString() === adminId.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Security constraint: Cannot modify your own administrative role.',
+      });
+    }
+
+    const targetUser = await User.findById(id);
+    if (!targetUser) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const previousRole = targetUser.role;
+    targetUser.role = role;
+    await targetUser.save();
+
+    await AuditLog.create({
+      action: 'USER_ROLE_CHANGED',
+      admin: adminId,
+      actorRole: req.user.role || 'super_admin',
+      targetUser: targetUser._id,
+      reason: `Role changed from ${previousRole} to ${role} by super admin ${req.user.email}`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `User role successfully updated to ${role}`,
+      data: {
+        id: targetUser._id,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: targetUser.role,
+        previousRole,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

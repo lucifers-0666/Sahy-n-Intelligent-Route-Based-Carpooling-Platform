@@ -9,7 +9,9 @@ export type AdminCapability =
   | 'MANAGE_VERIFICATIONS'
   | 'MANAGE_RIDES'
   | 'VIEW_AUDIT_LOGS'
-  | 'VIEW_SYSTEM_HEALTH';
+  | 'VIEW_SYSTEM_HEALTH'
+  | 'MANAGE_TICKETS'
+  | 'MANAGE_STAFF_ROLES';
 
 /**
  * Authoritative role-to-capability matrix strictly mapped to backend RBAC rules.
@@ -32,6 +34,8 @@ export const ROLE_CAPABILITIES: Record<AdminRole, readonly AdminCapability[]> = 
     'MANAGE_RIDES',
     'VIEW_AUDIT_LOGS',
     'VIEW_SYSTEM_HEALTH',
+    'MANAGE_TICKETS',
+    'MANAGE_STAFF_ROLES',
   ],
   admin: [
     'MANAGE_PLATFORM_SETTINGS',
@@ -43,6 +47,7 @@ export const ROLE_CAPABILITIES: Record<AdminRole, readonly AdminCapability[]> = 
     'MANAGE_RIDES',
     'VIEW_AUDIT_LOGS',
     'VIEW_SYSTEM_HEALTH',
+    'MANAGE_TICKETS',
   ],
   safety_officer: [
     'MANAGE_PLATFORM_SETTINGS',
@@ -53,11 +58,13 @@ export const ROLE_CAPABILITIES: Record<AdminRole, readonly AdminCapability[]> = 
     'MANAGE_VERIFICATIONS',
     'MANAGE_RIDES',
     'VIEW_AUDIT_LOGS',
+    'MANAGE_TICKETS',
   ],
   support_lead: [
     'VIEW_DISPUTES',
     'MANAGE_VERIFICATIONS',
     'MANAGE_RIDES',
+    'MANAGE_TICKETS',
   ],
 } as const;
 
@@ -81,9 +88,12 @@ export function isTabAuthorized(tabKey: string, role: string | undefined | null)
     case 'fraud':
       return hasCapability(role, 'MANAGE_DRIVER_SUSPENSION');
     case 'settings':
+    case 'operational':
       return hasCapability(role, 'VIEW_SYSTEM_HEALTH');
     case 'audit':
       return hasCapability(role, 'VIEW_AUDIT_LOGS');
+    case 'tickets':
+      return hasCapability(role, 'MANAGE_TICKETS');
     default:
       // 'overview', 'verifications', 'rides', 'reports', 'users', 'monetization'
       return true;

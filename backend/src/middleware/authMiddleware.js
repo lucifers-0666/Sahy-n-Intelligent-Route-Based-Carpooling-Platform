@@ -151,14 +151,14 @@ const optionalAuth = async (req, res, next) => {
       if (fbDecoded && fbDecoded.uid) {
         user = await User.findOne({ firebaseUid: fbDecoded.uid });
       }
-    } catch (_) {}
+    } catch (_) { }
 
     if (!user) {
       try {
         const secret = getJwtSecret();
         const decoded = jwt.verify(token, secret);
         user = await User.findById(decoded.id);
-      } catch (_) {}
+      } catch (_) { }
     }
 
     req.user = user || null;
@@ -191,7 +191,18 @@ const requireRole = (allowedRoles = []) => {
     }
 
     const userRole = req.user.role;
-    if (userRole === 'super_admin' || userRole === 'admin' || allowedRoles.includes(userRole)) {
+    if (userRole === 'super_admin') {
+      return next();
+    }
+
+    if (allowedRoles.length === 1 && allowedRoles[0] === 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Operation requires super_admin role.',
+      });
+    }
+
+    if (userRole === 'admin' || allowedRoles.includes(userRole)) {
       return next();
     }
 
