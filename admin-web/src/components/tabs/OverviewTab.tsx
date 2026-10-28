@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AdminStats, AuditLogItem, RideItem } from '../../types/admin';
 import { StatCard } from '../StatCard';
 import { Badge } from '../ui/Badge';
+import { CorridorMapWidget } from '../CorridorMapWidget';
 import { adminApi } from '../../services/api';
 import {
   Users,
@@ -308,6 +309,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           onClick={() => onNavigateTab('reports')}
         />
       </div>
+
+      {/* Interactive Corridor & Live Vehicle Map */}
+      <CorridorMapWidget />
 
       {/* Operational Visualizations: Lifecycle and Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

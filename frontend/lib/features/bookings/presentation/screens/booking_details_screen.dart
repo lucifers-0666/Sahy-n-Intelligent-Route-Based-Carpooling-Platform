@@ -17,6 +17,7 @@ import '../../../../shared/models/location_model.dart';
 import '../../../../shared/models/ride_model.dart';
 import '../../domain/booking_model.dart';
 import '../bookings_provider.dart';
+import '../widgets/report_dispute_bottom_sheet.dart';
 
 class BookingDetailsScreen extends ConsumerStatefulWidget {
   final BookingModel? initialBooking;
@@ -638,10 +639,50 @@ class _BookingDetailsScreenState extends ConsumerState<BookingDetailsScreen> {
                 // Completed summary for finished bookings
                 if (_booking.isCompleted) ...[
                   SahyanButton(
-                    text: 'View Journey Summary & Receipt',
+                    text: 'View Journey Summary',
                     icon: Icons.check_circle_outline_rounded,
                     onPressed: () {
                       context.push('/journey-completed', extra: _booking);
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  SahyanButton(
+                    text: 'Cost-Share Expense Statement',
+                    icon: Icons.receipt_long_rounded,
+                    variant: SahyanButtonVariant.secondary,
+                    onPressed: () {
+                      context.push('/trip-receipt', extra: _booking);
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                ],
+
+                // Dispute / Report issue for accepted or completed bookings
+                if (_booking.isAccepted || _booking.isCompleted) ...[
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      foregroundColor: AppColors.mutedRust,
+                      side: const BorderSide(color: AppColors.mutedRust),
+                    ),
+                    icon: const Icon(Icons.report_problem_outlined, size: 18),
+                    label: const Text('Report Dispute / Payment Issue'),
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final result = await ReportDisputeBottomSheet.show(
+                        context,
+                        bookingId: _booking.id,
+                        isDriver: false,
+                      );
+                      if (result == true && mounted) {
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Dispute submitted to Safety & Reconciliation console.',
+                            ),
+                          ),
+                        );
+                      }
                     },
                   ),
                   const SizedBox(height: AppSpacing.base),

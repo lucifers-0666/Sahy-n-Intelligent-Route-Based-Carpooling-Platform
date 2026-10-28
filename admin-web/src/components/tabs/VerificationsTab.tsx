@@ -25,6 +25,75 @@ export const VerificationsTab: React.FC = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Bulk actions state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [bulkFeedback, setBulkFeedback] = useState<string | null>(null);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === users.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(users.map((u) => u._id)));
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.size === 0) return;
+    setBulkProcessing(true);
+    setBulkFeedback(null);
+    try {
+      const ids = Array.from(selectedIds);
+      let successCount = 0;
+      for (const id of ids) {
+        try {
+          await adminApi.verifyDriver(id, 'approve');
+          successCount++;
+        } catch (e) {
+          console.error(`Failed to approve ${id}`, e);
+        }
+      }
+      setBulkFeedback(`Successfully approved ${successCount} driver verification(s).`);
+      setSelectedIds(new Set());
+      await fetchUsers();
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (selectedIds.size === 0) return;
+    const reason = window.prompt('Enter reason for bulk rejection:') || 'Compliance documentation requirement not met';
+    setBulkProcessing(true);
+    setBulkFeedback(null);
+    try {
+      const ids = Array.from(selectedIds);
+      let count = 0;
+      for (const id of ids) {
+        try {
+          await adminApi.verifyDriver(id, 'reject', reason);
+          count++;
+        } catch (e) {
+          console.error(`Failed to reject ${id}`, e);
+        }
+      }
+      setBulkFeedback(`Rejected ${count} driver application(s).`);
+      setSelectedIds(new Set());
+      await fetchUsers();
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     setError(null);
@@ -139,6 +208,50 @@ export const VerificationsTab: React.FC = () => {
         </button>
       </form>
 
+      {/* Bulk Feedback Banner */}
+      {bulkFeedback && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center justify-between">
+          <span>{bulkFeedback}</span>
+          <button onClick={() => setBulkFeedback(null)} className="text-emerald-700 hover:text-emerald-900 font-bold ml-2">Dismiss</button>
+        </div>
+      )}
+
+      {/* Bulk Action Toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-forest-dark text-white p-3 rounded-2xl flex items-center justify-between gap-4 shadow-md animate-fade-in">
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="w-2 h-2 rounded-full bg-forest-mint animate-pulse" />
+            <span className="font-bold">{selectedIds.size} Driver Application{selectedIds.size > 1 ? 's' : ''} Selected</span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleBulkApprove}
+              disabled={bulkProcessing}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center space-x-1"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>{bulkProcessing ? 'Processing...' : 'Approve Selected'}</span>
+            </button>
+            <button
+              onClick={handleBulkReject}
+              disabled={bulkProcessing}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center space-x-1"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Reject Selected</span>
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              disabled={bulkProcessing}
+              className="px-2.5 py-1.5 text-forest-mint hover:text-white text-xs font-semibold cursor-pointer"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Queue Content */}
       {loading ? (
         <div className="bg-white rounded-2xl p-12 text-center text-textMuted text-xs">
@@ -164,6 +277,14 @@ export const VerificationsTab: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-surface text-textMuted font-bold uppercase tracking-wider border-b border-surface-subtle">
                 <tr>
+                  <th className="py-3 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={users.length > 0 && selectedIds.size === users.length}
+                      onChange={toggleSelectAll}
+                      className="rounded border-surface-subtle text-forest focus:ring-forest cursor-pointer"
+                    />
+                  </th>
                   <th className="py-3 px-4">Driver</th>
                   <th className="py-3 px-4">License Number</th>
                   <th className="py-3 px-4">Submission Status</th>
@@ -174,8 +295,17 @@ export const VerificationsTab: React.FC = () => {
               <tbody className="divide-y divide-surface-subtle">
                 {users.map((u) => {
                   const status = u.driverProfile?.onboardingStatus || 'not_started';
+                  const isChecked = selectedIds.has(u._id);
                   return (
-                    <tr key={u._id} className="hover:bg-surface/50 transition-colors">
+                    <tr key={u._id} className={`hover:bg-surface/50 transition-colors ${isChecked ? 'bg-forest-light/30' : ''}`}>
+                      <td className="py-3.5 px-4 w-10">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSelect(u._id)}
+                          className="rounded border-surface-subtle text-forest focus:ring-forest cursor-pointer"
+                        />
+                      </td>
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-textMain">{u.name}</div>
                         <div className="text-[11px] text-textMuted">{u.email} · {u.phone}</div>

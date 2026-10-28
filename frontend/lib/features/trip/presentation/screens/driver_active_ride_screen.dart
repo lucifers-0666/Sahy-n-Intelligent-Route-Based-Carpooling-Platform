@@ -14,6 +14,8 @@ import '../../../../core/widgets/sahyan_card.dart';
 import '../../../../core/network/socket_client.dart';
 import '../../../../core/services/driver_location_service.dart';
 import '../../../../shared/models/ride_model.dart';
+import '../../../bookings/domain/booking_model.dart';
+import '../../../bookings/presentation/bookings_provider.dart';
 import '../../../rides/presentation/rides_provider.dart';
 
 class DriverActiveRideScreen extends ConsumerStatefulWidget {
@@ -30,8 +32,13 @@ class _DriverActiveRideScreenState
     extends ConsumerState<DriverActiveRideScreen> {
   late RideModel? _ride;
   final TextEditingController _pinController = TextEditingController();
+  final Map<String, TextEditingController> _pinControllers = {};
   final Set<String> _verifiedPassengers = {'P1'};
   bool _isCompleting = false;
+
+  TextEditingController _getPinController(String key) {
+    return _pinControllers.putIfAbsent(key, () => TextEditingController());
+  }
 
   StreamSubscription<bool>? _gpsInterruptedSub;
   bool _isShowingGpsAlert = false;
@@ -42,6 +49,14 @@ class _DriverActiveRideScreenState
     _ride = widget.initialRide;
     _startGpsStream();
     _listenToGpsInterruption();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_ride != null && _ride!.id.isNotEmpty) {
+        ref.read(driverRequestsNotifierProvider.notifier).fetchDriverRequests(
+          status: 'accepted',
+          rideId: _ride!.id,
+        );
+      }
+    });
   }
 
   void _listenToGpsInterruption() {
@@ -129,16 +144,89 @@ class _DriverActiveRideScreenState
   @override
   void dispose() {
     _gpsInterruptedSub?.cancel();
+    for (final controller in _pinControllers.values) {
+      controller.dispose();
+    }
     _pinController.dispose();
     _stopGpsStream();
     super.dispose();
   }
 
-  void _verifyPassengerPin(String passengerId, String expectedPin) {
-    if (_pinController.text.trim() == expectedPin) {
+  Future<void> _verifyPassengerPin({
+    required String bookingOrPassengerId,
+    String? expectedPin,
+    bool isRemoteBooking = false,
+  }) async {
+    final controller = isRemoteBooking
+        ? _getPinController(bookingOrPassengerId)
+        : _pinController;
+    final enteredPin = controller.text.trim();
+
+    if (enteredPin.length != 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid 4-digit boarding PIN.'),
+          backgroundColor: AppColors.mutedRust,
+        ),
+      );
+      return;
+    }
+
+    if (isRemoteBooking) {
+      try {
+        final success = await ref
+            .read(driverRequestsNotifierProvider.notifier)
+            .verifyBoardingPin(bookingOrPassengerId, enteredPin);
+
+        if (success) {
+          if (!mounted) return;
+          setState(() {
+            _verifiedPassengers.add(bookingOrPassengerId);
+            controller.clear();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Passenger boarding PIN verified successfully!'),
+              backgroundColor: AppColors.primaryForest,
+            ),
+          );
+          return;
+        }
+      } catch (e) {
+        // Fall back to matching expected security PIN if network error occurs
+        if (expectedPin != null && enteredPin == expectedPin) {
+          if (!mounted) return;
+          setState(() {
+            _verifiedPassengers.add(bookingOrPassengerId);
+            controller.clear();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Boarding verified via passenger PIN.'),
+              backgroundColor: AppColors.primaryForest,
+            ),
+          );
+          return;
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('PIN Verification Failed: $e'),
+              backgroundColor: AppColors.mutedRust,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    // Direct local / fallback check
+    if (expectedPin != null && enteredPin == expectedPin) {
+      if (!mounted) return;
       setState(() {
-        _verifiedPassengers.add(passengerId);
-        _pinController.clear();
+        _verifiedPassengers.add(bookingOrPassengerId);
+        controller.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -147,6 +235,7 @@ class _DriverActiveRideScreenState
         ),
       );
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Invalid boarding PIN. Please check with passenger.'),
@@ -598,90 +687,88 @@ class _DriverActiveRideScreenState
               ),
               const SizedBox(height: AppSpacing.sm),
 
-              // Passenger 1 (Already Boarded)
-              SahyanCard(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Row(
-                  children: [
-                    const SahyanAvatar(name: 'Rohit Sharma', radius: 18),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Rohit Sharma',
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Seat A1 · Window',
-                            style: AppTypography.caption,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.softForest,
-                        borderRadius: BorderRadius.circular(AppRadii.sm),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            size: 14,
-                            color: AppColors.primaryForest,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Boarded',
-                            style: AppTypography.caption.copyWith(
-                              color: AppColors.primaryForest,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              // Passenger Manifest & Dynamic PIN Verification
+              ..._buildPassengerManifest(ref),
+
+              const SizedBox(height: AppSpacing.xl),
+
+              // Complete Journey Action
+              SahyanButton(
+                text: 'Complete Journey',
+                icon: Icons.check_circle_rounded,
+                isLoading: _isCompleting,
+                isFullWidth: true,
+                onPressed: _handleCompleteJourney,
               ),
 
               const SizedBox(height: AppSpacing.sm),
 
-              // Passenger 2 (Verification Needed)
-              SahyanCard(
+              SahyanButton(
+                text: 'Emergency Assistance',
+                variant: SahyanButtonVariant.destructive,
+                icon: Icons.emergency_rounded,
+                isFullWidth: true,
+                onPressed: () => context.push('/safety-center'),
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildPassengerManifest(WidgetRef ref) {
+    final driverRequestsAsync = ref.watch(driverRequestsNotifierProvider);
+
+    return driverRequestsAsync.maybeWhen(
+      data: (bookings) {
+        final acceptedBookings = bookings.where((b) {
+          if (_ride != null && _ride!.id.isNotEmpty) {
+            return b.rideId == _ride!.id &&
+                (b.status == BookingStatus.accepted ||
+                    b.status == BookingStatus.completed);
+          }
+          return b.status == BookingStatus.accepted;
+        }).toList();
+
+        if (acceptedBookings.isNotEmpty) {
+          return acceptedBookings.map((booking) {
+            final isBoarded = booking.boardedAt != null ||
+                _verifiedPassengers.contains(booking.id);
+            final controller = _getPinController(booking.id);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: SahyanCard(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        const SahyanAvatar(name: 'Priya Mehta', radius: 18),
+                        SahyanAvatar(name: booking.passengerName, radius: 18),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Priya Mehta',
+                                booking.passengerName,
                                 style: AppTypography.bodyMedium.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
                               Text(
-                                'Seat A2 · Mid',
+                                '${booking.requestedSeats} Seat(s) · Pickup: ${booking.pickup.name}',
                                 style: AppTypography.caption,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
-                        if (_verifiedPassengers.contains('P2'))
+                        if (isBoarded)
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.sm,
@@ -719,20 +806,20 @@ class _DriverActiveRideScreenState
                           ),
                       ],
                     ),
-                    if (!_verifiedPassengers.contains('P2')) ...[
+                    if (!isBoarded) ...[
                       const SizedBox(height: AppSpacing.sm),
                       Row(
                         children: [
                           Expanded(
                             child: TextField(
-                              controller: _pinController,
+                              controller: controller,
                               keyboardType: TextInputType.number,
                               maxLength: 4,
                               style: AppTypography.bodyMedium,
                               decoration: InputDecoration(
                                 isDense: true,
                                 counterText: '',
-                                hintText: 'Enter 4-digit PIN (Try 4821)',
+                                hintText: 'Enter 4-digit boarding PIN',
                                 hintStyle: AppTypography.caption,
                                 contentPadding: const EdgeInsets.symmetric(
                                   horizontal: AppSpacing.sm,
@@ -763,7 +850,11 @@ class _DriverActiveRideScreenState
                                 ),
                               ),
                             ),
-                            onPressed: () => _verifyPassengerPin('P2', '4821'),
+                            onPressed: () => _verifyPassengerPin(
+                              bookingOrPassengerId: booking.id,
+                              expectedPin: booking.securityPin,
+                              isRemoteBooking: true,
+                            ),
                             child: const Text(
                               'Verify',
                               style: TextStyle(color: AppColors.white),
@@ -775,33 +866,184 @@ class _DriverActiveRideScreenState
                   ],
                 ),
               ),
+            );
+          }).toList();
+        }
 
-              const SizedBox(height: AppSpacing.xl),
+        return _buildDefaultPassengerManifest();
+      },
+      orElse: () => _buildDefaultPassengerManifest(),
+    );
+  }
 
-              // Complete Journey Action
-              SahyanButton(
-                text: 'Complete Journey',
-                icon: Icons.check_circle_rounded,
-                isLoading: _isCompleting,
-                isFullWidth: true,
-                onPressed: _handleCompleteJourney,
+  List<Widget> _buildDefaultPassengerManifest() {
+    return [
+      // Passenger 1 (Already Boarded)
+      SahyanCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Row(
+          children: [
+            const SahyanAvatar(name: 'Rohit Sharma', radius: 18),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Rohit Sharma',
+                    style: AppTypography.bodyMedium.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text('Seat A1 · Window', style: AppTypography.caption),
+                ],
               ),
-
-              const SizedBox(height: AppSpacing.sm),
-
-              SahyanButton(
-                text: 'Emergency Assistance',
-                variant: SahyanButtonVariant.destructive,
-                icon: Icons.emergency_rounded,
-                isFullWidth: true,
-                onPressed: () => context.push('/safety-center'),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 4,
               ),
-
-              const SizedBox(height: AppSpacing.lg),
-            ],
-          ),
+              decoration: BoxDecoration(
+                color: AppColors.softForest,
+                borderRadius: BorderRadius.circular(AppRadii.sm),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    size: 14,
+                    color: AppColors.primaryForest,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Boarded',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.primaryForest,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-    );
+      const SizedBox(height: AppSpacing.sm),
+      // Passenger 2 (Verification Needed)
+      SahyanCard(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                const SahyanAvatar(name: 'Priya Mehta', radius: 18),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Priya Mehta',
+                        style: AppTypography.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text('Seat A2 · Mid', style: AppTypography.caption),
+                    ],
+                  ),
+                ),
+                if (_verifiedPassengers.contains('P2'))
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.softForest,
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          size: 14,
+                          color: AppColors.primaryForest,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Boarded',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.primaryForest,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  Text(
+                    'Pending PIN',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.mutedRust,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+            if (!_verifiedPassengers.contains('P2')) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _pinController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      style: AppTypography.bodyMedium,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        counterText: '',
+                        hintText: 'Enter 4-digit boarding PIN',
+                        hintStyle: AppTypography.caption,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 10,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadii.sm),
+                          borderSide: const BorderSide(
+                            color: AppColors.border,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryForest,
+                      minimumSize: const Size(80, 42),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
+                      ),
+                    ),
+                    onPressed: () => _verifyPassengerPin(
+                      bookingOrPassengerId: 'P2',
+                      expectedPin: '4821',
+                    ),
+                    child: const Text(
+                      'Verify',
+                      style: TextStyle(color: AppColors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    ];
   }
 }

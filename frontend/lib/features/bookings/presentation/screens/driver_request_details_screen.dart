@@ -13,6 +13,7 @@ import 'package:sahyan/core/widgets/sahyan_status_badge.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/features/bookings/presentation/bookings_provider.dart';
 import 'package:sahyan/features/rides/presentation/rides_provider.dart';
+import '../widgets/report_dispute_bottom_sheet.dart';
 
 class DriverRequestDetailsScreen extends ConsumerStatefulWidget {
   final BookingModel? initialRequest;
@@ -592,6 +593,37 @@ class _DriverRequestDetailsScreenState
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                ],
+
+                // Dispute / Unpaid cash action for accepted or completed requests
+                if (_request.isAccepted || _request.isCompleted) ...[
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      foregroundColor: AppColors.mutedRust,
+                      side: const BorderSide(color: AppColors.mutedRust),
+                    ),
+                    icon: const Icon(Icons.report_problem_outlined, size: 18),
+                    label: const Text('Report Passenger Dispute or Non-Payment'),
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final res = await ReportDisputeBottomSheet.show(
+                        context,
+                        bookingId: _request.id,
+                        isDriver: true,
+                      );
+                      if (res == true && mounted) {
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Dispute submitted to Safety & Reconciliation console.',
+                            ),
+                          ),
+                        );
+                      }
+                    },
                   ),
                   const SizedBox(height: AppSpacing.lg),
                 ],

@@ -119,6 +119,7 @@ class ApiClient {
         clean == '/auth/verify-otp' ||
         clean == '/auth/forgot-password' ||
         clean == '/auth/reset-password' ||
+        clean == '/auth/appeal' ||
         clean == '/auth/logout';
   }
 

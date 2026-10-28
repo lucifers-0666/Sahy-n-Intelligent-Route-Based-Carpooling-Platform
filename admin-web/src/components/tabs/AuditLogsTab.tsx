@@ -64,6 +64,8 @@ export const AuditLogsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionFilter, setActionFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const fetchLogs = useCallback(async () => {
@@ -74,6 +76,8 @@ export const AuditLogsTab: React.FC = () => {
         page,
         limit: PAGE_SIZE,
         action: actionFilter,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
       });
       setLogs(data.logs);
       setTotal(data.total);
@@ -83,7 +87,7 @@ export const AuditLogsTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, actionFilter]);
+  }, [page, actionFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchLogs();
@@ -92,7 +96,12 @@ export const AuditLogsTab: React.FC = () => {
   // Reset to page 1 when filter changes
   useEffect(() => {
     setPage(1);
-  }, [actionFilter]);
+  }, [actionFilter, startDate, endDate]);
+
+  const handleClearDates = () => {
+    setStartDate('');
+    setEndDate('');
+  };
 
   const meta = (action: string) =>
     ACTION_LABELS[action] ?? { label: action, color: 'text-textMuted', badgeClass: 'badge-gray', Icon: Clock };
@@ -111,19 +120,50 @@ export const AuditLogsTab: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <Filter className="w-4 h-4 text-textMuted" />
-          <select
-            className="select text-xs"
-            value={actionFilter}
-            onChange={(e) => setActionFilter(e.target.value)}
-          >
-            {ALL_ACTIONS.map((a) => (
-              <option key={a} value={a}>
-                {a === 'all' ? 'All Actions' : ACTION_LABELS[a]?.label ?? a}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {/* Action Filter */}
+          <div className="flex items-center gap-1.5">
+            <Filter className="w-4 h-4 text-textMuted" />
+            <select
+              className="select text-xs"
+              value={actionFilter}
+              onChange={(e) => setActionFilter(e.target.value)}
+            >
+              {ALL_ACTIONS.map((a) => (
+                <option key={a} value={a}>
+                  {a === 'all' ? 'All Actions' : ACTION_LABELS[a]?.label ?? a}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date Range Filtering */}
+          <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-xl border border-surface-subtle text-xs">
+            <Clock className="w-3.5 h-3.5 text-textMuted" />
+            <span className="text-[11px] text-textMuted font-medium">From:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent border-0 text-textMain text-xs focus:outline-none"
+            />
+            <span className="text-[11px] text-textMuted font-medium">To:</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent border-0 text-textMain text-xs focus:outline-none"
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={handleClearDates}
+                className="text-[11px] font-semibold text-rose-600 hover:text-rose-800 ml-1 cursor-pointer"
+                title="Clear date range filter"
+              >
+                Clear
+              </button>
+            )}
+          </div>
 
           <button
             onClick={fetchLogs}

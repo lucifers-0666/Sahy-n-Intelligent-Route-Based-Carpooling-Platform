@@ -24,6 +24,8 @@ import {
   Copy,
   Car,
   Filter,
+  Download,
+  Check,
 } from 'lucide-react';
 
 export const UsersTab: React.FC = () => {
@@ -63,6 +65,61 @@ export const UsersTab: React.FC = () => {
       setFeedback({ type: 'success', message: `${label} copied to clipboard.` });
       setTimeout(() => setFeedback(null), 3000);
     }
+  };
+
+  // Bulk selection and CSV export state
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+
+  const toggleSelectUser = (id: string) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllUsers = (targetUsers: UserItem[]) => {
+    if (selectedUserIds.size === targetUsers.length) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(new Set(targetUsers.map((u) => u._id)));
+    }
+  };
+
+  const exportUsersToCsv = (userList: UserItem[], filename = 'sahyan-users-export.csv') => {
+    if (userList.length === 0) return;
+    const headers = ['User ID', 'Full Name', 'Email', 'Phone', 'Role', 'Trust Score', 'Account Status', 'Joined Date'];
+    const rows = userList.map((u) => {
+      const isDriver = u.capabilities?.canDrive || u.driverProfile?.onboardingStatus === 'approved' || !!u.vehicle;
+      const role = isDriver ? 'Driver' : 'Passenger';
+      const status = u.accountStatus === 'suspended' ? 'Suspended' : 'Active';
+      const score = typeof u.rating === 'number' ? u.rating : typeof (u.rating as any)?.average === 'number' ? (u.rating as any).average : 5.0;
+      const date = u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : 'N/A';
+      return [
+        `"${u._id}"`,
+        `"${(u.name || '').replace(/"/g, '""')}"`,
+        `"${(u.email || '').replace(/"/g, '""')}"`,
+        `"${(u.phone || '').replace(/"/g, '""')}"`,
+        `"${role}"`,
+        score,
+        `"${status}"`,
+        `"${date}"`,
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setFeedback({ type: 'success', message: `Exported ${userList.length} accounts to ${filename}.` });
+    setTimeout(() => setFeedback(null), 3500);
   };
 
   const fetchUsers = async () => {
@@ -296,8 +353,48 @@ export const UsersTab: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {/* Export CSV Button */}
+          <button
+            type="button"
+            onClick={() => exportUsersToCsv(users, `sahyan-all-users-${Date.now()}.csv`)}
+            className="flex items-center space-x-1.5 px-3 py-2 text-xs font-bold rounded-xl bg-forest text-white hover:bg-forest-dark transition-colors cursor-pointer shadow-xs shrink-0"
+            title="Export all currently filtered accounts to CSV"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
+
+      {/* Bulk Selection Action Toolbar */}
+      {selectedUserIds.size > 0 && (
+        <div className="bg-forest-dark text-white p-3 rounded-2xl flex items-center justify-between gap-4 shadow-md animate-fade-in">
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="w-2 h-2 rounded-full bg-forest-mint animate-pulse" />
+            <span className="font-bold">{selectedUserIds.size} User Account{selectedUserIds.size > 1 ? 's' : ''} Selected</span>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                const selected = users.filter((u) => selectedUserIds.has(u._id));
+                exportUsersToCsv(selected, `sahyan-selected-users-${Date.now()}.csv`);
+              }}
+              className="px-3 py-1.5 bg-forest-mint text-forest-dark hover:bg-white text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center space-x-1"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export Selected ({selectedUserIds.size})</span>
+            </button>
+            <button
+              onClick={() => setSelectedUserIds(new Set())}
+              className="px-2.5 py-1.5 text-forest-mint hover:text-white text-xs font-semibold cursor-pointer"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Main Table / State View */}
       {loading ? (
@@ -329,6 +426,14 @@ export const UsersTab: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-surface/60 text-textMuted font-bold uppercase tracking-wider text-[11px] border-b border-surface-subtle">
                 <tr>
+                  <th className="py-3.5 px-4 w-10">
+                    <input
+                      type="checkbox"
+                      checked={paginatedUsers.length > 0 && paginatedUsers.every((u) => selectedUserIds.has(u._id))}
+                      onChange={() => toggleSelectAllUsers(paginatedUsers)}
+                      className="rounded border-surface-subtle text-forest focus:ring-forest cursor-pointer"
+                    />
+                  </th>
                   <th className="py-3.5 px-4">Member Name</th>
                   <th className="py-3.5 px-4">Contact Info</th>
                   <th className="py-3.5 px-4">Role & Eligibility</th>
@@ -353,13 +458,22 @@ export const UsersTab: React.FC = () => {
                       : '4.9';
                   const userIdStr = String(u?._id || '');
                   const shortId = userIdStr ? userIdStr.slice(-6) : 'N/A';
+                  const isChecked = selectedUserIds.has(userIdStr);
 
                   return (
                     <tr
                       key={userIdStr || Math.random()}
                       onClick={() => setInspectedUser(u)}
-                      className="hover:bg-surface/50 transition-colors cursor-pointer"
+                      className={`hover:bg-surface/50 transition-colors cursor-pointer ${isChecked ? 'bg-forest-light/30' : ''}`}
                     >
+                      <td className="py-3.5 px-4 w-10" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSelectUser(userIdStr)}
+                          className="rounded border-surface-subtle text-forest focus:ring-forest cursor-pointer"
+                        />
+                      </td>
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-textMain flex items-center space-x-1.5">
                           <span>{u?.name || 'Unnamed Member'}</span>

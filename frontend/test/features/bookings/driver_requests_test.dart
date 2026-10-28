@@ -341,6 +341,12 @@ class MockDriverBookingsRepo implements BookingsRepository {
     bookings[idx] = updated;
     return updated;
   }
+
+  @override
+  Future<bool> verifyBoardingPin(String id, String pin) async {
+    if (shouldFail) throw Exception(failMessage);
+    return pin == '4821';
+  }
 }
 
 RideModel createTestRide({

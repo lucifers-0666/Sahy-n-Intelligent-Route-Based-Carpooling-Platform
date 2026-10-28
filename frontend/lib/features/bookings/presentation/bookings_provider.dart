@@ -181,6 +181,14 @@ class DriverRequestsNotifier
     return updated;
   }
 
+  Future<bool> verifyBoardingPin(String bookingId, String pin) async {
+    final success = await repository.verifyBoardingPin(bookingId, pin);
+    if (success) {
+      await fetchRequestById(bookingId);
+    }
+    return success;
+  }
+
   Future<BookingModel> fetchRequestById(String bookingId) async {
     final fresh = await repository.getBookingById(bookingId);
     if (!mounted) return fresh;

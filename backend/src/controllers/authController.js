@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const otpService = require('../services/otpService');
 const passwordService = require('../services/passwordService');
 const { getJwtSecret, getJwtExpiresIn } = require('../config/jwt');
@@ -634,6 +635,80 @@ const logout = async (req, res, next) => {
   }
 };
 
+/**
+ * POST /api/v1/auth/appeal
+ * Submit reinstatement appeal for suspended or restricted accounts
+ */
+const submitAppeal = async (req, res, next) => {
+  try {
+    const { reason, email, phone } = req.body;
+    if (!reason || String(reason).trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'A detailed appeal reason of at least 5 characters is required.',
+      });
+    }
+
+    let user = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, getJwtSecret());
+        if (decoded && decoded.id) {
+          user = await User.findById(decoded.id);
+        }
+      } catch (_) {
+        // Token might be invalid or expired; fallback to email/phone lookup
+      }
+    }
+
+    if (!user && email) {
+      user = await User.findOne({ email: email.toLowerCase().trim() });
+    }
+    if (!user && phone) {
+      user = await User.findOne({ phone: phone.trim() });
+    }
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User account not found. Please provide registered email or phone.',
+      });
+    }
+
+    if (!user.appeals) user.appeals = [];
+    user.appeals.push({
+      reason: String(reason).trim(),
+      status: 'pending',
+      submittedAt: new Date(),
+    });
+    await user.save();
+
+    await AuditLog.create({
+      action: 'APPEAL_SUBMITTED',
+      targetUser: user._id,
+      reason: String(reason).trim(),
+      metadata: {
+        email: user.email,
+        accountStatus: user.accountStatus,
+        appealsCount: user.appeals.length,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Reinstatement appeal submitted successfully. It has been queued for administrative safety review.',
+      data: {
+        appealIndex: user.appeals.length - 1,
+        status: 'pending',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -646,5 +721,6 @@ module.exports = {
   firebaseSync,
   linkProvider,
   logout,
+  submitAppeal,
 };
 

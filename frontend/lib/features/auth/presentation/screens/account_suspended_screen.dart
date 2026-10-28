@@ -248,6 +248,39 @@ class AccountSuspendedScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            // Submit Appeal action
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0B5D4B),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: const RoundedRectangleBorder(
+                                  side: BorderSide(
+                                    color: Colors.black,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                              onPressed: () {
+                                context.push(
+                                  '/account-appeal',
+                                  extra: {'reason': reason},
+                                );
+                              },
+                              child: const Text(
+                                'SUBMIT REINSTATEMENT APPEAL',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
                             // Sign out action
                             ElevatedButton(
                               style: ElevatedButton.styleFrom(

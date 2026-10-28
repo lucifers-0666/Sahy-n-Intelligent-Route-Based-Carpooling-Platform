@@ -328,11 +328,15 @@ export const adminApi = {
     page?: number;
     limit?: number;
     action?: string;
+    startDate?: string;
+    endDate?: string;
   }): Promise<{ logs: AuditLogItem[]; total: number; totalPages: number; page: number }> {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', String(params.page));
     if (params?.limit) searchParams.set('limit', String(params.limit));
     if (params?.action && params.action !== 'all') searchParams.set('action', params.action);
+    if (params?.startDate) searchParams.set('startDate', params.startDate);
+    if (params?.endDate) searchParams.set('endDate', params.endDate);
 
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
     return requestWithTimeout<{ logs: AuditLogItem[]; total: number; totalPages: number; page: number }>(
@@ -353,6 +357,20 @@ export const adminApi = {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
+    });
+  },
+
+  async broadcastCorridorAlert(data: {
+    corridor?: string;
+    severity?: 'info' | 'warning' | 'emergency';
+    title: string;
+    message: string;
+    targetAudience?: 'all' | 'drivers';
+  }): Promise<{ success: boolean; message: string; data?: any }> {
+    return requestWithTimeout<any>(`${BASE_URL}/admin/corridor-broadcast`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     });
   },
 

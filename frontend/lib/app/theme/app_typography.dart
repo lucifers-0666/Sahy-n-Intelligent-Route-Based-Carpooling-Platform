@@ -42,6 +42,12 @@ abstract class AppTypography {
   /// Standard Heading 3 alias
   static TextStyle get h3 => sectionHeader;
 
+  /// Standard Heading Medium alias (20sp)
+  static TextStyle get headingMedium => sectionHeader;
+
+  /// Standard Heading Small alias (16sp)
+  static TextStyle get headingSmall => cardTitle;
+
   /// Card titles within widgets (16sp, 600 SemiBold)
   static TextStyle get cardTitle => GoogleFonts.plusJakartaSans(
     fontSize: 16,

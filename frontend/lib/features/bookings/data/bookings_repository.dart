@@ -31,6 +31,8 @@ abstract class BookingsRepository {
   Future<BookingModel> acceptBooking(String id);
 
   Future<BookingModel> rejectBooking(String id);
+
+  Future<bool> verifyBoardingPin(String id, String pin);
 }
 
 class BookingsRepositoryImpl implements BookingsRepository {
@@ -166,5 +168,18 @@ class BookingsRepositoryImpl implements BookingsRepository {
     }
 
     throw ApiException('Failed to reject booking. Invalid server response.');
+  }
+
+  @override
+  Future<bool> verifyBoardingPin(String id, String pin) async {
+    final response = await apiClient.post(
+      '/bookings/$id/verify-pin',
+      body: {'pin': pin},
+    );
+
+    if (response is Map<String, dynamic>) {
+      return response['success'] == true;
+    }
+    return false;
   }
 }

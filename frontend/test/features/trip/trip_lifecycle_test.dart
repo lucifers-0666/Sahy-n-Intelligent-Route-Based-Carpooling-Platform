@@ -258,6 +258,9 @@ class MockLifecycleBookingsRepo implements BookingsRepository {
   @override
   Future<BookingModel> rejectBooking(String id) async =>
       bookings.firstWhere((b) => b.id == id);
+
+  @override
+  Future<bool> verifyBoardingPin(String id, String pin) async => pin == '4821';
 }
 
 // Helper factories

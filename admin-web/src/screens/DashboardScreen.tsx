@@ -15,6 +15,7 @@ import { MonetizationTab } from '../components/tabs/MonetizationTab';
 import { AuditLogsTab } from '../components/tabs/AuditLogsTab';
 import { PlatformSettingsTab } from '../components/tabs/PlatformSettingsTab';
 import { SosIncidentModal } from '../components/SosIncidentModal';
+import { CorridorBroadcastModal } from '../components/CorridorBroadcastModal';
 import { AdminStats, SosIncident } from '../types/admin';
 import { adminApi, SOCKET_URL } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -97,6 +98,7 @@ export const DashboardScreen: React.FC = () => {
   const [activeIncident, setActiveIncident] = useState<SosIncident | null>(null);
   const [incidentModalOpen, setIncidentModalOpen] = useState(false);
   const [unreadAlerts, setUnreadAlerts] = useState<SosIncident[]>([]);
+  const [broadcastModalOpen, setBroadcastModalOpen] = useState(false);
 
   const fetchStats = async () => {
     setRefreshing(true);
@@ -253,19 +255,28 @@ export const DashboardScreen: React.FC = () => {
 
         <main className="flex-1 overflow-y-auto p-6 sm:p-8 min-h-0 h-full">
           <div className="max-w-7xl mx-auto space-y-4">
-            {/* Simulation pill for quick reviewer inspection */}
-            {canManageSos && (
-              <div className="flex justify-end">
+            {/* Action buttons bar for quick reviewer inspection & safety broadcast */}
+            <div className="flex items-center justify-end space-x-2">
+              <button
+                onClick={() => setBroadcastModalOpen(true)}
+                className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-forest-light hover:bg-forest text-forest hover:text-white border border-forest/20 text-[11px] font-bold transition-colors cursor-pointer shadow-2xs"
+                title="Broadcast real-time emergency alert across corridors"
+              >
+                <Radio className="w-3 h-3 text-forest animate-pulse" />
+                <span>Corridor Safety Broadcast</span>
+              </button>
+
+              {canManageSos && (
                 <button
                   onClick={triggerMockSos}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition-colors"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition-colors cursor-pointer shadow-2xs"
                   title="Simulate Mobile SOS Trigger"
                 >
                   <Radio className="w-3 h-3 text-rose-600 animate-pulse" />
                   <span>Simulate Real-Time Mobile SOS Dispatch</span>
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
             {activeTab === 'overview' && (
               <OverviewTab
@@ -308,6 +319,13 @@ export const DashboardScreen: React.FC = () => {
           setUnreadAlerts((prev) => prev.filter((a) => a.incidentId !== incidentId));
           fetchStats();
         }}
+      />
+
+      {/* Emergency Corridor Broadcast Dispatcher */}
+      <CorridorBroadcastModal
+        isOpen={broadcastModalOpen}
+        onClose={() => setBroadcastModalOpen(false)}
+        onSuccess={fetchStats}
       />
     </div>
   );

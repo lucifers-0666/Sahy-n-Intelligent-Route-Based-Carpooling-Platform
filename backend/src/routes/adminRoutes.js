@@ -24,6 +24,7 @@ const {
   getFraudRiskSignals,
   getUserAppeals,
   reviewUserAppeal,
+  broadcastCorridorAlert,
 } = require('../controllers/adminController');
 
 // All admin routes require authentication and admin role
@@ -67,6 +68,9 @@ router.post('/audit/unmask-pii', unmaskPii);
 
 // Revenue / monetization stats
 router.get('/revenue-stats', getRevenueStats);
+
+// Emergency Corridor Broadcast
+router.post('/corridor-broadcast', requireRole(['super_admin', 'safety_officer']), broadcastCorridorAlert);
 
 // Platform configuration
 router.get('/config', getPlatformConfig);

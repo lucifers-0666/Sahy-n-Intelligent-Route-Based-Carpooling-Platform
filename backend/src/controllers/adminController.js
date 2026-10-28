@@ -635,10 +635,19 @@ exports.reactivateDriver = async (req, res, next) => {
  */
 exports.getAuditLogs = async (req, res, next) => {
   try {
-    const { page = 1, limit = 50, action, adminId } = req.query;
+    const { page = 1, limit = 50, action, adminId, startDate, endDate } = req.query;
     const filter = {};
     if (action && action !== 'all') filter.action = action;
     if (adminId) filter.admin = adminId;
+    if (startDate || endDate) {
+      filter.createdAt = {};
+      if (startDate) filter.createdAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = end;
+      }
+    }
 
     const total = await AuditLog.countDocuments(filter);
     const logs = await AuditLog.find(filter)
@@ -1290,6 +1299,73 @@ exports.reviewUserAppeal = async (req, res, next) => {
       success: true,
       message: `User appeal ${action}d successfully.`,
       data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc Broadcast safety alert / emergency message across corridors
+ * @route POST /api/v1/admin/corridor-broadcast
+ * @access Private (Admin only)
+ */
+exports.broadcastCorridorAlert = async (req, res, next) => {
+  try {
+    const { corridor, severity = 'warning', title, message, targetAudience = 'all' } = req.body;
+    const adminId = req.user._id || req.user.id;
+
+    if (!title || !message) {
+      return res.status(400).json({ success: false, message: 'Title and message are required for broadcast.' });
+    }
+
+    let userQuery = { isActive: true };
+    if (targetAudience === 'drivers') {
+      userQuery = { ...userQuery, 'driverProfile.onboardingStatus': 'approved' };
+    }
+
+    const targetUsers = await User.find(userQuery).select('_id name');
+
+    const notifications = targetUsers.map((u) => ({
+      user: u._id,
+      title: `[CORRIDOR ALERT] ${title}`,
+      message,
+      category: 'safety',
+      routeTarget: '/safety-center',
+    }));
+
+    if (notifications.length > 0) {
+      await Notification.insertMany(notifications, { ordered: false });
+    }
+
+    await AuditLog.create({
+      action: 'CONFIG_UPDATED',
+      actorRole: 'admin',
+      admin: adminId,
+      reason: `Emergency Corridor Broadcast: "${title}" sent to ${targetUsers.length} users (${corridor || 'All Corridors'})`,
+    });
+
+    if (socketService.broadcastToAdmins) {
+      socketService.broadcastToAdmins('corridor_emergency_broadcast', {
+        corridor,
+        severity,
+        title,
+        message,
+        targetAudience,
+        recipientCount: targetUsers.length,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Emergency broadcast successfully dispatched to ${targetUsers.length} recipients.`,
+      data: {
+        recipientCount: targetUsers.length,
+        corridor: corridor || 'All Corridors',
+        severity,
+        dispatchedAt: new Date(),
+      },
     });
   } catch (error) {
     next(error);

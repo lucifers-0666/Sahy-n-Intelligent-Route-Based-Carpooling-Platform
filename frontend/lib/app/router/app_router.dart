@@ -21,6 +21,7 @@ import 'package:sahyan/features/bookings/presentation/screens/my_bookings_screen
 import 'package:sahyan/features/bookings/presentation/screens/booking_details_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/driver_rides_screen.dart';
 import 'package:sahyan/features/bookings/presentation/screens/driver_request_details_screen.dart';
+import 'package:sahyan/features/bookings/presentation/screens/trip_receipt_screen.dart';
 import 'package:sahyan/features/bookings/domain/booking_model.dart';
 import 'package:sahyan/shared/models/ride_model.dart';
 import 'package:sahyan/features/profile/presentation/screens/profile_screen.dart';
@@ -63,6 +64,7 @@ import 'package:sahyan/features/home/presentation/screens/system_states_screen.d
 import 'package:sahyan/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/welcome_back_screen.dart';
 import 'package:sahyan/features/auth/presentation/screens/account_suspended_screen.dart';
+import 'package:sahyan/features/auth/presentation/screens/appeal_submission_screen.dart';
 import 'package:sahyan/features/trip/presentation/screens/gps_diagnostic_screen.dart';
 import 'package:sahyan/features/profile/presentation/screens/privacy_permissions_screen.dart';
 import 'package:sahyan/shared/widgets/app_shell.dart';
@@ -136,6 +138,18 @@ final appRouter = GoRouter(
             'Account suspended by administration.';
         final suspendedAt = extra?['suspendedAt'] as String?;
         return AccountSuspendedScreen(reason: reason, suspendedAt: suspendedAt);
+      },
+    ),
+    GoRoute(
+      path: '/account-appeal',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+        final reason = extra?['reason'] as String?;
+        final email = extra?['email'] as String?;
+        return AppealSubmissionScreen(
+          initialReason: reason,
+          initialEmail: email,
+        );
       },
     ),
     GoRoute(
@@ -358,6 +372,17 @@ final appRouter = GoRouter(
           return JourneyCompletedScreen(ride: state.extra as RideModel);
         }
         return const JourneyCompletedScreen();
+      },
+    ),
+    GoRoute(
+      path: '/trip-receipt',
+      builder: (context, state) {
+        if (state.extra is BookingModel) {
+          return TripReceiptScreen(booking: state.extra as BookingModel);
+        } else if (state.extra is RideModel) {
+          return TripReceiptScreen(ride: state.extra as RideModel);
+        }
+        return const TripReceiptScreen();
       },
     ),
     GoRoute(
