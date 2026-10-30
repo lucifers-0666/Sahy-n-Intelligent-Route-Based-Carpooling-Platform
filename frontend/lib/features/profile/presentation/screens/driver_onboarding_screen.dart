@@ -10,6 +10,7 @@ import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/profile/presentation/profile_provider.dart';
 import 'package:sahyan/features/vehicles/presentation/vehicle_provider.dart';
 import 'package:sahyan/features/profile/presentation/widgets/avatar_selection_sheet.dart';
+import 'package:sahyan/core/utils/profile_image_helper.dart';
 import 'package:sahyan/shared/models/user_model.dart';
 
 class DriverOnboardingScreen extends ConsumerStatefulWidget {
@@ -330,9 +331,11 @@ class _DriverOnboardingScreenState
                     CircleAvatar(
                       radius: 26,
                       backgroundColor: AppColors.softForest,
-                      backgroundImage: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
-                          ? NetworkImage(user.profilePhoto!)
-                          : null,
+                      backgroundImage: getProfileImageProvider(user.profilePhoto),
+                      onBackgroundImageError:
+                          (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
+                              ? (exception, stackTrace) {}
+                              : null,
                       child: (user.profilePhoto == null || user.profilePhoto!.isEmpty)
                           ? const Icon(Icons.person_rounded, size: 26, color: AppColors.primaryForest)
                           : null,

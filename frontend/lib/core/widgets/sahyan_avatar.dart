@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_typography.dart';
+import '../utils/profile_image_helper.dart';
 
 /// Standardized Sahyān User Avatar component.
-/// Delivers clean circular profile avatars with initials fallback and optional verified indicator.
+/// Delivers clean circular profile avatars with initials fallback,
+/// supports both Base64 Data URIs (local cropped uploads) and Network URLs,
+/// and includes an optional verified indicator.
 class SahyanAvatar extends StatelessWidget {
   final String? imageUrl;
   final String? name;
   final double radius;
   final bool isVerified;
   final VoidCallback? onTap;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+  final Color? borderColor;
+  final double borderWidth;
 
   const SahyanAvatar({
     super.key,
@@ -18,6 +25,10 @@ class SahyanAvatar extends StatelessWidget {
     this.radius = 24.0,
     this.isVerified = false,
     this.onTap,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.borderColor,
+    this.borderWidth = 1.5,
   });
 
   String get _initials {
@@ -31,35 +42,45 @@ class SahyanAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = getProfileImageProvider(imageUrl);
+    final hasImage = imageProvider != null;
+
+    final bgColor = backgroundColor ?? AppColors.softForest;
+    final fgColor = foregroundColor ?? AppColors.primaryForest;
+
     Widget avatar = CircleAvatar(
       radius: radius,
-      backgroundColor: AppColors.softForest,
-      backgroundImage: imageUrl != null && imageUrl!.isNotEmpty
-          ? NetworkImage(imageUrl!)
-          : null,
-      child: (imageUrl == null || imageUrl!.isEmpty)
+      backgroundColor: bgColor,
+      backgroundImage: imageProvider,
+      onBackgroundImageError: hasImage ? (exception, stackTrace) {} : null,
+      child: !hasImage
           ? Text(
               _initials.isNotEmpty ? _initials : '',
               style: AppTypography.caption.copyWith(
                 fontSize: radius * 0.75,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primaryForest,
+                fontWeight: FontWeight.w800,
+                color: fgColor,
+                fontFamily: 'Plus Jakarta Sans',
               ),
             )
           : null,
     );
 
+    if (borderColor != null) {
+      avatar = Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: borderColor!, width: borderWidth),
+        ),
+        child: avatar,
+      );
+    }
+
     if (isVerified) {
       avatar = Stack(
         clipBehavior: Clip.none,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.mutedBrass, width: 1.5),
-            ),
-            child: avatar,
-          ),
+          avatar,
           Positioned(
             right: -2,
             bottom: -2,
@@ -69,10 +90,10 @@ class SahyanAvatar extends StatelessWidget {
                 color: AppColors.white,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.verified,
-                size: 14,
-                color: AppColors.mutedBrass,
+                size: (radius * 0.65).clamp(12.0, 18.0),
+                color: AppColors.deepEmerald,
               ),
             ),
           ),
@@ -81,7 +102,11 @@ class SahyanAvatar extends StatelessWidget {
     }
 
     if (onTap != null) {
-      return GestureDetector(onTap: onTap, child: avatar);
+      return GestureDetector(
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: avatar,
+      );
     }
     return avatar;
   }

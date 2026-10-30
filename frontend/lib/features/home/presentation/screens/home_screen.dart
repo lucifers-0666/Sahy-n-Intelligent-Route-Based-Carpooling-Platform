@@ -21,6 +21,7 @@ import '../../../../shared/widgets/location_map_picker_sheet.dart';
 import '../../../../app/providers/user_mode_provider.dart';
 import '../widgets/hero_search_card.dart';
 import '../../../../core/localization/l10n_extension.dart';
+import '../../../../core/widgets/sahyan_avatar.dart';
 
 /// Single-Screen Hybrid UI/UX Redesigned Home Screen for Sahyān.
 /// Blends modern smartphone-native mobility ergonomics (JoyRide-inspired clarity)
@@ -810,51 +811,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         const SizedBox(width: 10),
 
                         // User Avatar with Verified Badge
-                        GestureDetector(
+                        SahyanAvatar(
+                          imageUrl: user?.profilePhoto,
+                          name: displayName,
+                          radius: 21,
+                          isVerified: user?.isVerified ?? false,
+                          backgroundColor: AppColors.primaryLight,
+                          foregroundColor: AppColors.deepEmerald,
+                          borderColor: AppColors.softMint,
+                          borderWidth: 1.5,
                           onTap: () => context.push('/profile'),
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryLight,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.softMint,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  displayName.substring(0, 1).toUpperCase(),
-                                  style: const TextStyle(
-                                    fontFamily: 'Plus Jakarta Sans',
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.deepEmerald,
-                                  ),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: -2,
-                                right: -2,
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.white,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(
-                                    Icons.verified_rounded,
-                                    size: 14,
-                                    color: AppColors.deepEmerald,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                       ],
                     ),

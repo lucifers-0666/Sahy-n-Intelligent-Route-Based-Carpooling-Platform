@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:sahyan/app/theme/app_colors.dart';
 import 'package:sahyan/app/theme/app_typography.dart';
+import 'package:sahyan/core/utils/profile_image_helper.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
+import 'avatar_crop_dialog.dart';
 
 class PresetAvatar {
   final String id;
@@ -53,23 +56,17 @@ class AvatarSelectionSheet extends StatefulWidget {
 class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  late final TextEditingController _customUrlController;
   String? _selectedUrl;
+  bool _isPicking = false;
 
   late final List<PresetAvatar> _presetAvatars;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _selectedUrl = widget.initialAvatarUrl;
-    _customUrlController = TextEditingController(
-      text: (widget.initialAvatarUrl != null &&
-              !widget.initialAvatarUrl!.contains('dicebear.com') &&
-              !widget.initialAvatarUrl!.contains('ui-avatars.com'))
-          ? widget.initialAvatarUrl
-          : '',
-    );
 
     final safeName = Uri.encodeComponent(
       widget.userName.isNotEmpty ? widget.userName : 'Member',
@@ -145,12 +142,59 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
   @override
   void dispose() {
     _tabController.dispose();
-    _customUrlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    if (_isPicking) return;
+    setState(() => _isPicking = true);
+
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 95,
+      );
+
+      if (pickedFile == null) {
+        if (mounted) setState(() => _isPicking = false);
+        return;
+      }
+
+      final bytes = await pickedFile.readAsBytes();
+      if (!mounted) return;
+      setState(() => _isPicking = false);
+
+      final croppedUri = await AvatarCropDialog.show(
+        context,
+        imageBytes: bytes,
+        userName: widget.userName,
+      );
+
+      if (croppedUri != null && mounted) {
+        setState(() {
+          _selectedUrl = croppedUri;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isPicking = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not access image: $e'),
+            backgroundColor: AppColors.mutedRust,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final imageProvider = getProfileImageProvider(_selectedUrl);
+    final hasImage = imageProvider != null;
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -160,7 +204,7 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
         bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -193,7 +237,7 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Select a default avatar or enter custom photo URL',
+                      'Select a preset avatar or upload photo from device',
                       style: AppTypography.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -223,11 +267,10 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
                   CircleAvatar(
                     radius: 28,
                     backgroundColor: AppColors.softForest,
-                    backgroundImage: (_selectedUrl != null &&
-                            _selectedUrl!.isNotEmpty)
-                        ? NetworkImage(_selectedUrl!)
-                        : null,
-                    child: (_selectedUrl == null || _selectedUrl!.isEmpty)
+                    backgroundImage: imageProvider,
+                    onBackgroundImageError:
+                        hasImage ? (exception, stackTrace) {} : null,
+                    child: !hasImage
                         ? const Icon(
                             Icons.person_rounded,
                             size: 28,
@@ -249,8 +292,10 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          _selectedUrl != null && _selectedUrl!.isNotEmpty
-                              ? 'Active preview ready to apply'
+                          hasImage
+                              ? (_selectedUrl!.startsWith('data:image')
+                                  ? 'Custom cropped photo ready to save'
+                                  : 'Preset avatar ready to apply')
                               : 'Default initials avatar',
                           style: AppTypography.caption.copyWith(
                             color: AppColors.textSecondary,
@@ -260,12 +305,11 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
                       ],
                     ),
                   ),
-                  if (_selectedUrl != null && _selectedUrl!.isNotEmpty)
+                  if (hasImage)
                     TextButton(
                       onPressed: () {
                         setState(() {
                           _selectedUrl = '';
-                          _customUrlController.clear();
                         });
                       },
                       child: Text(
@@ -296,8 +340,8 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
                 text: 'Preset Avatars',
               ),
               Tab(
-                icon: Icon(Icons.link_rounded, size: 20),
-                text: 'Custom Photo URL',
+                icon: Icon(Icons.photo_library_outlined, size: 20),
+                text: 'Upload / Storage',
               ),
             ],
           ),
@@ -350,6 +394,7 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
                               radius: 26,
                               backgroundColor: AppColors.softForest,
                               backgroundImage: NetworkImage(preset.url),
+                              onBackgroundImageError: (exception, stackTrace) {},
                             ),
                             const SizedBox(height: 6),
                             Text(
@@ -374,75 +419,73 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
                   },
                 ),
 
-                // 2. Custom Photo URL Input with real-time preview
-                Padding(
+                // 2. Upload from Local / Device Storage (Gallery & Camera)
+                SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Direct Image URL',
-                        style: AppTypography.caption.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
+                      // Upload Option 1: Gallery / Storage
+                      _buildUploadActionCard(
+                        icon: Icons.photo_library_rounded,
+                        title: 'Choose from Gallery / Files',
+                        subtitle: 'Select an image stored on your phone or SD card',
+                        onTap: () => _pickImage(ImageSource.gallery),
                       ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _customUrlController,
-                        keyboardType: TextInputType.url,
-                        decoration: InputDecoration(
-                          hintText: 'https://example.com/avatar.jpg',
-                          hintStyle: AppTypography.secondary.copyWith(
-                            color: AppColors.mutedSage,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.link_rounded,
-                            color: AppColors.primaryForest,
-                            size: 20,
-                          ),
-                          suffixIcon: _customUrlController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, size: 18),
-                                  onPressed: () {
-                                    _customUrlController.clear();
-                                    setState(() {
-                                      _selectedUrl = '';
-                                    });
-                                  },
-                                )
-                              : null,
-                          filled: true,
-                          fillColor: AppColors.cardBackground,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: AppColors.border),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: AppColors.border),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(
-                              color: AppColors.primaryForest,
-                              width: 1.5,
-                            ),
-                          ),
-                        ),
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedUrl = val.trim();
-                          });
-                        },
-                      ),
+
                       const SizedBox(height: 12),
-                      Text(
-                        'Supports JPG, PNG, WebP, or SVG image URLs hosted on Cloudinary, Imgur, Gravatar, Unsplash, or public CDNs.',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
-                          height: 1.4,
+
+                      // Upload Option 2: Camera
+                      _buildUploadActionCard(
+                        icon: Icons.camera_alt_rounded,
+                        title: 'Take Photo with Camera',
+                        subtitle: 'Snap an instant picture and crop to square/circle',
+                        onTap: () => _pickImage(ImageSource.camera),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Info banner about crop & local storage
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.warmBackground,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.crop_rotate_rounded,
+                              size: 18,
+                              color: AppColors.primaryForest,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Built-In Crop & Scale Tools',
+                                    style: AppTypography.caption.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.deepEmerald,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'After choosing a photo, you can rotate, pinch to zoom, pan, and choose between standard (300px) or high-res (600px) square/circular avatar formats.',
+                                    style: AppTypography.caption.copyWith(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -466,5 +509,70 @@ class _AvatarSelectionSheetState extends State<AvatarSelectionSheet>
       ),
     );
   }
-}
 
+  Widget _buildUploadActionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: _isPicking ? null : onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 1.2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.deepEmerald,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: AppTypography.caption.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textSecondary,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

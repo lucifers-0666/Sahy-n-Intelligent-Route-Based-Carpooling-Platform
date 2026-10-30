@@ -7,6 +7,7 @@ import 'package:sahyan/core/widgets/primary_button.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/profile/presentation/profile_provider.dart';
 import 'package:sahyan/features/profile/presentation/widgets/avatar_selection_sheet.dart';
+import 'package:sahyan/core/utils/profile_image_helper.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -136,9 +137,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               CircleAvatar(
                                 radius: 48,
                                 backgroundColor: AppColors.softForest,
-                                backgroundImage: (_profilePhotoUrl != null &&
+                                backgroundImage:
+                                    getProfileImageProvider(_profilePhotoUrl),
+                                onBackgroundImageError: (_profilePhotoUrl != null &&
                                         _profilePhotoUrl!.isNotEmpty)
-                                    ? NetworkImage(_profilePhotoUrl!)
+                                    ? (exception, stackTrace) {}
                                     : null,
                                 child: (_profilePhotoUrl != null &&
                                         _profilePhotoUrl!.isNotEmpty)

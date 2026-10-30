@@ -45,12 +45,13 @@ app.use(
 
 app.use(
   express.json({
+    limit: '10mb',
     verify: (req, res, buf) => {
       req.rawBody = buf;
     },
   })
 );
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Health Check Endpoints
 const healthHandler = (req, res) => {

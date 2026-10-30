@@ -12,6 +12,7 @@ import '../../../../core/widgets/sahyan_card.dart';
 import '../../../../core/widgets/sahyan_text_field.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../profile_provider.dart';
+import '../widgets/avatar_selection_sheet.dart';
 
 class PersonalDetailsScreen extends ConsumerStatefulWidget {
   const PersonalDetailsScreen({super.key});
@@ -27,6 +28,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
   late final TextEditingController _cityController;
   late final TextEditingController _emailController;
   late final TextEditingController _bioController;
+  String? _profilePhoto;
   int _bioLength = 0;
   bool _isSaving = false;
 
@@ -34,6 +36,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
   void initState() {
     super.initState();
     final user = ref.read(authProvider).user;
+    _profilePhoto = user?.profilePhoto;
     _nameController = TextEditingController(text: user?.name ?? '');
     _cityController = TextEditingController(text: user?.city ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
@@ -67,6 +70,7 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
         .updateProfile(
           name: _nameController.text.trim(),
           city: _cityController.text.trim(),
+          profilePhoto: _profilePhoto,
           bio: _bioController.text.trim(),
         );
 
@@ -169,50 +173,69 @@ class _PersonalDetailsScreenState extends ConsumerState<PersonalDetailsScreen> {
                 Center(
                   child: Column(
                     children: [
-                      Stack(
-                        alignment: Alignment.bottomRight,
-                        children: [
-                          SahyanAvatar(
-                            name: _nameController.text.isNotEmpty
-                                ? _nameController.text
-                                : 'Carpool User',
-                            radius: 44,
-                            isVerified: true,
-                          ),
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryForest,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.white,
-                                width: 2,
-                              ),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Color.fromRGBO(0, 0, 0, 0.15),
-                                  blurRadius: 4,
+                      GestureDetector(
+                        onTap: () async {
+                          final chosen = await AvatarSelectionSheet.show(
+                            context,
+                            currentUrl: _profilePhoto ?? user?.profilePhoto,
+                            userName: _nameController.text.trim(),
+                          );
+                          if (chosen != null && mounted) {
+                            setState(() {
+                              _profilePhoto = chosen;
+                            });
+                          }
+                        },
+                        child: Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            SahyanAvatar(
+                              imageUrl: _profilePhoto ?? user?.profilePhoto,
+                              name: _nameController.text.isNotEmpty
+                                  ? _nameController.text
+                                  : 'Carpool User',
+                              radius: 44,
+                              isVerified: true,
+                            ),
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryForest,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.white,
+                                  width: 2,
                                 ),
-                              ],
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color.fromRGBO(0, 0, 0, 0.15),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: AppColors.white,
+                                size: 16,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.camera_alt_rounded,
-                              color: AppColors.white,
-                              size: 16,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.sm),
                       TextButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Avatar upload ready for photo'),
-                              backgroundColor: AppColors.primaryForest,
-                            ),
+                        onPressed: () async {
+                          final chosen = await AvatarSelectionSheet.show(
+                            context,
+                            currentUrl: _profilePhoto ?? user?.profilePhoto,
+                            userName: _nameController.text.trim(),
                           );
+                          if (chosen != null && mounted) {
+                            setState(() {
+                              _profilePhoto = chosen;
+                            });
+                          }
                         },
                         icon: const Icon(
                           Icons.add_photo_alternate_outlined,

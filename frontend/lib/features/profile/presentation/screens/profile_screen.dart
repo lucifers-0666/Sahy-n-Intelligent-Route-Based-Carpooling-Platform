@@ -8,6 +8,7 @@ import 'package:sahyan/app/theme/app_typography.dart';
 import 'package:sahyan/core/widgets/verification_badge.dart';
 import 'package:sahyan/core/widgets/rating_display.dart';
 import 'package:sahyan/core/widgets/primary_button.dart';
+import 'package:sahyan/core/utils/profile_image_helper.dart';
 import 'package:sahyan/features/auth/presentation/auth_provider.dart';
 import 'package:sahyan/features/profile/presentation/profile_provider.dart';
 import 'package:sahyan/shared/models/user_model.dart';
@@ -126,9 +127,11 @@ class ProfileScreen extends ConsumerWidget {
                                   CircleAvatar(
                                     radius: 38,
                                     backgroundColor: AppColors.softForest,
-                                    backgroundImage: (user.profilePhoto != null &&
+                                    backgroundImage:
+                                        getProfileImageProvider(user.profilePhoto),
+                                    onBackgroundImageError: (user.profilePhoto != null &&
                                             user.profilePhoto!.isNotEmpty)
-                                        ? NetworkImage(user.profilePhoto!)
+                                        ? (exception, stackTrace) {}
                                         : null,
                                     child: (user.profilePhoto != null &&
                                             user.profilePhoto!.isNotEmpty)
